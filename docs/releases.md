@@ -56,6 +56,11 @@ if needed; no system-wide security setting needs to be disabled.
 
 ## Publish A Version
 
+Create and push a version tag only when the maintainer explicitly requests
+a desktop release or names the tag to publish. Routine fixes, commits, pushes,
+and website updates do not authorize a version bump, release tag, or manual
+desktop build in GitHub Actions. Accumulate changes until a release is requested.
+
 1. Set the version in `desktop/package.json`.
 2. Add user-facing release notes in `docs/release-notes/<version>.md`.
 3. Commit and push the source, including the lockfile and release configuration.
