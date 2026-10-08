@@ -30,3 +30,30 @@ jobs:
           GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
           RELEASES_REPOSITORY: ${{ vars.RELEASES_REPOSITORY || 'voidrinz/skill-shelf-releases' }}
         run: gh api --method POST "repos/$RELEASES_REPOSITORY/dispatches" --input dispatch.json
+
+  refresh-website:
+    needs: dispatch
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    permissions:
+      actions: write
+    steps:
+      - name: Wait for the published installers
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+          RELEASES_REPOSITORY: ${{ vars.RELEASES_REPOSITORY || 'voidrinz/skill-shelf-releases' }}
+          SOURCE_TAG: ${{ github.ref_name }}
+        run: |
+          for attempt in {1..40}; do
+            if gh api "repos/$RELEASES_REPOSITORY/releases/tags/$SOURCE_TAG" --jq 'select(.draft == false and .prerelease == false) | [.assets[] | select(.name | endswith(".dmg"))] | length' | grep -qx '2'; then
+              exit 0
+            fi
+            sleep 30
+          done
+          echo 'Installers were not published in time. Rerun this job after the release succeeds.' >&2
+          exit 1
+      - name: Refresh website downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+        run: gh workflow run website.yml --repo "$SOURCE_REPOSITORY" --ref main

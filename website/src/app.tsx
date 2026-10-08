@@ -1,9 +1,9 @@
 import {
   ArrowDown,
-  ArrowRight,
   ArrowUpRight,
   Check,
   ChevronRight,
+  Download,
   FileCode2,
   Folder,
   FolderTree,
@@ -26,6 +26,7 @@ import {
 import { useEffect, useState, type KeyboardEvent } from 'react'
 import { useI18n } from '@skill-shelf/i18n/react'
 import { Brand } from '../../packages/ui/src/brand'
+import { macDownloads } from './downloads'
 
 const features = [
   ['diagnose', ScanSearch],
@@ -149,9 +150,12 @@ export function App() {
             >
               {isDark ? <Sun size={17} /> : <Moon size={17} />}
             </button>
-            <a className="button button-small nav-cta" href="#workspace">
-              {t('website.nav.explore')}
-              <ArrowDown size={13} />
+            <a
+              className="button button-small nav-cta"
+              href={macDownloads.arm64}
+            >
+              {t('website.download.appleSilicon')}
+              <Download size={13} />
             </a>
             <button
               className="icon-button menu-toggle"
@@ -180,21 +184,7 @@ export function App() {
               <span>{t('website.hero.line2')}</span>
             </h1>
             <p className="lede">{t('website.hero.description')}</p>
-            <div className="hero-actions">
-              <a className="button" href="#workspace">
-                {t('website.hero.seeCapabilities')}
-                <ArrowRight size={16} />
-              </a>
-              <a
-                className="button button-ghost"
-                href="https://skills.sh"
-                rel="noreferrer"
-                target="_blank"
-              >
-                {t('website.hero.browse')}
-                <ArrowUpRight size={16} />
-              </a>
-            </div>
+            <DownloadActions />
             <p className="hero-meta">
               {t('website.hero.localOnly')}
               <span>·</span>
@@ -327,14 +317,11 @@ export function App() {
           </div>
         </section>
 
-        <section className="closing-section">
+        <section className="closing-section" id="download">
           <Brand compact />
           <h2>{t('website.closing.title')}</h2>
           <p>{t('website.closing.description')}</p>
-          <a className="button" href="#workspace">
-            {t('website.hero.seeCapabilities')}
-            <ArrowRight size={16} />
-          </a>
+          <DownloadActions />
         </section>
       </main>
 
@@ -349,6 +336,25 @@ export function App() {
         </a>
       </footer>
     </>
+  )
+}
+
+function DownloadActions() {
+  const { t } = useI18n()
+  return (
+    <div className="download-actions">
+      <div className="hero-actions">
+        <a className="button" href={macDownloads.arm64}>
+          <Download size={16} />
+          {t('website.download.appleSilicon')}
+        </a>
+        <a className="button button-ghost" href={macDownloads.x64}>
+          <Download size={16} />
+          {t('website.download.intel')}
+        </a>
+      </div>
+      <p className="download-caption">{t('website.download.chips')}</p>
+    </div>
   )
 }
 

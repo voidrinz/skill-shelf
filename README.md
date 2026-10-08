@@ -68,6 +68,13 @@ pnpm build
 
 For commit titles and descriptions, see [the commit convention](docs/commits.md).
 
+## Website
+
+Visit <https://voidrinz.github.io/skill-shelf/> for the product overview and
+direct Apple Silicon/Intel Mac downloads. The website deploys through GitHub
+Pages independently from desktop packaging. See [the website deployment
+guide](docs/website.md) for deployment triggers and download-link updates.
+
 ## Menu Bar And System Tray
 
 Skill Shelf keeps running when its main window is closed. Click the menu bar

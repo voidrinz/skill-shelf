@@ -7,6 +7,7 @@
     "build": "vite build",
     "dev": "vite --port 17130 --strictPort --open",
     "preview": "vite preview",
+    "test": "node --test scripts/*.test.mjs",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {

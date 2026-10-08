@@ -1,0 +1,76 @@
+name: Deploy Website
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'website/**'
+      - 'packages/ui/**'
+      - 'packages/i18n/**'
+      - 'package.json'
+      - 'pnpm-lock.yaml'
+      - 'pnpm-workspace.yaml'
+      - 'tsconfig.base.json'
+      - '.github/workflows/website.yml'
+  workflow_dispatch:
+  schedule:
+    - cron: '23 1 * * *'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: github-pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      pages: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+          cache: pnpm
+      - name: Configure Pages
+        id: pages
+        uses: actions/configure-pages@v5
+      - name: Install website dependencies
+        run: pnpm install --frozen-lockfile --filter @skill-shelf/website...
+      - name: Check website and translations
+        run: |
+          pnpm --filter @skill-shelf/website typecheck
+          pnpm --filter @skill-shelf/i18n typecheck
+          pnpm --filter @skill-shelf/i18n test
+          node --test website/scripts/prepare-downloads.test.mjs
+      - name: Resolve latest Mac downloads
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: gh api repos/voidrinz/skill-shelf-releases/releases/latest | node website/scripts/prepare-downloads.mjs
+      - name: Build website
+        env:
+          PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+        run: pnpm --filter @skill-shelf/website build --base "${PAGES_BASE_PATH}/"
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: website/dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    permissions:
+      pages: write
+      id-token: write
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - name: Deploy to GitHub Pages
+        id: deployment
+        uses: actions/deploy-pages@v4

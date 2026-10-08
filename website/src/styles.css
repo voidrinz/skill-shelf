@@ -260,6 +260,16 @@ h1 > span {
   font-size: 11px;
   line-height: 1.7;
 }
+.download-caption {
+  margin: 10px 0 0;
+  color: var(--site-muted);
+  font-size: 11px;
+  line-height: 1.7;
+}
+.closing-section .hero-actions {
+  justify-content: center;
+  margin-top: 0;
+}
 .hero-preview {
   min-width: 0;
   animation: enter 550ms ease-out 80ms both;
