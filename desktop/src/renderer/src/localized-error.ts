@@ -40,11 +40,7 @@ export function getLocalizedErrorMessage(error: unknown, t: Translate) {
     return t('desktop.errors.aiNetwork')
   }
   if (message.includes('DeepSeek provider request failed')) {
-    return t('desktop.errors.aiRequestFailed', {
-      message:
-        message.replace(/^DeepSeek provider request failed:\s*/, '') ||
-        t('desktop.errors.aiProviderUnavailable'),
-    })
+    return t('desktop.errors.aiRequestFailed')
   }
   if (
     message.includes('Invalid AI provider URL') ||
@@ -56,9 +52,7 @@ export function getLocalizedErrorMessage(error: unknown, t: Translate) {
     return t('desktop.errors.aiResponse')
   }
   if (message.includes('AI provider request failed')) {
-    return t('desktop.errors.aiRequestFailed', {
-      message: message.replace(/^AI provider request failed[^:]*:\s*/, ''),
-    })
+    return t('desktop.errors.aiRequestFailed')
   }
   if (
     message.includes('description is required') ||
@@ -112,7 +106,5 @@ export function getLocalizedErrorMessage(error: unknown, t: Translate) {
     return t('desktop.errors.marketplaceAudit')
   }
   if (message.includes('Invalid')) return t('desktop.errors.invalidInput')
-  return message
-    ? t('desktop.errors.operationFailed', { message })
-    : t('desktop.errors.default')
+  return t('desktop.errors.default')
 }

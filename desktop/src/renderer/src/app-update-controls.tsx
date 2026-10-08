@@ -87,11 +87,6 @@ export function AppUpdateControls() {
       <span className="app-update-status" role="status">
         {description}
       </span>
-      {state?.installMode === 'manual' && state.status !== 'disabled' ? (
-        <span className="app-update-status">
-          {t('desktop.appUpdate.manualHint')}
-        </span>
-      ) : null}
       {state?.status === 'downloading' ? (
         <progress
           aria-label={t('desktop.appUpdate.progress')}

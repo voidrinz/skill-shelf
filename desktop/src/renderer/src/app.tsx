@@ -7475,15 +7475,6 @@ function AgentCoverageCard({
           <p>{t('desktop.workbench.coverage.emptyDescription')}</p>
         </div>
       )}
-      <footer className="coverage-source">
-        <span>{t('desktop.workbench.coverage.registry')}</span>
-        <code>
-          skills CLI v{snapshot.registry.cliVersion} ·{' '}
-          {t('desktop.workbench.coverage.supported', {
-            count: snapshot.registry.agentCount,
-          })}
-        </code>
-      </footer>
     </section>
   )
 }
@@ -7688,7 +7679,7 @@ function SettingsWorkspace({
             settings={aiSettings}
           />
         ) : (
-          <AboutSettings catalog={catalog} runtime={runtime} />
+          <AboutSettings runtime={runtime} />
         )}
       </div>
     </section>
@@ -8014,12 +8005,6 @@ function SkillsSettings({
       title={t('desktop.settings.skillsCli')}
     >
       <SettingsSection title={t('desktop.settings.officialCli')}>
-        <SettingsRow
-          description={t('desktop.settings.cliDescription')}
-          label="skills CLI"
-        >
-          <code className="setting-value">v{catalog?.cliVersion ?? '…'}</code>
-        </SettingsRow>
         <SettingsRow
           description={t('desktop.settings.detectedDescription', {
             count: catalog?.skills.length ?? 0,
@@ -8999,13 +8984,7 @@ function AiBehaviorSettingsPage({
   )
 }
 
-function AboutSettings({
-  catalog,
-  runtime,
-}: {
-  catalog: CatalogSnapshot | null
-  runtime: DesktopRuntimeInfo | null
-}) {
+function AboutSettings({ runtime }: { runtime: DesktopRuntimeInfo | null }) {
   const { t } = useI18n()
   return (
     <SettingsPage title={t('desktop.settings.about')}>
@@ -9019,25 +8998,7 @@ function AboutSettings({
         </div>
         <code>{runtime ? `v${runtime.appVersion}` : '…'}</code>
       </div>
-      <SettingsSection title={t('desktop.about.buildInfo')}>
-        <SettingsRow
-          description={
-            runtime
-              ? `${runtime.platform} · ${runtime.arch}`
-              : t('desktop.about.loadingRuntime')
-          }
-          label={t('desktop.about.application')}
-        >
-          <span className="setting-value">
-            {runtime ? `v${runtime.appVersion}` : '…'}
-          </span>
-        </SettingsRow>
-        <SettingsRow
-          description={t('desktop.about.cliDescription')}
-          label="skills CLI"
-        >
-          <span className="setting-value">v{catalog?.cliVersion ?? '…'}</span>
-        </SettingsRow>
+      <SettingsSection title={t('desktop.about.updates')}>
         <SettingsRow
           description={t('desktop.about.updatesDescription')}
           label={t('desktop.about.updates')}

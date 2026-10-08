@@ -16,18 +16,12 @@ export const messages = {
   'count.skill.one': '{count} skill',
   'count.skill.other': '{count} skills',
   'desktop.about.appDescription': 'Discover, organize, and manage your Skills.',
-  'desktop.about.application': 'Application',
-  'desktop.about.buildInfo': 'Version information',
-  'desktop.about.cliDescription': 'Used to install, update, and remove Skills.',
   'desktop.about.dataBoundary': 'Local data',
-  'desktop.about.loadingRuntime': 'Loading application details…',
-  'desktop.about.manual': 'Manual',
   'desktop.about.privacyDescription':
     'Your Skill list, groups, tags, and preferences are stored on this computer.',
   'desktop.about.privacyTitle': 'Your Skill shelf stays on this computer.',
   'desktop.about.updates': 'Updates',
-  'desktop.about.updatesDescription':
-    'Checks for new versions automatically. On Mac, download the latest version and replace the application.',
+  'desktop.about.updatesDescription': 'Keep Skill Shelf up to date.',
   'desktop.appUpdate.loading': 'Reading update status…',
   'desktop.appUpdate.idle': 'Checks for new versions in the background.',
   'desktop.appUpdate.checking': 'Checking for a new version…',
@@ -35,19 +29,15 @@ export const messages = {
   'desktop.appUpdate.available': 'Version {version} is available.',
   'desktop.appUpdate.downloading': 'Downloading {version} · {percent}%',
   'desktop.appUpdate.downloaded': 'Version {version} is ready to install.',
-  'desktop.appUpdate.error':
-    'Could not complete the update. Check your connection and try again.',
+  'desktop.appUpdate.error': 'Could not check for updates. Please try again.',
   'desktop.appUpdate.development':
-    'Updates are available in the installed release, not in development.',
-  'desktop.appUpdate.unconfigured':
-    'This build does not have an update source configured.',
+    'Update checks are unavailable in this version.',
+  'desktop.appUpdate.unconfigured': 'Update checks are unavailable.',
   'desktop.appUpdate.unsupported-install':
-    'This installation cannot update automatically. Install the latest release manually.',
+    'Get the latest version from the download page.',
   'desktop.appUpdate.check': 'Check for app updates',
   'desktop.appUpdate.download': 'Download update',
   'desktop.appUpdate.openDownload': 'Open download page',
-  'desktop.appUpdate.manualHint':
-    'Download the DMG and replace Skill Shelf in Applications to update.',
   'desktop.appUpdate.restart': 'Restart and update',
   'desktop.appUpdate.progress': 'Application update download progress',
   'desktop.appUpdate.restartMessage':
@@ -64,7 +54,7 @@ export const messages = {
   'desktop.ai.close': 'Close AI assistant',
   'desktop.ai.context': 'Context',
   'desktop.ai.contextSummary': '{count} files · {provider} / {model}',
-  'desktop.ai.contextTruncated': 'Context was limited for safety',
+  'desktop.ai.contextTruncated': 'Some files were too large to include',
   'desktop.ai.contextAttached': 'The selected Skill files are attached',
   'desktop.ai.currentDescription': 'Current description',
   'desktop.ai.deleteConversation': 'Delete current conversation',
@@ -146,31 +136,29 @@ export const messages = {
   'desktop.queue.translationTitle': 'Translate descriptions to {language}',
   'desktop.discover.acceptedSources': 'Accepted sources',
   'desktop.discover.asideDescription':
-    'Discovery belongs to skills.sh. Skill Shelf focuses on a calm local library and adds private organization after installation.',
-  'desktop.discover.asideTitle': 'The catalog stays external.',
+    'Find Skills on skills.sh and keep your favorites in your library.',
+  'desktop.discover.asideTitle': 'Find your next Skill',
   'desktop.discover.auditAttention': '{count} need attention',
   'desktop.discover.auditClear': 'All checks passed',
   'desktop.discover.auditEmpty':
     'skills.sh does not have audit results for this Skill yet.',
   'desktop.discover.auditLoading': 'Reading official audit results…',
   'desktop.discover.auditProviders': '{count} audit providers',
-  'desktop.discover.auditSource':
-    'Live data from the public skills.sh audit API',
+  'desktop.discover.auditSource': 'Security checks from skills.sh',
   'desktop.discover.auditTitle': 'Security audits',
   'desktop.discover.browse': 'Browse skills.sh',
-  'desktop.discover.cliAndApi': 'CLI search · API audits',
+  'desktop.discover.cliAndApi': 'Search and security checks',
   'desktop.discover.clearSearch': 'Clear marketplace search',
   'desktop.discover.description':
-    'Browse live leaderboards, curated topics, and official publishers, then install through the bundled CLI.',
+    'Explore popular Skills, curated topics, and official publishers.',
   'desktop.discover.details': 'Details',
   'desktop.discover.eyebrow': 'discover / skills.sh',
   'desktop.discover.installs': '{count} installs',
   'desktop.discover.home': 'Explore',
   'desktop.discover.install': 'Search & install',
-  'desktop.discover.leaderboard':
-    'Featured snapshot from the official leaderboard',
+  'desktop.discover.leaderboard': 'Popular Skills on skills.sh',
   'desktop.discover.marketplace': 'Marketplace',
-  'desktop.discover.native.cached': 'Showing the last local snapshot',
+  'desktop.discover.native.cached': 'Showing previously loaded results',
   'desktop.discover.native.breadcrumb': 'Official directory path',
   'desktop.discover.native.creatorDescription':
     "Browse this publisher's repositories without leaving Skill Shelf.",
@@ -182,19 +170,19 @@ export const messages = {
   'desktop.discover.native.filterOfficial': 'Filter official creators',
   'desktop.discover.native.filterSkills': 'Filter loaded Skills',
   'desktop.discover.native.home.description':
-    'Live leaderboards collected in the background and rebuilt for Skill Shelf.',
+    'Find popular and trending Skills.',
   'desktop.discover.native.home.title': 'Skills directory',
   'desktop.discover.native.leaderboard.all': 'All time',
   'desktop.discover.native.leaderboard.hot': 'Hot',
   'desktop.discover.native.leaderboard.trending': 'Trending · 24h',
   'desktop.discover.native.leaderboards': 'Leaderboard view',
   'desktop.discover.native.loadMore': 'Load more Skills',
-  'desktop.discover.native.loading': 'Collecting the latest skills.sh data…',
+  'desktop.discover.native.loading': 'Loading Skills…',
   'desktop.discover.native.noFilteredSkills':
     'No loaded Skills match this filter.',
   'desktop.discover.native.noOfficial':
     'No official creators match this filter.',
-  'desktop.discover.native.endOfList': 'All collected Skills are visible',
+  'desktop.discover.native.endOfList': 'All Skills are shown',
   'desktop.discover.native.official.description':
     'Technology makers publishing first-party Skills and repositories.',
   'desktop.discover.native.official.title': 'Official creators',
@@ -203,7 +191,7 @@ export const messages = {
   'desktop.discover.native.refresh': 'Refresh discovery data',
   'desktop.discover.native.refreshCreator': 'Refresh this creator',
   'desktop.discover.native.refreshFailed':
-    'The refresh failed. The last local snapshot remains available.',
+    'Could not refresh. Previous results are still available.',
   'desktop.discover.native.refreshTopic': 'Refresh this topic',
   'desktop.discover.native.refreshRepository': 'Refresh this repository',
   'desktop.discover.native.repositoryFallback':
@@ -215,20 +203,19 @@ export const messages = {
   'desktop.discover.native.repos': 'Repos',
   'desktop.discover.native.skills': 'Skills',
   'desktop.discover.native.skillsShown': '{count} Skills shown',
-  'desktop.discover.native.skillsProgress':
-    'Showing {shown} of {total} collected Skills',
+  'desktop.discover.native.skillsProgress': 'Showing {shown} of {total} Skills',
   'desktop.discover.native.totalInstalls': 'Total installs',
   'desktop.discover.native.topics.description':
     'Curated domains with their recommended Skills and practical descriptions.',
   'desktop.discover.native.topics.title': 'Curated topics',
   'desktop.discover.native.updated': 'Updated {time}',
-  'desktop.discover.noResults': 'No matching Skills were returned by the CLI.',
+  'desktop.discover.noResults': 'No matching Skills found.',
   'desktop.discover.official': 'Official',
   'desktop.discover.search': 'Search skills.sh',
   'desktop.discover.searching': 'Searching…',
   'desktop.discover.searchMinimum': 'Enter at least 2 characters',
   'desktop.discover.searchPlaceholder': 'Search the skills.sh directory',
-  'desktop.discover.searchResults': 'Live results from skills CLI',
+  'desktop.discover.searchResults': 'Search results',
   'desktop.discover.sections': 'Discovery sections',
   'desktop.discover.title': 'Discover useful Skills',
   'desktop.discover.topics': 'Topics',
@@ -358,14 +345,14 @@ export const messages = {
   'desktop.managed.viewRelations': 'View symbolic link relationships',
   'desktop.managed.skillCount': '{count} Skills',
   'desktop.managed.title': 'Packs',
-  'desktop.errors.default': 'Something went wrong.',
+  'desktop.errors.default': 'Could not complete this action. Please try again.',
   'desktop.errors.aiApiKeyRequired':
     'Enter an API key for this remote model provider.',
   'desktop.errors.aiDisabled': 'AI features are turned off in settings.',
   'desktop.errors.aiEmptyResponse':
-    'The model returned no content twice, including the automatic retry.',
+    'The model returned no content. Please try again.',
   'desktop.errors.aiIncompleteTranslation':
-    'The model returned an incomplete translation twice. Nothing was saved; try again.',
+    'The translation was incomplete and was not saved. Please try again.',
   'desktop.errors.aiInsufficientBalance':
     'The DeepSeek account has insufficient balance. Add credit and try again.',
   'desktop.errors.aiNetwork':
@@ -375,7 +362,8 @@ export const messages = {
     'DeepSeek could not complete the request. Try again later.',
   'desktop.errors.aiRateLimited':
     'DeepSeek is receiving too many requests. Try again shortly.',
-  'desktop.errors.aiRequestFailed': 'The model request failed: {message}',
+  'desktop.errors.aiRequestFailed':
+    'The model could not respond. Please try again.',
   'desktop.errors.aiResponse': 'The model returned an unreadable response.',
   'desktop.errors.aiSecureStorage':
     'Operating system secure storage is unavailable.',
@@ -397,14 +385,15 @@ export const messages = {
   'desktop.errors.invalidSkillPath':
     'The selected skill file path is not valid.',
   'desktop.errors.invalidSource': 'Enter a valid repository or skills.sh URL.',
-  'desktop.errors.operationFailed': 'The operation failed: {message}',
+  'desktop.errors.operationFailed':
+    'Could not complete this action. Please try again.',
   'desktop.errors.questionRequired': 'Enter a question first.',
   'desktop.errors.skillMissing': 'This skill is no longer installed.',
   'desktop.errors.skillOutsideFolder':
     'The selected file is outside the installed skill folder.',
   'desktop.errors.skillPathNotFile': 'The selected path is not a file.',
   'desktop.errors.skillsCliData':
-    'The skills CLI returned data that Skill Shelf could not read.',
+    'Could not load Skill information. Please try again.',
   'desktop.errors.skillsRead': 'Could not read installed skills.',
   'desktop.errors.sourceMissing': 'This skill does not have a source URL.',
   'desktop.errors.timedOut': 'The skills command timed out. Try again.',
@@ -526,9 +515,9 @@ export const messages = {
     'Read-only source from SKILL.md',
   'desktop.inspector.remove': 'Remove',
   'desktop.inspector.removeDescription':
-    'The official skills CLI will remove this skill from its global installations.',
+    'Remove this Skill from all global installations.',
   'desktop.inspector.removeProjectDescription':
-    'The official skills CLI will remove this Skill from the selected project only.',
+    'Remove this Skill from the selected project only.',
   'desktop.inspector.removeQuestion': 'Remove {name}?',
   'desktop.inspector.removeSkill': 'Remove skill',
   'desktop.inspector.removeTag': 'Remove {tag} tag',
@@ -547,12 +536,12 @@ export const messages = {
   'desktop.inspector.translationNoSource':
     'There is no original description to translate.',
   'desktop.inspector.translationPrompt':
-    'Run the model once; reopening this view will use the local copy.',
+    'Translate this description and save it for later.',
   'desktop.inspector.translationSaved': '{language} translation saved locally.',
   'desktop.inspector.translationSetup':
-    'Configure DeepSeek to translate and keep a local copy.',
+    'Connect an AI model to translate descriptions.',
   'desktop.inspector.translationSourceReady':
-    'The original already matches this language. Save a local copy without calling AI.',
+    'The description is already in this language.',
   'desktop.inspector.translationStale':
     'The original description changed after this translation was saved.',
   'desktop.inspector.ungrouped': 'Unfiled',
@@ -566,38 +555,37 @@ export const messages = {
   'desktop.install.chooseAgents': 'Choose Agent targets',
   'desktop.install.chooseScope': 'Choose install scope',
   'desktop.install.clearAgentSearch': 'Clear Agent search',
-  'desktop.install.cliRunning': 'skills CLI is running',
+  'desktop.install.cliRunning': 'Installing Skill…',
   'desktop.install.commandUnavailable': 'Waiting for a verified command…',
+  'desktop.install.details': 'Installation details',
   'desktop.install.complete': 'Installation complete',
   'desktop.install.execute': 'Review and execute',
   'desktop.install.failed': 'Installation failed',
   'desktop.install.global': 'Global',
-  'desktop.install.globally': 'Installed globally by skills CLI.',
+  'desktop.install.globally': 'Available across your projects.',
   'desktop.install.installed': 'Installed',
   'desktop.install.installing': 'Installing…',
   'desktop.install.noMatchingAgents': 'No matching Agent targets',
   'desktop.install.projectOnly': 'Project only',
-  'desktop.install.registryLoading': 'Loading CLI targets…',
-  'desktop.install.registryUnavailable': 'CLI targets unavailable',
+  'desktop.install.registryLoading': 'Loading Agents…',
+  'desktop.install.registryUnavailable': 'Could not load Agents',
   'desktop.install.resolveSource': 'Resolve Skill source',
-  'desktop.install.searchAgents': 'Search Agent name or CLI id',
+  'desktop.install.searchAgents': 'Search Agents',
   'desktop.install.runDescription':
-    'A controlled, read-only trace of the exact CLI operation.',
-  'desktop.install.runTitle': 'Install run',
+    'Choose where to install this Skill and which Agents can use it.',
+  'desktop.install.runTitle': 'Installation progress',
   'desktop.install.skill': 'Install skill',
   'desktop.install.source': 'Skill source',
   'desktop.install.sourceManualFallback':
-    'Could not read a valid installation command from skills.sh. Close this window and install it from your terminal.',
-  'desktop.install.sourceResolving':
-    'Reading the installation command from skills.sh…',
-  'desktop.install.sourceScraped':
-    'Command read from skills.sh. Scope and Agent targets are managed below.',
+    'Could not load this Skill. Open its source page to check the installation instructions.',
+  'desktop.install.sourceResolving': 'Loading Skill source…',
+  'desktop.install.sourceScraped': 'Source ready',
   'desktop.install.sourceUnavailable': 'No verified command available',
   'desktop.install.universal': 'Universal',
   'desktop.install.universalAlwaysIncluded': 'Always included',
   'desktop.install.universalDescription':
     'Uses the standard directory for this scope. {count} compatible Agents are always included.',
-  'desktop.install.waitingForCli': 'Waiting for the official CLI process…',
+  'desktop.install.waitingForCli': 'Preparing installation…',
   'desktop.installDialog.description':
     'Paste a skills.sh URL, GitHub URL, or owner/repository.',
   'desktop.installDialog.title': 'Add to your shelf',
@@ -669,8 +657,7 @@ export const messages = {
   'desktop.library.updateLegend': 'Skill update status',
   'desktop.library.updateReasonAvailable':
     'The upstream Skill folder has changed since it was installed.',
-  'desktop.library.updateReasonCurrent':
-    'The installed snapshot matches the upstream folder.',
+  'desktop.library.updateReasonCurrent': 'This Skill is up to date.',
   'desktop.library.updateReasonLocal':
     'Local Skills do not have an upstream version to compare.',
   'desktop.library.updateReasonMissing':
@@ -684,7 +671,7 @@ export const messages = {
   'desktop.library.updateReasonUnsupported':
     'This source type does not support automatic update checks yet.',
   'desktop.library.updateReasonUntracked':
-    'The skills CLI lock file has no version snapshot for this Skill.',
+    'The installed version could not be identified.',
   'desktop.library.updateResultStale':
     'This is the last scan result; check again before updating.',
   'desktop.library.updateStatusAvailable': 'Update available',
@@ -789,7 +776,7 @@ export const messages = {
   'desktop.settings.aiConnection': 'Model connection',
   'desktop.settings.aiContext': 'Context scope',
   'desktop.settings.aiContextDescription':
-    'Relevant text adds documentation and source files within strict file and size limits.',
+    'Include relevant Skill files when asking the assistant.',
   'desktop.settings.aiContextRelevant': 'Relevant text files',
   'desktop.settings.aiContextSkillMd': 'SKILL.md only',
   'desktop.settings.aiDefaultLanguage': 'Default output language',
@@ -812,7 +799,7 @@ export const messages = {
   'desktop.settings.aiModelUnverified': 'Unverified',
   'desktop.settings.aiNotConfigured': 'Not configured',
   'desktop.settings.aiPrivacyDescription':
-    'When you run an AI action, the selected Skill’s necessary text is sent to this provider. Secret-like files, symlinks, and oversized context are excluded.',
+    'AI actions send relevant Skill text to your chosen provider. You choose when to use AI.',
   'desktop.settings.aiPrivacyTitle': 'Know what leaves this computer',
   'desktop.settings.aiProvider': 'Provider',
   'desktop.settings.aiProviderDescription':
@@ -826,16 +813,14 @@ export const messages = {
   'desktop.settings.aiVerified': 'Connection verified with {model}.',
   'desktop.settings.aiVerifying': 'Verifying…',
   'desktop.settings.agentsUnavailable':
-    'The Agent registry could not be loaded. Try reopening this setting.',
+    'Could not load Agents. Please try again.',
   'desktop.settings.app': 'Application',
   'desktop.settings.appearance': 'Appearance',
   'desktop.settings.back': 'Back',
   'desktop.settings.categories': 'Settings categories',
   'desktop.settings.clearAgentSearch': 'Clear Agent search',
   'desktop.settings.clearFocusedAgents': 'Use automatic display',
-  'desktop.settings.cliDescription':
-    'Included with the application; no separate installation needed.',
-  'desktop.settings.cliReady': 'CLI ready',
+  'desktop.settings.cliReady': 'Ready',
   'desktop.settings.compact': 'Compact',
   'desktop.settings.comfortable': 'Comfortable',
   'desktop.settings.data': 'Skill Shelf data',
@@ -871,8 +856,8 @@ export const messages = {
   'desktop.settings.manageAgents': 'Manage',
   'desktop.settings.noneYet': 'None yet',
   'desktop.settings.noAgentResults': 'No matching Agents',
-  'desktop.settings.officialCli': 'Official CLI',
-  'desktop.settings.otherSupportedAgents': 'Other CLI-supported Agents',
+  'desktop.settings.officialCli': 'Installed Skills',
+  'desktop.settings.otherSupportedAgents': 'Other compatible Agents',
   'desktop.settings.scanning': 'Scanning',
   'desktop.settings.searchAgents': 'Search Agents',
   'desktop.settings.shortcutAppPanels': 'App panels',
@@ -916,9 +901,9 @@ export const messages = {
   'desktop.settings.shortcutTerminalResize': 'Resize terminal height',
   'desktop.settings.shortcutTerminalResizeDescription':
     'Focus the handle above the terminal, then use Up or Down Arrow.',
-  'desktop.settings.skillsCli': 'Skills & CLI',
+  'desktop.settings.skillsCli': 'Skills & Agents',
   'desktop.settings.startup': 'Startup',
-  'desktop.settings.supportedByCli': 'Supported by skills CLI',
+  'desktop.settings.supportedByCli': 'Compatible Agents',
   'desktop.settings.theme': 'Theme',
   'desktop.settings.themeDescription':
     'Choose light, dark, or follow your operating system.',
@@ -954,21 +939,18 @@ export const messages = {
     '{name}: {available} of {total} skills available, {percent}% coverage',
   'desktop.workbench.coverage.available': '{available} / {total} available',
   'desktop.workbench.coverage.description':
-    'Availability follows skills CLI Agent associations; directory entries only diagnose install methods.',
+    'See which Skills each Agent can use.',
   'desktop.workbench.coverage.emptyDescription':
     'Install a Skill for an Agent and its coverage will appear here.',
   'desktop.workbench.coverage.emptyTitle': 'No active Agents detected',
-  'desktop.workbench.coverage.linkKinds':
-    'Directory check: {linked} symlinked · {direct} direct',
+  'desktop.workbench.coverage.linkKinds': '{linked} linked · {direct} copied',
   'desktop.workbench.coverage.manage': 'Manage',
   'desktop.workbench.coverage.more':
     '{agents} more Agents across {directories} directories',
   'desktop.workbench.coverage.notDetected': '{agents}{count} not detected',
   'desktop.workbench.coverage.notDetectedDescription':
     'Followed Agent · no local Skill directory found',
-  'desktop.workbench.coverage.registry': 'Registry source',
   'desktop.workbench.coverage.showLess': 'Show fewer directories',
-  'desktop.workbench.coverage.supported': '{count} global Agents',
   'desktop.workbench.coverage.title': 'Agent Coverage',
   'desktop.workbench.description':
     'Scan Skill availability, link integrity, and Agent coverage on this computer, then review unrecorded Skills.',
@@ -978,10 +960,10 @@ export const messages = {
     '{percent}% healthy, {valid} healthy entries, {broken} broken, {inaccessible} need manual review',
   'desktop.workbench.health.broken': 'Broken',
   'desktop.workbench.health.description':
-    'Integrity of symlinks and direct Skill folders in active Agent directories.',
+    'Check whether your installed Skills are accessible.',
   'desktop.workbench.health.direct': 'Direct',
   'desktop.workbench.health.directHint':
-    'Healthy includes valid symlinks and direct folders; direct folders are also shown separately.',
+    'Linked and copied Skills are both included in this check.',
   'desktop.workbench.health.manual': 'Manual review',
   'desktop.workbench.health.noSymlinks': 'No installed Skill entries found',
   'desktop.workbench.health.score': 'healthy',
@@ -1085,7 +1067,7 @@ export const messages = {
   'website.footer.description': 'Your local agent skill workspace.',
   'website.footer.discover': 'Go to skills.sh',
   'website.hero.browse': 'Browse skills.sh',
-  'website.hero.cliBased': 'Powered by skills.sh',
+  'website.hero.cliBased': 'Works with your Agents',
   'website.hero.description':
     'Bring your scattered skills into one desktop app. Find what is installed, organize it into folders, keep it up to date, and carry your best skills into the next project.',
   'website.hero.eyebrow': 'A local workspace for your agent skills',
@@ -1168,7 +1150,7 @@ export const messages = {
   'website.theme.dark': 'Switch to dark theme',
   'website.agents.label': 'Agent skill environments',
   'website.agents.title': 'The agents you use. The skills you already have.',
-  'website.agents.more': 'and more via the skills CLI',
+  'website.agents.more': 'and more',
   'website.preview.label': 'Sample preview',
   'website.heroPreview.folder': 'Your own folders, without moving skill files',
   'website.heroPreview.health': 'Local files, clear relationships',
@@ -1222,7 +1204,7 @@ export const messages = {
     'When you request a translation, the description is sent to the AI provider you configured. The translation is saved locally. Scanning and organizing your skills do not require AI.',
   'website.faq.cli.question': 'How does Skill Shelf work with skills.sh?',
   'website.faq.cli.answer':
-    'Skill Shelf is a desktop interface built around the official skills CLI. It adds local organization, file reading, diagnostics, and Packs to the existing skill workflow.',
+    'Find Skills on skills.sh, then install and manage them in Skill Shelf. Organize your library, read files, and reuse collections across projects.',
   'website.skill.frontend-design.summary':
     'Distinctive interfaces and visual design',
   'website.skill.design-motion-principles.summary':

@@ -219,13 +219,6 @@ function InstallDialog({
               {t('desktop.install.runDescription')}
             </DialogDescription>
           </div>
-          <b>
-            {agentRegistry
-              ? `CLI v${agentRegistry.cliVersion}`
-              : agentRegistryError
-                ? t('desktop.install.registryUnavailable')
-                : t('desktop.install.registryLoading')}
-          </b>
         </DialogHeader>
         <InstallTimeline
           agentRegistry={agentRegistry}
@@ -502,7 +495,6 @@ function InstallTimeline({
               <DropdownMenuLabel className="agent-select-label">
                 <span>{t('desktop.install.chooseAgents')}</span>
                 <small>
-                  skills CLI v{agentRegistry?.cliVersion} ·{' '}
                   {t('desktop.install.agentCount', {
                     count: totalAgentCount,
                   })}
@@ -662,10 +654,19 @@ function InstallTimeline({
               </p>
             ) : result ? (
               <div className="install-output">
-                <strong>{result.message}</strong>
-                {result.outputLines?.map((line, index) => (
-                  <code key={`${index}:${line}`}>{line}</code>
-                ))}
+                <strong>
+                  {result.success
+                    ? t('desktop.install.complete')
+                    : getLocalizedErrorMessage(result.message, t)}
+                </strong>
+                {result.outputLines?.length ? (
+                  <details>
+                    <summary>{t('desktop.install.details')}</summary>
+                    {result.outputLines.map((line, index) => (
+                      <code key={`${index}:${line}`}>{line}</code>
+                    ))}
+                  </details>
+                ) : null}
               </div>
             ) : null}
           </TimelineStep>

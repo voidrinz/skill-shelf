@@ -1853,9 +1853,6 @@ function DeployDialog({
                 >
                   <DropdownMenuLabel className="agent-select-label">
                     <span>{t('desktop.install.chooseAgents')}</span>
-                    <small>
-                      skills CLI v{agentRegistry?.cliVersion ?? '—'}
-                    </small>
                   </DropdownMenuLabel>
                   <div className="agent-universal-target">
                     <div>

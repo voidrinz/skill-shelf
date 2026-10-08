@@ -86,7 +86,6 @@ describe('application update controls', () => {
       screen.queryByRole('button', { name: 'Restart and update' })
     ).toBeNull()
     expect(api.installAppUpdate).not.toHaveBeenCalled()
-    expect(screen.getByText(/Download the DMG and replace/)).toBeTruthy()
   })
 
   it('checks, downloads, and only installs after a restart click', async () => {
@@ -113,7 +112,7 @@ describe('application update controls', () => {
 
   it('shows why development cannot update and disables the action', async () => {
     setup({ ...initial, status: 'disabled', reason: 'development' })
-    await screen.findByText(/Updates are available in the installed release/)
+    await screen.findByText('Update checks are unavailable in this version.')
     expect((screen.getByRole('button') as HTMLButtonElement).disabled).toBe(
       true
     )
