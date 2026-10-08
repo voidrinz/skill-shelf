@@ -131,8 +131,13 @@ figure {
   color: var(--site-secondary);
 }
 .nav-links a:hover,
-.site-footer > a:last-child:hover {
+.footer-links a:hover {
   color: var(--site-ink);
+}
+.nav-links .github-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
 }
 .nav-tools {
   gap: 8px;
@@ -1170,11 +1175,16 @@ h2 {
   color: var(--site-muted);
   font-size: 11px;
 }
-.site-footer > a:last-child {
+.footer-links {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-left: auto;
+}
+.footer-links a {
   display: flex;
   gap: 5px;
   align-items: center;
-  margin-left: auto;
   color: var(--site-secondary);
   font-size: 12px;
 }

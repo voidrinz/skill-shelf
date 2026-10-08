@@ -28,6 +28,8 @@ import { useI18n } from '@skill-shelf/i18n/react'
 import { Brand } from '../../packages/ui/src/brand'
 import { macDownloads } from './downloads'
 
+const SOURCE_REPOSITORY_URL = 'https://github.com/voidrinz/skill-shelf'
+
 const features = [
   ['diagnose', ScanSearch],
   ['organize', FolderTree],
@@ -123,6 +125,16 @@ export function App() {
             </a>
             <a href="#faq" onClick={() => setMenuOpen(false)}>
               {t('website.nav.faq')}
+            </a>
+            <a
+              className="github-link"
+              href={SOURCE_REPOSITORY_URL}
+              onClick={() => setMenuOpen(false)}
+              target="_blank"
+              rel="noreferrer"
+            >
+              GitHub
+              <ArrowUpRight size={14} aria-hidden="true" />
             </a>
           </div>
           <div className="nav-tools">
@@ -325,10 +337,16 @@ export function App() {
           <Brand />
         </a>
         <p>{t('website.footer.description')}</p>
-        <a href="https://skills.sh" target="_blank" rel="noreferrer">
-          skills.sh
-          <ArrowUpRight size={14} />
-        </a>
+        <div className="footer-links">
+          <a href={SOURCE_REPOSITORY_URL} target="_blank" rel="noreferrer">
+            GitHub
+            <ArrowUpRight size={14} aria-hidden="true" />
+          </a>
+          <a href="https://skills.sh" target="_blank" rel="noreferrer">
+            skills.sh
+            <ArrowUpRight size={14} aria-hidden="true" />
+          </a>
+        </div>
       </footer>
     </>
   )
