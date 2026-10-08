@@ -633,8 +633,6 @@ export const messages = {
   'desktop.nav.groups': '分组',
   'desktop.nav.library': 'Skills',
   'desktop.nav.managed': 'Packs',
-  'desktop.nav.localDescription': '标签和文件夹永远不会修改 SKILL.md。',
-  'desktop.nav.localTitle': '为本地而设计',
   'desktop.nav.main': 'Skill Shelf 导航',
   'desktop.nav.projects': '项目',
   'desktop.nav.settings': '设置',
@@ -875,7 +873,8 @@ export const messages = {
   'desktop.workbench.coverage.emptyDescription':
     '为 Agent 安装 Skill 后，覆盖情况会显示在这里。',
   'desktop.workbench.coverage.emptyTitle': '尚未检测到活跃 Agent',
-  'desktop.workbench.coverage.linkKinds': '{linked} 个链接 · {direct} 个副本',
+  'desktop.workbench.coverage.linkKinds':
+    '{linked} 个链接 · {direct} 个本地文件夹',
   'desktop.workbench.coverage.manage': '管理关注',
   'desktop.workbench.coverage.more':
     '还有 {agents} 个 Agent，分布在 {directories} 个目录',
@@ -883,7 +882,7 @@ export const messages = {
   'desktop.workbench.coverage.notDetectedDescription':
     '已关注，但尚未发现本地 Skill 目录',
   'desktop.workbench.coverage.showLess': '收起其他目录',
-  'desktop.workbench.coverage.title': 'Agent Coverage',
+  'desktop.workbench.coverage.title': 'Agent 可用情况',
   'desktop.workbench.description':
     '扫描这台电脑上的 Skill 可用性、链接完整性与 Agent 覆盖情况，并处理尚未录入的 Skill。',
   'desktop.workbench.errorTitle': '无法扫描本地工作区',
@@ -893,12 +892,11 @@ export const messages = {
   'desktop.workbench.health.broken': '已失效',
   'desktop.workbench.health.description':
     '检查已安装的 Skill 是否可以正常访问。',
-  'desktop.workbench.health.direct': '直接目录',
-  'desktop.workbench.health.directHint': '检查包含通过链接和副本安装的 Skill。',
+  'desktop.workbench.health.direct': '本地文件夹',
   'desktop.workbench.health.manual': '人工检查',
   'desktop.workbench.health.noSymlinks': '未发现已安装的 Skill 条目',
   'desktop.workbench.health.score': '健康度',
-  'desktop.workbench.health.title': 'Symlink Health',
+  'desktop.workbench.health.title': 'Skill 健康状态',
   'desktop.workbench.health.valid': '健康条目',
   'desktop.workbench.issues.broken': '链接失效',
   'desktop.workbench.issues.clear': '没有发现失效或无法访问的符号链接。',

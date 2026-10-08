@@ -691,8 +691,6 @@ export const messages = {
   'desktop.nav.groups': 'Groups',
   'desktop.nav.library': 'Skills',
   'desktop.nav.managed': 'Packs',
-  'desktop.nav.localDescription': 'Tags and folders never modify SKILL.md.',
-  'desktop.nav.localTitle': 'Local by design',
   'desktop.nav.main': 'Skill Shelf navigation',
   'desktop.nav.projects': 'Projects',
   'desktop.nav.settings': 'Settings',
@@ -943,7 +941,8 @@ export const messages = {
   'desktop.workbench.coverage.emptyDescription':
     'Install a Skill for an Agent and its coverage will appear here.',
   'desktop.workbench.coverage.emptyTitle': 'No active Agents detected',
-  'desktop.workbench.coverage.linkKinds': '{linked} linked · {direct} copied',
+  'desktop.workbench.coverage.linkKinds':
+    '{linked} linked · {direct} local folders',
   'desktop.workbench.coverage.manage': 'Manage',
   'desktop.workbench.coverage.more':
     '{agents} more Agents across {directories} directories',
@@ -951,7 +950,7 @@ export const messages = {
   'desktop.workbench.coverage.notDetectedDescription':
     'Followed Agent · no local Skill directory found',
   'desktop.workbench.coverage.showLess': 'Show fewer directories',
-  'desktop.workbench.coverage.title': 'Agent Coverage',
+  'desktop.workbench.coverage.title': 'Agent availability',
   'desktop.workbench.description':
     'Scan Skill availability, link integrity, and Agent coverage on this computer, then review unrecorded Skills.',
   'desktop.workbench.errorTitle': 'Could not scan the local workspace',
@@ -961,13 +960,11 @@ export const messages = {
   'desktop.workbench.health.broken': 'Broken',
   'desktop.workbench.health.description':
     'Check whether your installed Skills are accessible.',
-  'desktop.workbench.health.direct': 'Direct',
-  'desktop.workbench.health.directHint':
-    'Linked and copied Skills are both included in this check.',
+  'desktop.workbench.health.direct': 'Local folders',
   'desktop.workbench.health.manual': 'Manual review',
   'desktop.workbench.health.noSymlinks': 'No installed Skill entries found',
   'desktop.workbench.health.score': 'healthy',
-  'desktop.workbench.health.title': 'Symlink Health',
+  'desktop.workbench.health.title': 'Skill health',
   'desktop.workbench.health.valid': 'Healthy',
   'desktop.workbench.issues.broken': 'Broken',
   'desktop.workbench.issues.clear':

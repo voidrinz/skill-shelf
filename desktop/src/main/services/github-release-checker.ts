@@ -9,6 +9,47 @@ type ReleaseFetch = (
   options: { method: 'HEAD'; signal: AbortSignal }
 ) => Promise<{ ok: boolean; url: string }>
 
+interface ReleaseRequest {
+  on(event: string, listener: (...args: any[]) => void): unknown
+  end(): void
+  abort(): void
+}
+
+export function resolveReleaseRedirect(
+  request: ReleaseRequest,
+  signal: AbortSignal
+): ReturnType<ReleaseFetch> {
+  return new Promise((resolve, reject) => {
+    let settled = false
+    const finish = (result?: { ok: boolean; url: string }, error?: Error) => {
+      if (settled) return
+      settled = true
+      signal.removeEventListener('abort', abort)
+      if (error) reject(error)
+      else resolve(result!)
+    }
+    const abort = () => {
+      finish(undefined, new Error('Application update check timed out'))
+      request.abort()
+    }
+    request.on('error', (error: Error) => finish(undefined, error))
+    request.on('abort', () =>
+      finish(undefined, new Error('Application update check was cancelled'))
+    )
+    request.on('redirect', (status: number, _method: string, url: string) => {
+      finish({ ok: status >= 300 && status < 400, url })
+      request.abort()
+    })
+    request.on('response', () => {
+      finish(undefined, new Error('No public application release found'))
+      request.abort()
+    })
+    signal.addEventListener('abort', abort, { once: true })
+    if (signal.aborted) abort()
+    else request.end()
+  })
+}
+
 function versionParts(version: string): [number, number, number] {
   if (!/^\d+\.\d+\.\d+$/.test(version))
     throw new Error('Invalid release version')

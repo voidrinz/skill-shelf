@@ -78,6 +78,7 @@ import { AppUpdateService } from './services/app-update-service'
 import {
   GitHubReleaseChecker,
   MAC_DOWNLOAD_PAGE,
+  resolveReleaseRedirect,
 } from './services/github-release-checker'
 
 let mainWindow: BrowserWindow | null = null
@@ -1494,7 +1495,10 @@ if (instanceLock)
     appUpdates = new AppUpdateService(
       process.platform === 'darwin'
         ? new GitHubReleaseChecker(app.getVersion(), (url, options) =>
-            net.fetch(url, options)
+            resolveReleaseRedirect(
+              net.request({ url, method: options.method, redirect: 'manual' }),
+              options.signal
+            )
           )
         : electronUpdater.autoUpdater,
       (state) => {

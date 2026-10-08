@@ -1720,13 +1720,6 @@ function PrimarySidebar({
           onClick={() => onViewChange('managed')}
         />
       </nav>
-      <div className="sidebar-local-note">
-        <ShieldCheck />
-        <p>
-          {t('desktop.nav.localTitle')}
-          <span>{t('desktop.nav.localDescription')}</span>
-        </p>
-      </div>
       <nav
         aria-label={t('desktop.nav.applicationSettings')}
         className="sidebar-settings"
@@ -7232,9 +7225,6 @@ function SymlinkHealthCard({ health }: { health: SymlinkHealthSnapshot }) {
           />
         </div>
       </div>
-      <p className="health-footnote">
-        {t('desktop.workbench.health.directHint')}
-      </p>
     </section>
   )
 }
@@ -8998,14 +8988,19 @@ function AboutSettings({ runtime }: { runtime: DesktopRuntimeInfo | null }) {
         </div>
         <code>{runtime ? `v${runtime.appVersion}` : '…'}</code>
       </div>
-      <SettingsSection title={t('desktop.about.updates')}>
-        <SettingsRow
-          description={t('desktop.about.updatesDescription')}
-          label={t('desktop.about.updates')}
-        >
-          <AppUpdateControls />
-        </SettingsRow>
-      </SettingsSection>
+      <section
+        className="settings-section"
+        aria-label={t('desktop.about.updates')}
+      >
+        <div className="setting-rows">
+          <SettingsRow
+            description={t('desktop.about.updatesDescription')}
+            label={t('desktop.about.updates')}
+          >
+            <AppUpdateControls />
+          </SettingsRow>
+        </div>
+      </section>
       <SettingsSection title={t('desktop.about.dataBoundary')}>
         <div className="privacy-card">
           <ShieldCheck />
