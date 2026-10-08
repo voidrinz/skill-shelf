@@ -131,8 +131,6 @@ jobs:
           path: |
             desktop/release/*.dmg
             desktop/release/*.zip
-            desktop/release/*.blockmap
-            desktop/release/latest-*.yml
 
   publish:
     needs: [verify, build]
@@ -141,23 +139,25 @@ jobs:
     permissions:
       contents: write
     steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.SOURCE_REPOSITORY }}
+          ref: ${{ needs.verify.outputs.sha }}
+          token: ${{ secrets.SOURCE_READ_TOKEN || github.token }}
+          persist-credentials: false
       - uses: actions/download-artifact@v4
         with:
           pattern: release-*
           path: artifacts
           merge-multiple: true
-      - name: Validate the complete update feed
+      - name: Validate the Mac downloads
         run: |
-          for file in latest-arm64-mac.yml latest-x64-mac.yml; do
-            test -s "artifacts/$file" || { echo "Missing $file" >&2; exit 1; }
-          done
           for arch in arm64 x64; do
             for ext in dmg zip; do
               test -s "artifacts/skill-shelf-${TAG#v}-mac-$arch.$ext" || { echo "Missing $arch $ext" >&2; exit 1; }
             done
           done
-          cd artifacts
-          sha256sum * > SHA256SUMS
+          test -s "docs/release-notes/${TAG#v}.md" || { echo 'Missing release notes' >&2; exit 1; }
         env:
           TAG: ${{ needs.verify.outputs.tag }}
       - name: Publish both macOS architectures together
@@ -165,12 +165,11 @@ jobs:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
           TAG: ${{ needs.verify.outputs.tag }}
-          SOURCE_SHA: ${{ needs.verify.outputs.sha }}
         run: |
           if gh release view "$TAG" >/dev/null 2>&1; then
             test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true || { echo 'Published releases are immutable; use a new version.' >&2; exit 1; }
           else
-            gh release create "$TAG" --draft --title "Skill Shelf $TAG" --notes "macOS downloads built from $SOURCE_REPOSITORY@$SOURCE_SHA. Choose arm64 for Apple Silicon or x64 for Intel. These builds use ad-hoc signing without Apple notarization. Settings > About checks for new versions and opens the download page; install updates manually."
+            gh release create "$TAG" --draft --title "Skill Shelf $TAG" --notes-file "docs/release-notes/${TAG#v}.md"
           fi
-          gh release upload "$TAG" artifacts/* --clobber
+          gh release upload "$TAG" artifacts/*.dmg artifacts/*.zip --clobber
           gh release edit "$TAG" --draft=false --latest

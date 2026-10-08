@@ -11,15 +11,12 @@ test('Mac releases use ad-hoc signing without Apple credentials or notarization'
   assert.deepEqual(buildConfig.mac.target, ['dmg', 'zip'])
 })
 
-test('keeps release files distinct across architectures without embedding credentials', () => {
+test('builds distinct Mac installers without updater metadata or credentials', () => {
   const arm = getReleaseTarget('example/skill-shelf-releases', 'arm64')
   const intel = getReleaseTarget('example/skill-shelf-releases', 'x64')
-  assert.equal(arm.publish.channel, 'latest-arm64')
-  assert.equal(intel.publish.channel, 'latest-x64')
-  assert.equal(arm.publish.owner, 'example')
-  assert.equal(arm.publish.repo, 'skill-shelf-releases')
-  assert.equal(arm.generateUpdatesFilesForAllChannels, false)
-  assert.equal('token' in arm.publish, false)
+  assert.equal(arm.publish, null)
+  assert.equal(intel.publish, null)
+  assert.equal(arm.artifactName, 'skill-shelf-${version}-${os}-${arch}.${ext}')
 })
 
 test('rejects missing or malformed repository names and unsupported architectures', () => {

@@ -7,6 +7,7 @@ import {
   BrowserWindow,
   dialog,
   ipcMain,
+  net,
   safeStorage,
   shell,
 } from 'electron'
@@ -74,6 +75,10 @@ import { TerminalService } from './services/terminal-service'
 import { WorkbenchService } from './services/workbench-service'
 import { TrayController } from './tray-controller'
 import { AppUpdateService } from './services/app-update-service'
+import {
+  GitHubReleaseChecker,
+  MAC_DOWNLOAD_PAGE,
+} from './services/github-release-checker'
 
 let mainWindow: BrowserWindow | null = null
 let trayController: TrayController | null = null
@@ -1487,7 +1492,11 @@ if (instanceLock)
     await managedSkills.initialize()
     const workbench = new WorkbenchService(catalog)
     appUpdates = new AppUpdateService(
-      electronUpdater.autoUpdater,
+      process.platform === 'darwin'
+        ? new GitHubReleaseChecker(app.getVersion(), (url, options) =>
+            net.fetch(url, options)
+          )
+        : electronUpdater.autoUpdater,
       (state) => {
         if (mainWindow && !mainWindow.isDestroyed())
           mainWindow.webContents.send(
@@ -1499,15 +1508,13 @@ if (instanceLock)
         arch: process.arch,
         ...(process.platform === 'darwin'
           ? {
-              openDownloadPage: () =>
-                shell.openExternal(
-                  'https://github.com/voidrinz/skill-shelf-releases/releases/latest'
-                ),
+              openDownloadPage: () => shell.openExternal(MAC_DOWNLOAD_PAGE),
             }
           : {}),
         disabledReason: !app.isPackaged
           ? 'development'
-          : !existsSync(join(process.resourcesPath, 'app-update.yml'))
+          : process.platform !== 'darwin' &&
+              !existsSync(join(process.resourcesPath, 'app-update.yml'))
             ? 'unconfigured'
             : !['darwin', 'win32', 'linux'].includes(process.platform) ||
                 !['arm64', 'x64'].includes(process.arch) ||
