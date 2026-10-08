@@ -1,0 +1,198 @@
+@import '@fontsource-variable/geist';
+@import '@fontsource-variable/geist-mono';
+@import 'tw-animate-css';
+
+@custom-variant dark (&:is(.dark *));
+
+:root {
+  color-scheme: light;
+  --radius: 0.75rem;
+  --ss-canvas: #f2f2f0;
+  --ss-sidebar: #e9e9e7;
+  --ss-card: #f8f8f6;
+  --ss-overlay: #fcfcfb;
+  --ss-muted: #eeefec;
+  --ss-interactive: #e3e4e1;
+  --background: var(--ss-canvas);
+  --foreground: #3f3f3d;
+  --card: var(--ss-card);
+  --card-foreground: #3f3f3d;
+  --popover: var(--ss-overlay);
+  --popover-foreground: #343432;
+  --primary: #ed6a4a;
+  --primary-foreground: #fff;
+  --secondary: #e9e9e7;
+  --secondary-foreground: #3f3f3d;
+  --muted: var(--ss-muted);
+  --muted-foreground: #777773;
+  --accent: var(--ss-interactive);
+  --accent-foreground: #343432;
+  --destructive: #bd5551;
+  --destructive-foreground: #fff;
+  --border: rgb(31 31 29 / 9%);
+  --input: rgb(31 31 29 / 16%);
+  --ring: #ed6a4a;
+  --chart-1: #3f3f3d;
+  --chart-2: #4071e2;
+  --chart-3: #208950;
+  --chart-4: #cb8b24;
+  --chart-5: #bd5551;
+  --sidebar: var(--ss-sidebar);
+  --sidebar-foreground: #3f3f3d;
+  --sidebar-primary: #ed6a4a;
+  --sidebar-primary-foreground: #fff;
+  --sidebar-accent: var(--ss-interactive);
+  --sidebar-accent-foreground: #343432;
+  --sidebar-border: rgb(31 31 29 / 8%);
+  --sidebar-ring: #ed6a4a;
+  --ss-ink-strong: #2c2c2a;
+  --ss-ink-faint: #a2a29e;
+  --ss-line-strong: rgb(31 31 29 / 16%);
+  --ss-accent-strong: #d9593b;
+  --ss-accent-soft: #fbe9e4;
+  --ss-link: #bf5137;
+  --ss-success: #208950;
+  --ss-success-soft: #e6f9ef;
+  --ss-amber: #89602f;
+  --ss-amber-soft: #f8f3ec;
+  --ss-red: #bd5551;
+  --ss-red-soft: #fff0f0;
+  --ss-nav-active: #dedfdb;
+  --ss-nav-hover: #e4e5e1;
+  --ss-shadow-menu:
+    0 14px 38px rgb(25 31 27 / 10%), 0 2px 8px rgb(25 31 27 / 5%);
+  --ss-font-display:
+    'Geist Variable', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+  --ss-font-body:
+    'Geist Variable', 'PingFang SC', 'Hiragino Sans GB', sans-serif;
+  --ss-font-mono: 'Geist Mono Variable', ui-monospace, monospace;
+}
+
+.dark {
+  color-scheme: dark;
+  --ss-canvas: #222;
+  --ss-sidebar: #1c1c1c;
+  --ss-card: #2b2b2b;
+  --ss-overlay: #353535;
+  --ss-muted: #292929;
+  --ss-interactive: rgb(255 255 255 / 7%);
+  --foreground: #dededb;
+  --card-foreground: #dededb;
+  --popover-foreground: #ecece8;
+  --primary: #d96549;
+  --secondary: #313131;
+  --secondary-foreground: #dededb;
+  --muted-foreground: #a3a3a0;
+  --accent-foreground: #ecece8;
+  --destructive: #bd5551;
+  --border: rgb(255 255 255 / 9%);
+  --input: rgb(255 255 255 / 16%);
+  --ring: #d96549;
+  --sidebar-foreground: #dededb;
+  --sidebar-primary: #924735;
+  --sidebar-accent-foreground: #ecece8;
+  --sidebar-border: rgb(255 255 255 / 8%);
+  --ss-ink-strong: #ecece8;
+  --ss-ink-faint: #747472;
+  --ss-line-strong: rgb(255 255 255 / 16%);
+  --ss-accent-strong: #e8795d;
+  --ss-accent-soft: #45261f;
+  --ss-link: #f19a84;
+  --ss-success: #30cf79;
+  --ss-success-soft: #0c361f;
+  --ss-amber: #edcea6;
+  --ss-amber-soft: #3d2b15;
+  --ss-red: #f6a09d;
+  --ss-red-soft: #352c2c;
+  --ss-nav-active: #2d2d2d;
+  --ss-nav-hover: rgb(255 255 255 / 6%);
+  --ss-shadow-menu:
+    0 18px 44px rgb(0 0 0 / 42%), 0 0 0 1px rgb(255 255 255 / 8%);
+}
+
+@theme inline {
+  --radius-sm: calc(var(--radius) - 4px);
+  --radius-md: calc(var(--radius) - 2px);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) + 4px);
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-accent: var(--accent);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-destructive: var(--destructive);
+  --color-destructive-foreground: var(--destructive-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-chart-1: var(--chart-1);
+  --color-chart-2: var(--chart-2);
+  --color-chart-3: var(--chart-3);
+  --color-chart-4: var(--chart-4);
+  --color-chart-5: var(--chart-5);
+  --color-sidebar: var(--sidebar);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --font-sans: var(--ss-font-body);
+  --font-display: var(--ss-font-display);
+  --font-mono: var(--ss-font-mono);
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+
+  html,
+  body {
+    background: var(--background);
+    color: var(--foreground);
+  }
+
+  ::selection {
+    background: color-mix(in srgb, var(--primary) 24%, transparent);
+  }
+}
+
+.ss-brand {
+  display: inline-flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.65rem;
+  color: var(--ss-ink-strong);
+  font-family: var(--ss-font-body);
+}
+
+.ss-brand__mark {
+  display: block;
+  width: 2.2rem;
+  height: 2.2rem;
+  flex: 0 0 auto;
+}
+
+.ss-brand__wordmark {
+  overflow: hidden;
+  font-size: 0.98rem;
+  font-weight: 470;
+  letter-spacing: -0.025em;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.ss-brand__wordmark strong {
+  font-weight: 680;
+}

@@ -1,0 +1,32 @@
+name: Request Desktop Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: read
+
+jobs:
+  dispatch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Validate release destination and version
+        env:
+          RELEASES_REPOSITORY: ${{ vars.RELEASES_REPOSITORY || 'voidrinz/skill-shelf-releases' }}
+          SOURCE_REPOSITORY: ${{ github.repository }}
+          SOURCE_TAG: ${{ github.ref_name }}
+          SOURCE_SHA: ${{ github.sha }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const { RELEASES_REPOSITORY, SOURCE_REPOSITORY, SOURCE_TAG, SOURCE_SHA } = process.env
+          if (!/^[\w-]+\/[\w.-]+$/.test(RELEASES_REPOSITORY ?? '')) throw new Error('Set RELEASES_REPOSITORY to owner/skill-shelf-releases')
+          if (!/^v\d+\.\d+\.\d+$/.test(SOURCE_TAG)) throw new Error('Only stable vMAJOR.MINOR.PATCH releases are supported')
+          fs.writeFileSync('dispatch.json', JSON.stringify({ event_type: 'release', client_payload: { source: SOURCE_REPOSITORY, tag: SOURCE_TAG, sha: SOURCE_SHA } }))
+          NODE
+      - name: Trigger the release repository
+        env:
+          GH_TOKEN: ${{ secrets.RELEASES_REPO_TOKEN }}
+          RELEASES_REPOSITORY: ${{ vars.RELEASES_REPOSITORY || 'voidrinz/skill-shelf-releases' }}
+        run: gh api --method POST "repos/$RELEASES_REPOSITORY/dispatches" --input dispatch.json

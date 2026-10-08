@@ -1,0 +1,176 @@
+name: Build And Publish Skill Shelf
+
+on:
+  repository_dispatch:
+    types: [release]
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Stable source tag, or full commit SHA for a build-only preview'
+        required: true
+        type: string
+      publish:
+        description: 'Publish macOS downloads (off builds a preview only)'
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: desktop-release
+  cancel-in-progress: false
+
+env:
+  SOURCE_REPOSITORY: ${{ vars.SOURCE_REPOSITORY || 'voidrinz/skill-shelf' }}
+  SKILL_SHELF_RELEASES_REPOSITORY: ${{ github.repository }}
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    outputs:
+      sha: ${{ steps.version.outputs.sha }}
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - name: Validate the trusted source
+        id: request
+        env:
+          EVENT: ${{ github.event_name }}
+          PAYLOAD_SOURCE: ${{ github.event.client_payload.source }}
+          PAYLOAD_TAG: ${{ github.event.client_payload.tag }}
+          INPUT_REF: ${{ inputs.ref }}
+          INPUT_PUBLISH: ${{ inputs.publish }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const { SOURCE_REPOSITORY, EVENT, PAYLOAD_SOURCE, PAYLOAD_TAG, INPUT_REF, INPUT_PUBLISH } = process.env
+          if (!/^[\w-]+\/[\w.-]+$/.test(SOURCE_REPOSITORY ?? '')) throw new Error('Set SOURCE_REPOSITORY to the source owner/repo')
+          if (EVENT === 'repository_dispatch' && PAYLOAD_SOURCE !== SOURCE_REPOSITORY) throw new Error('Untrusted source repository')
+          const ref = EVENT === 'repository_dispatch' ? PAYLOAD_TAG : INPUT_REF
+          const publish = EVENT === 'repository_dispatch' || INPUT_PUBLISH === 'true'
+          const stableTag = /^v\d+\.\d+\.\d+$/.test(ref ?? '')
+          if (!stableTag && (publish || !/^[a-f0-9]{40}$/.test(ref ?? ''))) throw new Error('Publishing requires a stable tag; previews also accept a full commit SHA')
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `ref=${ref}\n`)
+          NODE
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.SOURCE_REPOSITORY }}
+          ref: ${{ steps.request.outputs.ref }}
+          token: ${{ secrets.SOURCE_READ_TOKEN || github.token }}
+          persist-credentials: false
+      - name: Verify source version and freeze the commit
+        id: version
+        env:
+          SOURCE_REF: ${{ steps.request.outputs.ref }}
+          EXPECTED_SHA: ${{ github.event.client_payload.sha }}
+        run: |
+          node <<'NODE'
+          const fs = require('node:fs')
+          const cp = require('node:child_process')
+          const sha = cp.execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim()
+          if (process.env.EXPECTED_SHA && sha !== process.env.EXPECTED_SHA) throw new Error('Tag does not match the requested commit')
+          const version = JSON.parse(fs.readFileSync('desktop/package.json', 'utf8')).version
+          if (!/^\d+\.\d+\.\d+$/.test(version)) throw new Error('Expected a stable desktop version')
+          if (process.env.SOURCE_REF.startsWith('v') && process.env.SOURCE_REF !== `v${version}`) throw new Error('Tag must match desktop/package.json version')
+          fs.appendFileSync(process.env.GITHUB_OUTPUT, `sha=${sha}\ntag=v${version}\n`)
+          NODE
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm typecheck
+      - run: pnpm test
+      - run: node --test desktop/release-config.test.mjs
+
+  build:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: ${{ env.SOURCE_REPOSITORY }}
+          ref: ${{ needs.verify.outputs.sha }}
+          token: ${{ secrets.SOURCE_READ_TOKEN || github.token }}
+          persist-credentials: false
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Build macOS downloads without Apple credentials
+        env:
+          SKILL_SHELF_RELEASE_ARCH: ${{ matrix.arch }}
+          BUILD_ARCH: ${{ matrix.arch }}
+          CSC_IDENTITY_AUTO_DISCOVERY: 'false'
+        run: pnpm --filter @skill-shelf/desktop run dist --mac "--$BUILD_ARCH"
+      - name: Verify application signature
+        env:
+          BUILD_ARCH: ${{ matrix.arch }}
+        run: |
+          APP_DIR=mac
+          if [ "$BUILD_ARCH" = arm64 ]; then APP_DIR=mac-arm64; fi
+          codesign --verify --deep --strict --verbose=2 "desktop/release/$APP_DIR/Skill Shelf.app"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: release-mac-${{ matrix.arch }}
+          if-no-files-found: error
+          path: |
+            desktop/release/*.dmg
+            desktop/release/*.zip
+            desktop/release/*.blockmap
+            desktop/release/latest-*.yml
+
+  publish:
+    needs: [verify, build]
+    if: github.event_name == 'repository_dispatch' || inputs.publish
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: release-*
+          path: artifacts
+          merge-multiple: true
+      - name: Validate the complete update feed
+        run: |
+          for file in latest-arm64-mac.yml latest-x64-mac.yml; do
+            test -s "artifacts/$file" || { echo "Missing $file" >&2; exit 1; }
+          done
+          for arch in arm64 x64; do
+            for ext in dmg zip; do
+              test -s "artifacts/skill-shelf-${TAG#v}-mac-$arch.$ext" || { echo "Missing $arch $ext" >&2; exit 1; }
+            done
+          done
+          cd artifacts
+          sha256sum * > SHA256SUMS
+        env:
+          TAG: ${{ needs.verify.outputs.tag }}
+      - name: Publish both macOS architectures together
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          TAG: ${{ needs.verify.outputs.tag }}
+          SOURCE_SHA: ${{ needs.verify.outputs.sha }}
+        run: |
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            test "$(gh release view "$TAG" --json isDraft --jq .isDraft)" = true || { echo 'Published releases are immutable; use a new version.' >&2; exit 1; }
+          else
+            gh release create "$TAG" --draft --title "Skill Shelf $TAG" --notes "macOS downloads built from $SOURCE_REPOSITORY@$SOURCE_SHA. Choose arm64 for Apple Silicon or x64 for Intel. These builds use ad-hoc signing without Apple notarization. Settings > About checks for new versions and opens the download page; install updates manually."
+          fi
+          gh release upload "$TAG" artifacts/* --clobber
+          gh release edit "$TAG" --draft=false --latest

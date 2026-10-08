@@ -1,0 +1,44 @@
+import {
+  englishMessages,
+  loadMessages,
+  translate,
+  type Messages,
+} from '@skill-shelf/i18n'
+import { describe, expect, it } from 'vitest'
+
+import { getLocalizedErrorMessage } from './localized-error'
+
+describe('getLocalizedErrorMessage', () => {
+  it('explains an empty response after the automatic retry', () => {
+    const t = createTranslator(englishMessages)
+
+    expect(
+      getLocalizedErrorMessage(
+        new Error(
+          "Error invoking remote method 'ai:skill-run': Error: DeepSeek returned an empty response after retry"
+        ),
+        t
+      )
+    ).toBe(
+      'The model returned no content twice, including the automatic retry.'
+    )
+  })
+
+  it('explains in Chinese that an incomplete result was not saved', async () => {
+    const t = createTranslator(await loadMessages('zh-CN'))
+
+    expect(
+      getLocalizedErrorMessage(
+        new Error('DeepSeek returned an incomplete translation after retry'),
+        t
+      )
+    ).toBe('模型连续两次返回不完整的翻译，本次结果未保存，请重试。')
+  })
+})
+
+function createTranslator(messages: Messages) {
+  return (
+    key: Parameters<typeof translate>[1],
+    values?: Parameters<typeof translate>[2]
+  ) => translate(messages, key, values)
+}

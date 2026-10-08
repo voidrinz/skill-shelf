@@ -1,0 +1,10 @@
+# <type>(<scope>): <short imperative summary>
+# Examples: feat(desktop): add menu bar actions
+#           fix(release): correct Intel artifact paths
+
+# Explain the problem and resulting behavior. Add context when it helps.
+
+# Validation: describe the relevant checks and their result.
+
+# Optional: Closes #123
+# Optional: BREAKING CHANGE: describe an incompatible change and migration.

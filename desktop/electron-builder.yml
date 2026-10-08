@@ -1,0 +1,31 @@
+appId: app.skillshelf.desktop
+productName: Skill Shelf
+directories:
+  buildResources: build
+  output: release
+extraResources:
+  - from: build/trayTemplate.png
+    to: trayTemplate.png
+  - from: build/trayTemplate@2x.png
+    to: trayTemplate@2x.png
+  - from: build/icon.png
+    to: icon.png
+files:
+  - out/**
+  - package.json
+asarUnpack:
+  - node_modules/node-pty/**
+  - node_modules/skills/**
+mac:
+  icon: build/icon.icns
+  category: public.app-category.developer-tools
+  target:
+    - dmg
+    - zip
+win:
+  icon: build/icon.ico
+  target: nsis
+linux:
+  icon: build/icon-linux.png
+  category: Development
+  target: AppImage

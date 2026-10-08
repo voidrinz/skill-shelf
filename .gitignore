@@ -1,0 +1,17 @@
+node_modules/
+dist/
+out/
+release/
+coverage/
+.DS_Store
+*.tsbuildinfo
+*.log
+.vite/
+.env
+.env.*
+!.env.example
+!.env.sample
+*.p12
+*.p8
+*.pem
+*.key
