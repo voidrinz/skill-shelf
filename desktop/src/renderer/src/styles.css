@@ -32,6 +32,15 @@
   --ss-overlay: #fff;
   --ss-muted: #f4f4f6;
   --ss-interactive: #eeeef1;
+  --ss-form-surface: #f7f7f9;
+  --ss-field-surface: #fff;
+  --ss-control-border: #8c8c98;
+  --ss-control-border-hover: #666674;
+  --ss-segment-track: #e9e9ef;
+  --ss-segment-border: #d0d0d9;
+  --ss-segment-selected: #fff;
+  --ss-segment-selected-border: #858592;
+  --ss-control-shadow: 0 1px 2px rgb(24 24 27 / 8%);
   --foreground: #27272a;
   --card-foreground: #27272a;
   --popover-foreground: #27272a;
@@ -60,6 +69,15 @@
   --ss-overlay: #2e2e33;
   --ss-muted: #26262a;
   --ss-interactive: #313136;
+  --ss-form-surface: #242427;
+  --ss-field-surface: #19191d;
+  --ss-control-border: #6d6d7a;
+  --ss-control-border-hover: #9696a3;
+  --ss-segment-track: #1c1c20;
+  --ss-segment-border: #4b4b55;
+  --ss-segment-selected: #45454f;
+  --ss-segment-selected-border: #9999a6;
+  --ss-control-shadow: 0 1px 3px rgb(0 0 0 / 24%);
   --foreground: #e4e4e7;
   --card-foreground: #e4e4e7;
   --popover-foreground: #f4f4f5;
@@ -163,6 +181,48 @@ textarea {
     [data-slot='tabs-list']
   ) {
   border-radius: var(--ss-radius-control);
+}
+
+/* Keep form controls distinct from their containers, including portaled dialogs. */
+:is([data-slot='input'], [data-slot='select-trigger'], [data-slot='textarea']) {
+  border-color: var(--ss-control-border);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-field-surface);
+  box-shadow: var(--ss-control-shadow);
+}
+:is(
+    [data-slot='input'],
+    [data-slot='select-trigger'],
+    [data-slot='textarea']
+  ):hover:where(
+    :not(:disabled):not(:focus-visible):not([aria-invalid='true'])
+  ) {
+  border-color: var(--ss-control-border-hover);
+}
+:is(
+  [data-slot='input'],
+  [data-slot='select-trigger'],
+  [data-slot='textarea']
+):focus-visible {
+  border-color: var(--ring);
+  background: var(--ss-field-surface);
+  outline: 2px solid color-mix(in srgb, var(--ring) 35%, transparent);
+  outline-offset: 2px;
+  box-shadow: none;
+}
+:is(
+  [data-slot='input'],
+  [data-slot='select-trigger'],
+  [data-slot='textarea']
+)[aria-invalid='true'] {
+  border-color: var(--destructive);
+}
+:is(
+    [data-slot='input'],
+    [data-slot='select-trigger'],
+    [data-slot='textarea']
+  )[aria-invalid='true']:focus-visible {
+  outline-color: color-mix(in srgb, var(--destructive) 35%, transparent);
 }
 
 .desktop-shell [data-slot='nav-item'] {
@@ -7791,7 +7851,7 @@ html[data-density='compact'] .finder-list-view[data-view='columns'] {
   overflow: hidden;
   border: 1px solid var(--settings-border);
   border-radius: var(--ss-radius-panel);
-  background: var(--card);
+  background: var(--ss-form-surface);
 }
 .setting-row {
   display: flex;
@@ -7859,6 +7919,40 @@ html[data-density='compact'] .finder-list-view[data-view='columns'] {
 .theme-setting[role='radiogroup'],
 .theme-setting [role='radio'] {
   border-radius: var(--ss-radius-control);
+}
+.theme-setting[role='radiogroup'],
+.setting-row [role='tablist'] {
+  border: 1px solid var(--ss-segment-border);
+  border-radius: var(--ss-radius-control);
+  background: var(--ss-segment-track);
+  padding: 3px;
+}
+.theme-setting [role='radio'],
+.setting-row [role='tab'] {
+  border: 1px solid transparent;
+  color: var(--muted-foreground);
+  background: transparent;
+  box-shadow: none;
+  transition-property: color, background-color, border-color;
+}
+.theme-setting [role='radio']:hover:where(:not(:disabled)),
+.setting-row [role='tab']:hover:where(:not(:disabled)) {
+  color: var(--foreground);
+  background: var(--ss-interactive);
+}
+.theme-setting [role='radio'][aria-checked='true'],
+.setting-row [role='tab'][data-state='active'] {
+  border-color: var(--ss-segment-selected-border);
+  color: var(--foreground);
+  background: var(--ss-segment-selected);
+  box-shadow: var(--ss-control-shadow);
+  font-weight: 650;
+}
+.theme-setting [role='radio']:focus-visible,
+.setting-row [role='tab']:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 1px;
+  box-shadow: none;
 }
 .setting-value {
   flex: 0 0 auto;
