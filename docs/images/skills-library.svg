@@ -1,0 +1,173 @@
+<svg
+  xmlns="http://www.w3.org/2000/svg"
+  width="1200"
+  height="760"
+  viewBox="0 0 1200 760"
+  fill="none"
+>
+  <title>Skill Shelf sample library</title>
+  <desc>
+    Interface illustration with fictional folders and skills. No personal
+    projects or filesystem paths are included.
+  </desc>
+  <defs>
+    <linearGradient
+      id="backdrop"
+      x1="0"
+      y1="0"
+      x2="1200"
+      y2="760"
+      gradientUnits="userSpaceOnUse"
+    >
+      <stop stop-color="#FAEDE6" />
+      <stop offset="1" stop-color="#F1F2F5" />
+    </linearGradient>
+    <filter id="shadow" x="-10%" y="-10%" width="120%" height="130%">
+      <feDropShadow
+        dx="0"
+        dy="12"
+        stdDeviation="16"
+        flood-color="#48372D"
+        flood-opacity=".12"
+      />
+    </filter>
+    <g id="folder">
+      <path
+        d="M2 10a4 4 0 0 1 4-4h13l6 6h23a4 4 0 0 1 4 4v29a4 4 0 0 1-4 4H6a4 4 0 0 1-4-4Z"
+        fill="#FCE8DE"
+        stroke="#E97859"
+        stroke-width="2.5"
+      />
+    </g>
+    <g id="skill">
+      <rect width="34" height="34" rx="9" fill="#FCEEE7" />
+      <path
+        d="m10 12 7-4 7 4v9l-7 4-7-4Zm0 0 7 4 7-4m-7 4v9"
+        stroke="#D87355"
+        fill="none"
+        stroke-width="1.5"
+        stroke-linejoin="round"
+      />
+    </g>
+  </defs>
+  <rect width="1200" height="760" rx="24" fill="url(#backdrop)" />
+  <g filter="url(#shadow)">
+    <rect x="36" y="36" width="1128" height="664" rx="14" fill="white" />
+  </g>
+  <path
+    d="M50 36h1100a14 14 0 0 1 14 14v26H36V50a14 14 0 0 1 14-14Z"
+    fill="#F6F6F8"
+  />
+  <path d="M36 76h190v624H50a14 14 0 0 1-14-14Z" fill="#F6F6F8" />
+  <path d="M36 76h1128M226 76v624" stroke="#E8E8ED" />
+  <g
+    fill="#2A2A30"
+    font-family="-apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+    font-size="14"
+  >
+    <circle cx="58" cy="56" r="5" fill="#FF625B" />
+    <circle cx="76" cy="56" r="5" fill="#FFBE45" />
+    <circle cx="94" cy="56" r="5" fill="#00C94E" />
+    <text x="600" y="61" text-anchor="middle" font-size="12" font-weight="600">
+      Skills
+    </text>
+    <rect x="55" y="99" width="26" height="26" rx="7" fill="#242429" />
+    <path d="M62 108v10m6-13v13m6-9v9" stroke="#F9B49E" stroke-width="3" />
+    <text x="92" y="117" font-weight="650">Skill Shelf</text>
+    <text x="61" y="162" fill="#777780">Workspace</text>
+    <rect x="48" y="180" width="166" height="35" rx="7" fill="#E9E9EE" />
+    <text x="61" y="202" font-weight="600">Skills</text>
+    <text x="198" y="202" text-anchor="end" fill="#777780">3</text>
+    <text x="61" y="245" fill="#777780">Discover</text>
+    <text x="61" y="286" fill="#777780">Packs</text>
+    <text x="61" y="675" fill="#777780">Settings</text>
+    <text x="256" y="117" font-size="22" font-weight="650">Global</text>
+    <text x="256" y="143" fill="#777780" font-size="13">
+      Your skills, organized your way.
+    </text>
+    <rect
+      x="875"
+      y="101"
+      width="123"
+      height="33"
+      rx="6"
+      fill="white"
+      stroke="#DEDEE5"
+    />
+    <text x="936" y="122" text-anchor="middle" font-size="12">
+      Check updates
+    </text>
+    <rect x="1010" y="101" width="123" height="33" rx="6" fill="#E97859" />
+    <text
+      x="1071"
+      y="122"
+      text-anchor="middle"
+      font-size="12"
+      fill="white"
+      font-weight="600"
+    >
+      + Add skill
+    </text>
+    <path d="M246 161h897" stroke="#ECECF0" />
+    <text x="260" y="190" font-size="13">Global</text>
+    <text x="1034" y="190" font-size="12" fill="#777780">+ New folder</text>
+    <rect x="256" y="208" width="877" height="35" rx="6" fill="#F5F5F8" />
+    <circle
+      cx="276"
+      cy="224"
+      r="5"
+      fill="none"
+      stroke="#96969F"
+      stroke-width="1.5"
+    />
+    <path d="m280 228 4 4" stroke="#96969F" stroke-width="1.5" />
+    <text x="299" y="231" fill="#96969F" font-size="12">
+      Search skills, sources, and tags
+    </text>
+    <text x="256" y="281" font-weight="600" font-size="12">Folders</text>
+    <text x="309" y="281" fill="#96969F" font-size="12">3</text>
+    <path d="M256 293h877" stroke="#ECECF0" />
+    <use href="#folder" x="296" y="314" />
+    <use href="#folder" x="470" y="314" />
+    <use href="#folder" x="644" y="314" />
+    <text x="323" y="385" text-anchor="middle" font-size="12">Development</text>
+    <text x="497" y="385" text-anchor="middle" font-size="12">Writing</text>
+    <text x="671" y="385" text-anchor="middle" font-size="12">Design</text>
+    <text x="256" y="429" font-weight="600" font-size="12">Skills</text>
+    <text x="294" y="429" fill="#96969F" font-size="12">3</text>
+    <path d="M256 441h877" stroke="#ECECF0" />
+    <g font-size="13" font-weight="600">
+      <use href="#skill" x="264" y="458" />
+      <text x="314" y="480">code-review</text>
+      <use href="#skill" x="264" y="520" />
+      <text x="314" y="542">documentation</text>
+      <use href="#skill" x="264" y="582" />
+      <text x="314" y="604">frontend-design</text>
+    </g>
+    <g font-size="12" fill="#777780">
+      <text x="560" y="480">Review changes before shipping</text>
+      <text x="560" y="542">Write clear guides and examples</text>
+      <text x="560" y="604">Build thoughtful interfaces</text>
+      <text x="1014" y="480">Community</text>
+      <text x="1014" y="542">Community</text>
+      <text x="1014" y="604">Community</text>
+    </g>
+    <path d="M256 507h877m-877 62h877m-877 62h877" stroke="#ECECF0" />
+    <text x="256" y="670" font-size="12" fill="#96969F">
+      3 folders · 3 skills
+    </text>
+    <text x="1133" y="670" font-size="11" fill="#96969F" text-anchor="end">
+      Sample library
+    </text>
+    <text
+      x="600"
+      y="737"
+      text-anchor="middle"
+      fill="#998980"
+      font-size="12"
+      letter-spacing="2"
+    >
+      ORGANIZE / DISCOVER / REUSE
+    </text>
+  </g>
+</svg>

@@ -1,119 +1,79 @@
+<div align="center">
+
+<img src="website/public/apple-touch-icon.png" width="88" alt="Skill Shelf icon" />
+
 # Skill Shelf
 
-Skill Shelf is a local-first desktop GUI for [skills.sh](https://skills.sh). It
-uses the official `skills` CLI to list, install, update, and remove skills, then
-adds a private organization layer for tags and groups without modifying the
-skills themselves.
+**Your agent skills, in one place.**
 
-## Repository
+A Mac desktop app to organize, discover, update, and reuse skills across your AI coding agents.
 
-```text
-skill-shelf/
-├── desktop/       Electron Main + typed Preload + React Renderer
-├── website/       Static launchpad website
-├── packages/i18n/ Typed English and Simplified Chinese catalogs
-└── packages/ui/   Shared visual tokens and UI primitives
-```
+[![Latest release](https://img.shields.io/github/v/release/voidrinz/skill-shelf-releases?label=download&color=ed7153)](https://voidrinz.github.io/skill-shelf/#download)
+![Platform](https://img.shields.io/badge/macOS-Apple%20Silicon%20%26%20Intel-555)
 
-There is deliberately no backend in the first product phase. Installed skills
-remain on the user's machine, and Skill Shelf metadata is stored under the
-Electron application data directory.
+[Website](https://voidrinz.github.io/skill-shelf/) · [Download for Mac](https://voidrinz.github.io/skill-shelf/#download) · [Release notes](https://github.com/voidrinz/skill-shelf-releases/releases) · [简体中文](README_cn.md)
 
-The desktop and website both support English and Simplified Chinese. Desktop
-language preferences are stored in `shelf.json`; the website stores language
-and appearance preferences in browser storage.
+</div>
 
-## Development
+Skills are useful until they become hard to find. Skill Shelf gives your growing collection a home: browse what is installed, keep related skills together, and bring the ones you need into each project.
 
-Requirements: Node.js 24+ and pnpm 11.
+![Skill Shelf library illustration with sample folders and skills](docs/images/skills-library.svg)
 
-```bash
-pnpm install
-pnpm dev
-```
+<p align="center"><sub>Interface illustration using sample data.</sub></p>
 
-`pnpm dev` starts the Electron desktop app and the website together. The website
-opens automatically in your default browser at <http://localhost:17130>.
-The website is the product landing page; desktop features run in Electron.
-It includes an interactive workspace preview with sample skills, search,
-description views, and Pack deployment examples. The preview does not access
-local skill files or run installation commands.
+## Why Skill Shelf?
 
-To run either app separately:
+- **Find what you already have.** Browse global and project skills in one app, with search, tags, and readable descriptions.
+- **Organize like files.** Use folders, drag and drop, multi-selection, and icon, list, or column views.
+- **Discover something useful.** Explore [skills.sh](https://skills.sh), read a skill, and review its installation command before installing.
+- **Keep your collection current.** Check for skill updates and follow installation, update, and removal progress in the task queue.
+- **Reuse your own skills.** Collect private skills into Packs and add them to projects by copying or linking them.
+- **Stay within reach.** Open the menu bar panel for a quick overview, a rescan, or a shortcut back to your library.
 
-```bash
-pnpm dev:desktop
-pnpm dev:website
-```
+Skill Shelf also supports English and Simplified Chinese, light and dark appearance, skill document previews, optional AI translation, and checks for missing or broken skill links.
 
-Keep the development command running while editing code:
+## Download And Install
 
-- Desktop renderer (React/CSS) and website changes update through Vite HMR.
-- Desktop main-process changes rebuild and restart Electron automatically.
-- Desktop preload changes rebuild and reload the Electron window automatically.
-- Main-process restarts and full window reloads reset in-memory UI state and may
-  interrupt running tasks or terminal sessions; saved data remains on disk.
+**[Download Skill Shelf for Mac →](https://voidrinz.github.io/skill-shelf/#download)**
 
-Restart the development command after changing dependencies, startup scripts,
-or the Electron Vite configuration. Routine source edits do not require manually
-closing and relaunching the app.
+Choose **Apple Silicon** for M-series Macs or **Intel** for Intel Macs. The website's download buttons start the installer download directly.
 
-Run the full verification suite with:
+1. Open the downloaded `.dmg` file.
+2. Drag **Skill Shelf** into **Applications**.
+3. Open Skill Shelf from Applications.
 
-```bash
-pnpm typecheck
-pnpm test
-pnpm build
-```
+The current Mac builds are not notarized by Apple, so macOS may show a warning on first launch. Follow [Apple's instructions for opening an app](https://support.apple.com/en-us/102445) if you choose to proceed.
 
-For commit titles and descriptions, see [the commit convention](docs/commits.md).
+All published installers and release notes are available in [skill-shelf-releases](https://github.com/voidrinz/skill-shelf-releases/releases). Mac downloads are currently available for Apple Silicon and Intel.
 
-## Website
+## Get Started
 
-Visit <https://voidrinz.github.io/skill-shelf/> for the product overview and
-direct Apple Silicon/Intel Mac downloads. The website deploys through GitHub
-Pages independently from desktop packaging. See [the website deployment
-guide](docs/website.md) for deployment triggers and download-link updates.
+1. **Browse your library.** Open Skills to see your global collection, or add a project to view its skills.
+2. **Make it yours.** Group related skills into folders, add tags, and choose the view that suits you.
+3. **Add and reuse skills.** Find new skills in Discover, or create a Pack for skills you want to use across projects.
 
-## Menu Bar And System Tray
+Close the main window to keep Skill Shelf in the menu bar. Use **Quit** when you want to exit completely.
 
-Skill Shelf keeps running when its main window is closed. Click the menu bar
-icon on macOS, or the system tray icon on Windows/Linux, to open a compact panel
-with local skill, Agent, project, and link-health information. The panel can
-rescan the local environment, check skill updates through the existing task
-queue, and open Skills, Discover, Packs, or Settings in the main window.
+## Questions
 
-Click outside the panel or press Escape to dismiss it. After 30 seconds hidden,
-the panel releases its renderer and recreates it when opened again. Right-click
-the icon for the native menu. Use Quit in the panel/menu or the application's
-Quit command to exit completely.
+### Can I use it in a browser?
 
-## Desktop Releases And Updates
+The website introduces Skill Shelf and includes a preview with sample data. Managing skills on your Mac requires the desktop app.
 
-Desktop release builds use a separate public `skill-shelf-releases` repository.
-Installed apps check for application updates in the background; Settings >
-About opens the download page for manually installing Mac updates. Skill
-updates remain separate and use the existing Skill task queue.
+### Does organizing skills change their files?
 
-See [the release setup guide](docs/releases.md) for the two-repository workflow,
-GitHub variables, ad-hoc Mac signing, local installer builds, and verification.
+Folders, tags, and layout are saved locally by Skill Shelf; organizing your library does not rewrite the original `SKILL.md` documents. Installing, updating, removing, or deploying skills changes the relevant files.
 
-## Application Icons
+### Do I need an AI service?
 
-The desktop and website share the three-book mark defined in
-`packages/ui/src/brand-mark.ts`. The React brand component uses the same geometry
-with theme-aware colors. Generated app icons use the light-theme brand colors.
+You can browse and organize your library without configuring an AI provider. Optional AI translation sends the selected content to the provider you configure; saved translations remain on your Mac.
 
-After changing the mark, regenerate the checked-in icon assets with:
+### How do I update the app?
 
-```bash
-pnpm icons:generate
-```
+Open **Settings → About** to check for a new version and go to the download page. Install the new Mac version over the existing app; your saved shelf data is retained. App updates and skill updates are separate.
 
-This generates macOS ICNS, Windows ICO, Linux PNG, and website favicon/touch icons.
-macOS app icons include transparent margins for Dock sizing. Development uses
-`desktop/build/icon.png`; packaged apps include it as an Electron resource and use
-the platform icons configured in `desktop/electron-builder.yml`.
+## Feedback And Contributions
 
-Restart the desktop development command to refresh its Dock icon after
-regenerating assets. Repackage the desktop app to update its installed app icon.
+Found a problem or have an idea? [Open an issue](https://github.com/voidrinz/skill-shelf/issues).
+
+To work on the project, see the [development guide](docs/development.md). Build, release, and website deployment instructions live there and in the linked guides.
