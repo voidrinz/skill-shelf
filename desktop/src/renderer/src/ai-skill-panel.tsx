@@ -124,6 +124,7 @@ export default function AiSkillPanel({
 
   useEffect(() => {
     let active = true
+    setHistoryLoading(true)
     void window.skillShelf
       .listAiConversations()
       .then((history) => {
@@ -136,7 +137,7 @@ export default function AiSkillPanel({
     return () => {
       active = false
     }
-  }, [])
+  }, [settings?.legacyDataAvailable])
 
   useEffect(() => {
     if (settings?.targetLanguage) setTargetLanguage(settings.targetLanguage)
