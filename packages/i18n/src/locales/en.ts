@@ -365,8 +365,8 @@ export const messages = {
   'desktop.errors.aiRequestFailed':
     'The model could not respond. Please try again.',
   'desktop.errors.aiResponse': 'The model returned an unreadable response.',
-  'desktop.errors.aiSecureStorage':
-    'Operating system secure storage is unavailable.',
+  'desktop.errors.aiLocalStorage':
+    'Your saved AI data could not be read. The original files have been kept.',
   'desktop.errors.aiTimedOut': 'The model request timed out. Try again.',
   'desktop.errors.aiUnauthorized':
     'The DeepSeek API key is invalid or does not have access to this model.',
@@ -728,7 +728,7 @@ export const messages = {
   'desktop.settings.aiAnalysisModelDescription':
     'Used to inspect Skill files, capabilities, standards, and constraints.',
   'desktop.settings.aiApiKeyOptionalDescription':
-    'Optional for a local endpoint. If the service requires a key, it is encrypted on this computer.',
+    'Optional for a local endpoint. If the service requires a key, it is saved only on this computer.',
   'desktop.settings.aiApiKeySaved': 'Keep saved key',
   'desktop.settings.aiChatModel': 'Conversation model',
   'desktop.settings.aiChatModelDescription':
@@ -764,7 +764,7 @@ export const messages = {
     'Used for concise descriptions and translations, where stable wording matters.',
   'desktop.settings.aiApiKey': 'API key',
   'desktop.settings.aiApiKeyDescription':
-    'Used to connect this computer to DeepSeek. Leave blank to keep the saved key.',
+    'Saved on this computer without encryption. Leave blank to keep the saved key.',
   'desktop.settings.aiApiKeyPlaceholder': 'Paste a new API key',
   'desktop.settings.aiBehavior': 'AI behavior',
   'desktop.settings.aiBehaviorDescription':
@@ -802,11 +802,19 @@ export const messages = {
   'desktop.settings.aiProvider': 'Provider',
   'desktop.settings.aiProviderDescription':
     'Choose a preset or connect another OpenAI-compatible endpoint.',
+  'desktop.settings.aiRestoreData': 'Restore previous AI data',
+  'desktop.settings.aiRestoreDescription':
+    'Restore your API key and conversations as unencrypted local data. macOS may ask for permission once.',
+  'desktop.settings.aiDataRestored': 'Previous AI data restored.',
+  'desktop.errors.aiRestoreRequired':
+    'Restore your previous AI data in Settings first.',
+  'desktop.errors.aiRestoreFailed':
+    'Could not restore previous AI data. The original files have been kept. Please try again.',
   'desktop.settings.aiReady': 'Ready',
   'desktop.settings.aiSave': 'Save AI settings',
   'desktop.settings.aiSaved': 'AI settings saved.',
-  'desktop.settings.aiSecureStorageUnavailable':
-    'Operating system secure storage is unavailable, so AI credentials cannot be saved.',
+  'desktop.settings.aiLocalStorageUnavailable':
+    'Your saved AI data could not be read. The original files have been kept.',
   'desktop.settings.aiVerify': 'Verify connection',
   'desktop.settings.aiVerified': 'Connection verified with {model}.',
   'desktop.settings.aiVerifying': 'Verifying…',

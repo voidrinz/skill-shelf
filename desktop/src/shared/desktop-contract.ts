@@ -9,6 +9,7 @@ export const desktopIpcChannels = {
   aiTranslationSave: 'ai:translation-save',
   aiProviderSettingsClear: 'ai:provider-settings-clear',
   aiProviderSettingsGet: 'ai:provider-settings-get',
+  aiDataRestore: 'ai:data-restore',
   aiProviderSettingsSave: 'ai:provider-settings-save',
   aiProviderVerify: 'ai:provider-verify',
   aiChatRun: 'ai:chat-run',
@@ -703,7 +704,8 @@ export interface AiProviderSettingsStatus {
   models: AiModelRoleSettings
   provider: AiProviderId
   connections: AiProviderConnectionStatus[]
-  secureStorageAvailable: boolean
+  localStorageAvailable: boolean
+  legacyDataAvailable: boolean
   targetLanguage: string
   updatedAt: string | null
 }
@@ -875,6 +877,7 @@ export interface SkillShelfDesktopApi {
   createGroup(input: CreateGroupInput): Promise<CatalogSnapshot>
   getAgentInstallRegistry(): Promise<AgentInstallRegistrySnapshot>
   getAiProviderSettings(): Promise<AiProviderSettingsStatus>
+  restorePreviousAiData(): Promise<AiProviderSettingsStatus>
   getAiConversation(id: string): Promise<AiConversation | null>
   listAiConversations(): Promise<AiConversationSummary[]>
   getCatalog(): Promise<CatalogSnapshot>

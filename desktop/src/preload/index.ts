@@ -72,6 +72,8 @@ const desktopApi: SkillShelfDesktopApi = {
       desktopIpcChannels.discoverySkillInstallCommandGet,
       sourceUrl
     ),
+  restorePreviousAiData: () =>
+    ipcRenderer.invoke(desktopIpcChannels.aiDataRestore),
   getAiProviderSettings: () =>
     ipcRenderer.invoke(desktopIpcChannels.aiProviderSettingsGet),
   getAiConversation: (id) =>

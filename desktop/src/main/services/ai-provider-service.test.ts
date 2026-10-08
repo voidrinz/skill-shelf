@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -29,7 +29,8 @@ describe('AiProviderService', () => {
       settingsPath: join(tmpdir(), 'unused-ai-provider.json'),
     })
 
-    const status = await service.initialize()
+    await service.initialize()
+    const status = await service.restorePreviousData()
 
     expect(deepSeekProviderConfiguration).toEqual({
       baseUrl: 'https://api.deepseek.com',
@@ -46,7 +47,7 @@ describe('AiProviderService', () => {
     })
   })
 
-  it('encrypts credentials and never exposes the API key in status', async () => {
+  it('saves owner-only local credentials without exposing the API key in status', async () => {
     const { service, settingsPath } = await createService()
 
     const status = await service.saveSettings({
@@ -64,24 +65,113 @@ describe('AiProviderService', () => {
       targetLanguage: 'zh-CN',
     })
     expect(status).not.toHaveProperty('apiKey')
-    expect(await readFile(settingsPath, 'utf8')).not.toContain(
-      'sk-private-value'
-    )
+    expect(await readFile(settingsPath, 'utf8')).toContain('sk-private-value')
+    expect((await stat(settingsPath)).mode & 0o777).toBe(0o600)
+    expect(JSON.stringify(status)).not.toContain('sk-private-value')
   })
 
-  it('rejects credential persistence when secure storage is unavailable', async () => {
-    const service = new AiProviderService({
-      encryptionStorage: unavailableEncryption,
-      settingsPath: join(tmpdir(), 'unused-ai-provider.json'),
+  it('saves and reloads credentials without calling the Keychain', async () => {
+    const settingsPath = join(await createTemporaryDirectory(), 'provider.json')
+    const encryptionStorage = {
+      decryptString: vi.fn(() => {
+        throw new Error('Unexpected Keychain access')
+      }),
+      isEncryptionAvailable: vi.fn(() => {
+        throw new Error('Unexpected Keychain access')
+      }),
+    }
+    const service = new AiProviderService({ encryptionStorage, settingsPath })
+    await service.initialize()
+    await service.saveSettings({
+      apiKey: 'sk-private-value',
+      model: 'deepseek-v4-flash',
+      provider: 'deepseek',
     })
+    const reloaded = new AiProviderService({ encryptionStorage, settingsPath })
+    expect(await reloaded.initialize()).toMatchObject({
+      configured: true,
+      localStorageAvailable: true,
+      legacyDataAvailable: false,
+    })
+    expect(encryptionStorage.isEncryptionAvailable).not.toHaveBeenCalled()
+    expect(encryptionStorage.decryptString).not.toHaveBeenCalled()
+  })
 
+  it('keeps legacy credentials intact until explicitly restored and supports retry', async () => {
+    const settingsPath = join(await createTemporaryDirectory(), 'provider.json')
+    await writeEncryptedSettings(settingsPath, 1, {
+      apiKey: 'sk-previous-value',
+      contextMode: 'relevant-text',
+      enabled: true,
+      model: 'deepseek-v4-flash',
+      provider: 'deepseek',
+      targetLanguage: 'zh-CN',
+      updatedAt: checkedAt.toISOString(),
+    })
+    const original = await readFile(settingsPath, 'utf8')
+    const encryptionStorage = {
+      decryptString: vi.fn(reversibleEncryption.decryptString),
+      isEncryptionAvailable: vi.fn(() => false),
+    }
+    const service = new AiProviderService({ encryptionStorage, settingsPath })
+    expect(await service.initialize()).toMatchObject({
+      configured: false,
+      legacyDataAvailable: true,
+    })
+    expect(encryptionStorage.isEncryptionAvailable).not.toHaveBeenCalled()
+    expect(encryptionStorage.decryptString).not.toHaveBeenCalled()
+    await expect(
+      service.saveSettings({
+        apiKey: 'sk-new-value',
+        model: 'deepseek-v4-flash',
+        provider: 'deepseek',
+      })
+    ).rejects.toThrow('Restore previous AI data first')
+    await expect(service.clearSettings('deepseek')).rejects.toThrow(
+      'Restore previous AI data first'
+    )
+    await expect(service.restorePreviousData()).rejects.toThrow(
+      'could not be restored'
+    )
+    expect(await readFile(settingsPath, 'utf8')).toBe(original)
+    encryptionStorage.isEncryptionAvailable.mockReturnValue(true)
+    expect(await service.restorePreviousData()).toMatchObject({
+      configured: true,
+      targetLanguage: 'zh-CN',
+      legacyDataAvailable: false,
+    })
+    expect(await readFile(`${settingsPath}.encrypted-backup`, 'utf8')).toBe(
+      original
+    )
+    expect((await stat(`${settingsPath}.encrypted-backup`)).mode & 0o777).toBe(
+      0o600
+    )
+    const reloaded = new AiProviderService({
+      encryptionStorage: unavailableEncryption,
+      settingsPath,
+    })
+    expect(await reloaded.initialize()).toMatchObject({
+      configured: true,
+      legacyDataAvailable: false,
+    })
+  })
+
+  it('preserves unreadable provider data instead of overwriting it', async () => {
+    const settingsPath = join(await createTemporaryDirectory(), 'provider.json')
+    const original = '{invalid'
+    await writeFile(settingsPath, original)
+    const service = new AiProviderService({ settingsPath })
+    expect(await service.initialize()).toMatchObject({
+      localStorageAvailable: false,
+    })
     await expect(
       service.saveSettings({
         apiKey: 'sk-private-value',
         model: 'deepseek-v4-flash',
         provider: 'deepseek',
       })
-    ).rejects.toThrow('secure storage')
+    ).rejects.toThrow('could not be read')
+    expect(await readFile(settingsPath, 'utf8')).toBe(original)
   })
 
   it('generates text through the AI SDK adapter with the selected role model', async () => {
@@ -284,7 +374,8 @@ describe('AiProviderService', () => {
       encryptionStorage: reversibleEncryption,
       settingsPath,
     })
-    const status = await service.initialize()
+    await service.initialize()
+    const status = await service.restorePreviousData()
 
     expect(status.availableModels[0]).toMatchObject({
       verification: 'unverified',
@@ -363,7 +454,8 @@ describe('AiProviderService', () => {
       encryptionStorage: reversibleEncryption,
       settingsPath,
     })
-    const status = await service.initialize()
+    await service.initialize()
+    const status = await service.restorePreviousData()
 
     expect(status).toMatchObject({
       configured: true,
@@ -418,7 +510,8 @@ describe('AiProviderService', () => {
       encryptionStorage: reversibleEncryption,
       settingsPath,
     })
-    const status = await service.initialize()
+    await service.initialize()
+    const status = await service.restorePreviousData()
 
     expect(status.baseUrl).toBe('https://api.deepseek.com')
     expect(status.availableModels.map((model) => model.id)).toEqual([
@@ -434,7 +527,7 @@ describe('AiProviderService', () => {
     expect(JSON.stringify(status)).not.toContain('openai')
   })
 
-  it('ignores an unsupported legacy provider instead of reusing its key', async () => {
+  it('preserves an unsupported legacy provider instead of replacing its data', async () => {
     const directory = await createTemporaryDirectory()
     const settingsPath = join(directory, 'provider.json')
     await writeEncryptedSettings(settingsPath, 1, {
@@ -452,7 +545,12 @@ describe('AiProviderService', () => {
       encryptionStorage: reversibleEncryption,
       settingsPath,
     })
+    const original = await readFile(settingsPath, 'utf8')
     const status = await service.initialize()
+    await expect(service.restorePreviousData()).rejects.toThrow(
+      'could not be restored'
+    )
+    expect(await readFile(settingsPath, 'utf8')).toBe(original)
 
     expect(status).toMatchObject({
       configured: false,
@@ -478,15 +576,15 @@ describe('AiProviderService', () => {
   })
 })
 
-const reversibleEncryption: EncryptionStorage = {
-  decryptString: (value) => Buffer.from(value).reverse().toString('utf8'),
-  encryptString: (value) => Buffer.from(value).reverse(),
+const reversibleEncryption = {
+  decryptString: (value: Buffer) =>
+    Buffer.from(value).reverse().toString('utf8'),
+  encryptString: (value: string) => Buffer.from(value).reverse(),
   isEncryptionAvailable: () => true,
 }
 
 const unavailableEncryption: EncryptionStorage = {
   decryptString: () => '',
-  encryptString: () => Buffer.alloc(0),
   isEncryptionAvailable: () => false,
 }
 

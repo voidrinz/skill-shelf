@@ -33,6 +33,22 @@ describe('getLocalizedErrorMessage', () => {
     ).toBe('翻译不完整，结果未保存，请重试。')
   })
 
+  it('explains storage and recovery failures without exposing internal details', async () => {
+    const t = createTranslator(await loadMessages('zh-CN'))
+    expect(
+      getLocalizedErrorMessage(new Error('Local AI data could not be read'), t)
+    ).toBe('无法读取已保存的 AI 数据，原文件已保留。')
+    expect(
+      getLocalizedErrorMessage(
+        new Error('Previous AI data could not be restored'),
+        t
+      )
+    ).toBe('无法恢复原有 AI 数据，原文件已保留，请重试。')
+    expect(
+      getLocalizedErrorMessage(new Error('Restore previous AI data first'), t)
+    ).toBe('请先在设置中恢复原有 AI 数据。')
+  })
+
   it('keeps internal IPC errors and provider responses out of product messages', () => {
     const t = createTranslator(englishMessages)
     expect(

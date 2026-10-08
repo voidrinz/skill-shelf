@@ -1,5 +1,3 @@
-import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { generateText as generateTextWithAiSdk } from 'ai'
 
@@ -20,11 +18,12 @@ import {
   defaultAiModelRoleSettings,
 } from '../../shared/desktop-contract'
 
-export type EncryptionStorage = {
-  decryptString(value: Buffer): string
-  encryptString(value: string): Buffer
-  isEncryptionAvailable(): boolean
-}
+import {
+  LocalAiStorage,
+  type LegacyEncryptionStorage,
+} from './local-ai-storage'
+
+export type EncryptionStorage = LegacyEncryptionStorage
 
 export interface DeepSeekTextGenerationInput {
   apiKey: string
@@ -115,27 +114,45 @@ const REQUEST_TIMEOUT_MS = 60_000
 const CONTENT_ATTEMPTS = 2
 
 export class AiProviderService {
-  private readonly encryptionStorage: EncryptionStorage
+  private readonly storage: LocalAiStorage<AiConfiguration>
   private readonly generateDeepSeekText: DeepSeekTextGenerator
   private readonly now: () => Date
   private configuration: AiConfiguration | null = null
 
   constructor(private readonly options: AiProviderServiceOptions) {
-    this.encryptionStorage = options.encryptionStorage ?? {
-      decryptString: () => {
-        throw new Error('AI secure storage is unavailable')
+    this.storage = new LocalAiStorage(
+      options.settingsPath,
+      (value) => {
+        const stored = value as {
+          version?: number
+          configuration?: unknown
+        } | null
+        return stored?.version === 4
+          ? normalizeStoredConfiguration(stored.configuration, false)
+          : null
       },
-      encryptString: () => {
-        throw new Error('AI secure storage is unavailable')
-      },
-      isEncryptionAvailable: () => false,
-    }
+      isLegacySettings,
+      (value) => {
+        if (!options.encryptionStorage?.isEncryptionAvailable()) {
+          throw new Error('Previous AI data could not be restored')
+        }
+        const stored = value as StoredProviderSettings
+        const configuration: unknown = JSON.parse(
+          options.encryptionStorage.decryptString(
+            Buffer.from(stored.encryptedConfiguration, 'base64')
+          )
+        )
+        return stored.version === 1
+          ? migrateLegacyConfiguration(configuration)
+          : normalizeStoredConfiguration(configuration, stored.version === 2)
+      }
+    )
     this.generateDeepSeekText = options.generateText ?? generateDeepSeekText
     this.now = options.now ?? (() => new Date())
   }
 
   async initialize(): Promise<AiProviderSettingsStatus> {
-    this.configuration = await this.readConfiguration()
+    this.configuration = await this.storage.read()
     return this.getSettingsStatus()
   }
 
@@ -177,7 +194,8 @@ export class AiProviderService {
       model: chat.model,
       models: cloneRoleSettings(configuration.models),
       provider: chat.provider,
-      secureStorageAvailable: this.encryptionStorage.isEncryptionAvailable(),
+      localStorageAvailable: this.storage.available,
+      legacyDataAvailable: this.storage.migrationAvailable,
       targetLanguage: configuration.targetLanguage,
       updatedAt: this.configuration?.updatedAt ?? null,
     }
@@ -186,9 +204,7 @@ export class AiProviderService {
   async saveSettings(
     input: AiProviderSettingsInput
   ): Promise<AiProviderSettingsStatus> {
-    if (!this.encryptionStorage.isEncryptionAvailable()) {
-      throw new Error('AI secure storage is unavailable')
-    }
+    this.storage.assertWritable()
 
     const updatedAt = this.now().toISOString()
     const previous = this.configuration ?? defaultConfiguration(this.now())
@@ -249,9 +265,7 @@ export class AiProviderService {
   async clearSettings(
     providerValue: AiProviderId
   ): Promise<AiProviderSettingsStatus> {
-    if (!this.encryptionStorage.isEncryptionAvailable()) {
-      throw new Error('AI secure storage is unavailable')
-    }
+    this.storage.assertWritable()
     const provider = assertProviderId(providerValue)
     const previous = this.configuration ?? defaultConfiguration(this.now())
     const previousConnection = previous.connections[provider]
@@ -400,50 +414,24 @@ export class AiProviderService {
     }
   }
 
-  private async readConfiguration(): Promise<AiConfiguration | null> {
-    if (!this.encryptionStorage.isEncryptionAvailable()) return null
-    try {
-      const stored = JSON.parse(
-        await readFile(this.options.settingsPath, 'utf8')
-      ) as Partial<StoredProviderSettings>
-      if (
-        (stored.version !== 1 &&
-          stored.version !== 2 &&
-          stored.version !== 3) ||
-        typeof stored.encryptedConfiguration !== 'string'
-      ) {
-        return null
-      }
-      const decrypted = this.encryptionStorage.decryptString(
-        Buffer.from(stored.encryptedConfiguration, 'base64')
-      )
-      const value = JSON.parse(decrypted) as unknown
-      if (stored.version === 1) return migrateLegacyConfiguration(value)
-      return normalizeStoredConfiguration(value, stored.version === 2)
-    } catch {
-      return null
-    }
+  async restorePreviousData(): Promise<AiProviderSettingsStatus> {
+    const configuration = await this.storage.restore((value) => ({
+      configuration: value,
+      updatedAt: value.updatedAt,
+      version: 4,
+    }))
+    if (configuration) this.configuration = configuration
+    return this.getSettingsStatus()
   }
 
   private async writeConfiguration(
     configuration: AiConfiguration
   ): Promise<void> {
-    const encryptedConfiguration = this.encryptionStorage
-      .encryptString(JSON.stringify(configuration))
-      .toString('base64')
-    const stored: StoredProviderSettings = {
-      encryptedConfiguration,
+    await this.storage.write({
+      configuration,
       updatedAt: configuration.updatedAt,
-      version: 3,
-    }
-    await mkdir(dirname(this.options.settingsPath), { recursive: true })
-    const temporaryPath = `${this.options.settingsPath}.tmp`
-    await writeFile(temporaryPath, `${JSON.stringify(stored, null, 2)}\n`, {
-      encoding: 'utf8',
-      mode: 0o600,
+      version: 4,
     })
-    await rename(temporaryPath, this.options.settingsPath)
-    await chmod(this.options.settingsPath, 0o600)
   }
 }
 
@@ -905,3 +893,12 @@ export const deepSeekProviderConfiguration = {
   baseUrl: DEEPSEEK_BASE_URL,
   defaultModel: aiProviderPresets.deepseek.model,
 } as const
+
+function isLegacySettings(value: unknown): boolean {
+  if (!value || typeof value !== 'object') return false
+  const stored = value as Partial<StoredProviderSettings>
+  return (
+    (stored.version === 1 || stored.version === 2 || stored.version === 3) &&
+    typeof stored.encryptedConfiguration === 'string'
+  )
+}

@@ -256,21 +256,40 @@ function registerIpc(
     source: 'skills-cli' as const,
     universal: getUniversalInstallTarget(),
   }))
-  ipcMain.handle(desktopIpcChannels.aiProviderSettingsGet, () =>
-    aiProvider.getSettingsStatus()
-  )
+  function getAiSettingsStatus() {
+    const status = aiProvider.getSettingsStatus()
+    return {
+      ...status,
+      localStorageAvailable:
+        status.localStorageAvailable && aiConversations.localStorageAvailable,
+      legacyDataAvailable:
+        status.legacyDataAvailable || aiConversations.legacyDataAvailable,
+    }
+  }
+  ipcMain.handle(desktopIpcChannels.aiProviderSettingsGet, getAiSettingsStatus)
+  ipcMain.handle(desktopIpcChannels.aiDataRestore, async () => {
+    await aiProvider.restorePreviousData()
+    await aiConversations.restorePreviousData()
+    return getAiSettingsStatus()
+  })
   ipcMain.handle(
     desktopIpcChannels.aiProviderSettingsSave,
-    (_event, input: unknown) =>
-      aiProvider.saveSettings(assertAiProviderSettingsInput(input))
+    async (_event, input: unknown) => {
+      await aiProvider.saveSettings(assertAiProviderSettingsInput(input))
+      return getAiSettingsStatus()
+    }
   )
   ipcMain.handle(
     desktopIpcChannels.aiProviderSettingsClear,
-    (_event, provider) => aiProvider.clearSettings(assertAiProviderId(provider))
+    async (_event, provider) => {
+      await aiProvider.clearSettings(assertAiProviderId(provider))
+      return getAiSettingsStatus()
+    }
   )
-  ipcMain.handle(desktopIpcChannels.aiProviderVerify, (_event, input) =>
-    aiProvider.verify(assertAiProviderVerificationInput(input))
-  )
+  ipcMain.handle(desktopIpcChannels.aiProviderVerify, async (_event, input) => {
+    await aiProvider.verify(assertAiProviderVerificationInput(input))
+    return getAiSettingsStatus()
+  })
   ipcMain.handle(desktopIpcChannels.aiChatRun, (_event, input: unknown) =>
     aiSkills.chat(assertAiChatRequest(input))
   )
@@ -1464,7 +1483,6 @@ if (instanceLock)
     const aiProvider = new AiProviderService({
       encryptionStorage: {
         decryptString: (value) => safeStorage.decryptString(value),
-        encryptString: (value) => safeStorage.encryptString(value),
         isEncryptionAvailable: () => safeStorage.isEncryptionAvailable(),
       },
       settingsPath: join(app.getPath('userData'), 'ai-provider.json'),
@@ -1474,7 +1492,6 @@ if (instanceLock)
       join(app.getPath('userData'), 'ai-conversations.json'),
       {
         decryptString: (value) => safeStorage.decryptString(value),
-        encryptString: (value) => safeStorage.encryptString(value),
         isEncryptionAvailable: () => safeStorage.isEncryptionAvailable(),
       }
     )

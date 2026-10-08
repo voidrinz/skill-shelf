@@ -4,8 +4,14 @@ type Translate = ReturnType<typeof useI18n>['t']
 
 export function getLocalizedErrorMessage(error: unknown, t: Translate) {
   const message = error instanceof Error ? error.message : String(error)
-  if (message.includes('AI secure storage is unavailable')) {
-    return t('desktop.errors.aiSecureStorage')
+  if (message.includes('Local AI data could not be read')) {
+    return t('desktop.errors.aiLocalStorage')
+  }
+  if (message.includes('Restore previous AI data first')) {
+    return t('desktop.errors.aiRestoreRequired')
+  }
+  if (message.includes('Previous AI data could not be restored')) {
+    return t('desktop.errors.aiRestoreFailed')
   }
   if (message.includes('API key is required')) {
     return t('desktop.errors.aiApiKeyRequired')

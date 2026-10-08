@@ -8202,6 +8202,12 @@ html[data-density='compact'] .finder-list-view[data-view='columns'] {
   font-size: 0.72rem;
   line-height: 1.45;
 }
+.ai-settings-warning > span {
+  flex: 1;
+}
+.ai-settings-warning > button {
+  flex-shrink: 0;
+}
 .ai-settings-warning svg {
   width: 15px;
   height: 15px;

@@ -343,7 +343,7 @@ export const messages = {
   'desktop.errors.aiRateLimited': 'DeepSeek 请求过于频繁，请稍后再试。',
   'desktop.errors.aiRequestFailed': '模型暂时无法响应，请稍后重试。',
   'desktop.errors.aiResponse': '模型返回了无法读取的响应。',
-  'desktop.errors.aiSecureStorage': '操作系统安全存储当前不可用。',
+  'desktop.errors.aiLocalStorage': '无法读取已保存的 AI 数据，原文件已保留。',
   'desktop.errors.aiTimedOut': '模型请求超时，请重试。',
   'desktop.errors.aiUnauthorized':
     'DeepSeek API Key 无效或没有这个模型的访问权限。',
@@ -669,7 +669,7 @@ export const messages = {
   'desktop.settings.aiAnalysisModelDescription':
     '用于阅读 Skill 文件，分析能力、规范与限制。',
   'desktop.settings.aiApiKeyOptionalDescription':
-    '本地服务可以不填；如果服务需要 Key，它只会加密保存在这台电脑上。',
+    '本地服务可以不填；如果服务需要 Key，它只会保存在这台电脑上。',
   'desktop.settings.aiApiKeySaved': '保留已保存的 Key',
   'desktop.settings.aiChatModel': '对话模型',
   'desktop.settings.aiChatModelDescription':
@@ -705,7 +705,7 @@ export const messages = {
     '用于生成简洁描述和翻译，强调稳定、准确的措辞。',
   'desktop.settings.aiApiKey': 'API Key',
   'desktop.settings.aiApiKeyDescription':
-    '用于从这台电脑连接 DeepSeek；留空会保留已经保存的 Key。',
+    '仅保存在本机，未加密；留空会保留已保存的 Key。',
   'desktop.settings.aiApiKeyPlaceholder': '粘贴新的 API Key',
   'desktop.settings.aiBehavior': 'AI 行为',
   'desktop.settings.aiBehaviorDescription':
@@ -742,11 +742,18 @@ export const messages = {
   'desktop.settings.aiProvider': 'Provider',
   'desktop.settings.aiProviderDescription':
     '选择预设，或连接其他兼容 OpenAI 的服务。',
+  'desktop.settings.aiRestoreData': '恢复原有 AI 数据',
+  'desktop.settings.aiRestoreDescription':
+    '恢复 API Key 和对话，改为本机保存（未加密）。macOS 可能需要一次授权。',
+  'desktop.settings.aiDataRestored': '原有 AI 数据已恢复。',
+  'desktop.errors.aiRestoreRequired': '请先在设置中恢复原有 AI 数据。',
+  'desktop.errors.aiRestoreFailed':
+    '无法恢复原有 AI 数据，原文件已保留，请重试。',
   'desktop.settings.aiReady': '已就绪',
   'desktop.settings.aiSave': '保存 AI 设置',
   'desktop.settings.aiSaved': 'AI 设置已保存。',
-  'desktop.settings.aiSecureStorageUnavailable':
-    '操作系统安全存储当前不可用，因此无法保存 AI 凭据。',
+  'desktop.settings.aiLocalStorageUnavailable':
+    '无法读取已保存的 AI 数据，原文件已保留。',
   'desktop.settings.aiVerify': '验证连接',
   'desktop.settings.aiVerified': '已通过 {model} 验证连接。',
   'desktop.settings.aiVerifying': '正在验证…',

@@ -8258,7 +8258,7 @@ function AiProviderSettingsPage({
   const [modelId, setModelId] = useState('')
   const [modelName, setModelName] = useState('')
   const [busy, setBusy] = useState<
-    'clear' | 'models' | 'save' | 'toggle' | null
+    'clear' | 'models' | 'restore' | 'save' | 'toggle' | null
   >(null)
   const [verifyingModelId, setVerifyingModelId] = useState<string | null>(null)
   const availableModels =
@@ -8278,6 +8278,19 @@ function AiProviderSettingsPage({
     setModelId('')
     setModelName('')
   }, [settings?.updatedAt])
+
+  async function restorePreviousData() {
+    setBusy('restore')
+    try {
+      onChange(await window.skillShelf.restorePreviousAiData())
+      toast.success(t('desktop.settings.aiDataRestored'))
+    } catch (caught) {
+      toast.error(getLocalizedErrorMessage(caught, t))
+      onChange(await window.skillShelf.getAiProviderSettings())
+    } finally {
+      setBusy(null)
+    }
+  }
 
   async function saveConnection(event: FormEvent) {
     event.preventDefault()
@@ -8452,10 +8465,28 @@ function AiProviderSettingsPage({
         statusTone={connection?.enabled ? 'success' : 'muted'}
         title={provider.displayName}
       >
-        {!settings?.secureStorageAvailable ? (
+        {settings?.legacyDataAvailable ? (
           <div className="ai-settings-warning">
             <CircleAlert />
-            <span>{t('desktop.settings.aiSecureStorageUnavailable')}</span>
+            <span>{t('desktop.settings.aiRestoreDescription')}</span>
+            <Button
+              disabled={Boolean(busy)}
+              onClick={() => void restorePreviousData()}
+              size="sm"
+              type="button"
+              variant="outline"
+            >
+              {busy === 'restore' ? (
+                <LoaderCircle className="animate-spin" />
+              ) : null}
+              {t('desktop.settings.aiRestoreData')}
+            </Button>
+          </div>
+        ) : null}
+        {!settings?.localStorageAvailable ? (
+          <div className="ai-settings-warning">
+            <CircleAlert />
+            <span>{t('desktop.settings.aiLocalStorageUnavailable')}</span>
           </div>
         ) : null}
         <form
@@ -8525,7 +8556,11 @@ function AiProviderSettingsPage({
                   </Button>
                 ) : null}
                 <Button
-                  disabled={Boolean(busy) || !settings?.secureStorageAvailable}
+                  disabled={
+                    Boolean(busy) ||
+                    !settings?.localStorageAvailable ||
+                    settings?.legacyDataAvailable
+                  }
                   size="sm"
                   type="submit"
                 >

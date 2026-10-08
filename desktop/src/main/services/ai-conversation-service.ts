@@ -1,6 +1,7 @@
-import { randomUUID } from 'node:crypto'
-import { chmod, mkdir, readFile, rename, writeFile } from 'node:fs/promises'
-import { dirname } from 'node:path'
+import {
+  LocalAiStorage,
+  type LegacyEncryptionStorage,
+} from './local-ai-storage'
 
 import type {
   AiConversation,
@@ -15,12 +16,6 @@ const MAX_MESSAGES = 100
 const MAX_MESSAGE_LENGTH = 20_000
 const MAX_TITLE_LENGTH = 42
 const MAX_PREVIEW_LENGTH = 80
-
-interface EncryptionStorage {
-  decryptString(value: Buffer): string
-  encryptString(value: string): Buffer
-  isEncryptionAvailable(): boolean
-}
 
 interface StoredConversation {
   createdAt: string
@@ -43,16 +38,51 @@ interface StoredPayload {
 
 export class AiConversationService {
   private conversations: StoredConversation[] = []
-  private writeQueue: Promise<void> = Promise.resolve()
+  private writeQueue: Promise<unknown> = Promise.resolve()
+  private readonly storage: LocalAiStorage<StoredPayload>
 
   constructor(
-    private readonly historyPath: string,
-    private readonly encryptionStorage: EncryptionStorage,
+    historyPath: string,
+    encryptionStorage?: LegacyEncryptionStorage,
     private readonly now: () => Date = () => new Date()
-  ) {}
+  ) {
+    this.storage = new LocalAiStorage(
+      historyPath,
+      (value) => (isPayload(value) ? value : null),
+      isEnvelope,
+      (value) => {
+        if (!encryptionStorage?.isEncryptionAvailable()) {
+          throw new Error('Previous AI data could not be restored')
+        }
+        const envelope = value as StoredEnvelope
+        const payload: unknown = JSON.parse(
+          encryptionStorage.decryptString(
+            Buffer.from(envelope.encryptedPayload, 'base64')
+          )
+        )
+        return isPayload(payload) ? payload : null
+      }
+    )
+  }
+
+  get legacyDataAvailable(): boolean {
+    return this.storage.migrationAvailable
+  }
+
+  get localStorageAvailable(): boolean {
+    return this.storage.available
+  }
+
+  async restorePreviousData(): Promise<void> {
+    await this.enqueue(async () => {
+      const payload = await this.storage.restore((value) => value)
+      if (payload) this.conversations = normalizeConversations(payload)
+    })
+  }
 
   async initialize(): Promise<AiConversationSummary[]> {
-    this.conversations = await this.readConversations()
+    const payload = await this.storage.read()
+    this.conversations = payload ? normalizeConversations(payload) : []
     return this.list()
   }
 
@@ -67,94 +97,49 @@ export class AiConversationService {
 
   async save(input: SaveAiConversationInput): Promise<AiConversation> {
     assertSaveInput(input)
-    this.assertEncryptionAvailable()
-
-    const existing = this.conversations.find((item) => item.id === input.id)
-    const timestamp = this.now().toISOString()
-    const conversation: StoredConversation = {
-      createdAt: existing?.createdAt ?? timestamp,
-      id: input.id,
-      messages: input.messages.map((message) => ({ ...message })),
-      ...(input.skillId ? { skillId: input.skillId } : {}),
-      ...(input.skillName ? { skillName: input.skillName } : {}),
-      updatedAt: timestamp,
-    }
-    this.conversations = [
-      conversation,
-      ...this.conversations.filter((item) => item.id !== input.id),
-    ].slice(0, MAX_CONVERSATIONS)
-    await this.persist()
-    return toConversation(conversation)
+    const messages = input.messages.map((message) => ({ ...message }))
+    return this.enqueue(async () => {
+      this.storage.assertWritable()
+      const existing = this.conversations.find((item) => item.id === input.id)
+      const timestamp = this.now().toISOString()
+      const conversation: StoredConversation = {
+        createdAt: existing?.createdAt ?? timestamp,
+        id: input.id,
+        messages,
+        ...(input.skillId ? { skillId: input.skillId } : {}),
+        ...(input.skillName ? { skillName: input.skillName } : {}),
+        updatedAt: timestamp,
+      }
+      const next = [
+        conversation,
+        ...this.conversations.filter((item) => item.id !== input.id),
+      ].slice(0, MAX_CONVERSATIONS)
+      await this.persist(next)
+      return toConversation(conversation)
+    })
   }
 
   async delete(id: string): Promise<DeleteAiConversationResult> {
     assertConversationId(id)
-    const remaining = this.conversations.filter((item) => item.id !== id)
-    if (remaining.length === this.conversations.length) {
-      return { deleted: false, id }
-    }
-    this.conversations = remaining
-    await this.persist()
-    return { deleted: true, id }
+    return this.enqueue(async () => {
+      this.storage.assertWritable()
+      const remaining = this.conversations.filter((item) => item.id !== id)
+      if (remaining.length === this.conversations.length)
+        return { deleted: false, id }
+      await this.persist(remaining)
+      return { deleted: true, id }
+    })
   }
 
-  private assertEncryptionAvailable() {
-    if (!this.encryptionStorage.isEncryptionAvailable()) {
-      throw new Error('Operating system secure storage is unavailable')
-    }
-  }
-
-  private async readConversations(): Promise<StoredConversation[]> {
-    if (!this.encryptionStorage.isEncryptionAvailable()) return []
-    try {
-      const envelope = JSON.parse(
-        await readFile(this.historyPath, 'utf8')
-      ) as unknown
-      if (!isEnvelope(envelope)) return []
-      const payload = JSON.parse(
-        this.encryptionStorage.decryptString(
-          Buffer.from(envelope.encryptedPayload, 'base64')
-        )
-      ) as unknown
-      if (!isPayload(payload)) return []
-      return payload.conversations
-        .toSorted((left, right) =>
-          right.updatedAt.localeCompare(left.updatedAt)
-        )
-        .slice(0, MAX_CONVERSATIONS)
-        .map(cloneConversation)
-    } catch {
-      return []
-    }
-  }
-
-  private persist(): Promise<void> {
-    const snapshot: StoredPayload = {
-      conversations: this.conversations.map(cloneConversation),
-      version: 1,
-    }
-    const write = this.writeQueue.then(() => this.writeSnapshot(snapshot))
+  private enqueue<T>(operation: () => Promise<T>): Promise<T> {
+    const write = this.writeQueue.then(operation)
     this.writeQueue = write.catch(() => undefined)
     return write
   }
 
-  private async writeSnapshot(payload: StoredPayload): Promise<void> {
-    this.assertEncryptionAvailable()
-    const envelope: StoredEnvelope = {
-      encryptedPayload: this.encryptionStorage
-        .encryptString(JSON.stringify(payload))
-        .toString('base64'),
-      version: 1,
-    }
-    const temporaryPath = `${this.historyPath}.${randomUUID()}.tmp`
-    await mkdir(dirname(this.historyPath), { recursive: true })
-    await writeFile(temporaryPath, JSON.stringify(envelope), {
-      encoding: 'utf8',
-      mode: 0o600,
-    })
-    await chmod(temporaryPath, 0o600)
-    await rename(temporaryPath, this.historyPath)
-    await chmod(this.historyPath, 0o600)
+  private async persist(conversations: StoredConversation[]): Promise<void> {
+    await this.storage.write({ conversations, version: 1 })
+    this.conversations = conversations
   }
 }
 
@@ -267,4 +252,11 @@ function isStoredConversation(value: unknown): value is StoredConversation {
     typeof conversation.updatedAt === 'string' &&
     Number.isFinite(Date.parse(conversation.updatedAt))
   )
+}
+
+function normalizeConversations(payload: StoredPayload): StoredConversation[] {
+  return payload.conversations
+    .toSorted((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+    .slice(0, MAX_CONVERSATIONS)
+    .map(cloneConversation)
 }
