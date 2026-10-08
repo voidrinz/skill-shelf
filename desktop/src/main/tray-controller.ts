@@ -26,6 +26,8 @@ import {
 import { getTrayPanelBounds } from './tray-panel-layout'
 
 interface TrayOptions {
+  appName: string
+  isDevelopment: boolean
   getSettings(): Promise<DesktopSettings>
   scanEnvironment(): Promise<WorkbenchScanResult>
   onScan(result: WorkbenchScanResult): void
@@ -59,16 +61,23 @@ export class TrayController {
     const image = nativeImage.createFromPath(
       join(
         resources,
-        process.platform === 'darwin' ? 'trayTemplate.png' : 'icon.png'
+        process.platform === 'darwin'
+          ? !app.isPackaged && options.isDevelopment
+            ? 'trayDevTemplate.png'
+            : 'trayTemplate.png'
+          : !app.isPackaged && options.isDevelopment
+            ? 'icon-dev.png'
+            : 'icon.png'
       )
     )
     const icon = image.resize({
-      width: process.platform === 'darwin' ? 18 : 20,
+      width:
+        process.platform === 'darwin' ? (options.isDevelopment ? 26 : 18) : 20,
       height: process.platform === 'darwin' ? 18 : 20,
     })
     if (process.platform === 'darwin') icon.setTemplateImage(true)
     this.tray = new Tray(icon)
-    this.tray.setToolTip('Skill Shelf')
+    this.tray.setToolTip(options.appName)
     this.tray.on('click', () => {
       if (this.wantsVisible || Date.now() - this.lastBlurAt < 180) this.hide()
       else this.show()
@@ -92,6 +101,8 @@ export class TrayController {
   async getState(): Promise<TrayState> {
     const settings = await this.options.getSettings()
     return {
+      appName: this.options.appName,
+      isDevelopment: this.options.isDevelopment,
       language: settings.language,
       theme: settings.theme,
       systemLocale: app.getLocale(),

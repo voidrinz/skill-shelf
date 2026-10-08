@@ -9,7 +9,8 @@
     "build": "electron-vite build",
     "dev": "electron-vite dev --watch",
     "dist": "pnpm run build && electron-builder --config electron-builder.release.mjs --publish never",
-    "pack": "pnpm run build && electron-builder --dir",
+    "dist:dev": "pnpm run build && electron-builder --config electron-builder.dev.mjs --publish never",
+    "pack": "pnpm run build && electron-builder --config electron-builder.dev.mjs --dir --publish never",
     "test": "vitest run",
     "test:release": "node --test release-config.test.mjs",
     "typecheck": "tsc --noEmit -p tsconfig.node.json && tsc --noEmit -p tsconfig.web.json"

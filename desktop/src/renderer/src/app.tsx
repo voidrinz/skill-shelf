@@ -1583,7 +1583,12 @@ function StatusBar({
           </Tooltip>
         )}
       </div>
-      <span className="status-title">{title}</span>
+      <span className="status-title">
+        {title}
+        {runtime?.channel === 'development' ? (
+          <span className="development-badge">Dev</span>
+        ) : null}
+      </span>
       <div className="status-actions no-drag">
         <Tooltip>
           <TooltipTrigger asChild>
@@ -7696,7 +7701,7 @@ function GeneralSettings({
           <Switch
             aria-label={t('desktop.settings.launch')}
             checked={settings?.launchAtLogin ?? false}
-            disabled={!runtime?.isPackaged}
+            disabled={!runtime?.isPackaged || runtime.channel === 'development'}
             onCheckedChange={(launchAtLogin) => onChange({ launchAtLogin })}
           />
         </SettingsRow>
@@ -9018,7 +9023,7 @@ function AboutSettings({ runtime }: { runtime: DesktopRuntimeInfo | null }) {
           <BookOpen />
         </span>
         <div>
-          <h3>Skill Shelf</h3>
+          <h3>{runtime?.appName ?? 'Skill Shelf'}</h3>
           <p>{t('desktop.about.appDescription')}</p>
         </div>
         <code>{runtime ? `v${runtime.appVersion}` : '…'}</code>

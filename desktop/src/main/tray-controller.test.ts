@@ -133,6 +133,8 @@ describe('TrayController', () => {
     onScan = vi.fn()
     scanEnvironment = vi.fn(async () => result)
     controller = new TrayController({
+      appName: 'Skill Shelf',
+      isDevelopment: false,
       getSettings: async () =>
         ({ language: 'en', theme: 'system' }) as DesktopSettings,
       openMain,

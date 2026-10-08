@@ -47,6 +47,17 @@ svg {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 23px;
+  gap: 8px;
+}
+.tray-dev-badge {
+  margin-right: auto;
+  border: 1px solid var(--border);
+  border-radius: 4px;
+  color: var(--foreground);
+  background: var(--secondary);
+  padding: 2px 5px;
+  font-family: var(--ss-font-mono);
+  font-size: 10px;
 }
 .tray-header .ss-brand__mark {
   width: 27px;

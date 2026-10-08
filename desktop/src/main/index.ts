@@ -1,5 +1,5 @@
 import { homedir } from 'node:os'
-import { existsSync } from 'node:fs'
+import { existsSync, readFileSync } from 'node:fs'
 import { basename, isAbsolute, join, resolve } from 'node:path'
 import {
   app,
@@ -75,11 +75,20 @@ import { TerminalService } from './services/terminal-service'
 import { WorkbenchService } from './services/workbench-service'
 import { TrayController } from './tray-controller'
 import { AppUpdateService } from './services/app-update-service'
+import { configureAppIdentity } from './app-identity'
 import {
   GitHubReleaseChecker,
   MAC_DOWNLOAD_PAGE,
   resolveReleaseRedirect,
 } from './services/github-release-checker'
+
+const identity = configureAppIdentity(
+  app,
+  app.isPackaged
+    ? JSON.parse(readFileSync(join(app.getAppPath(), 'package.json'), 'utf8'))
+        .skillShelfChannel
+    : undefined
+)
 
 let mainWindow: BrowserWindow | null = null
 let trayController: TrayController | null = null
@@ -121,7 +130,7 @@ function deliverTrayAction() {
 function getAppIconPath() {
   return app.isPackaged
     ? join(process.resourcesPath, 'icon.png')
-    : join(import.meta.dirname, '../../build/icon.png')
+    : join(import.meta.dirname, '../../build/icon-dev.png')
 }
 
 function createMainWindow() {
@@ -132,7 +141,7 @@ function createMainWindow() {
     minHeight: 640,
     minWidth: 980,
     show: false,
-    title: 'Skill Shelf',
+    title: identity.appName,
     titleBarStyle: 'hidden',
     trafficLightPosition: { x: 18, y: 15 },
     width: 1260,
@@ -146,6 +155,7 @@ function createMainWindow() {
   })
 
   window.once('ready-to-show', () => window.show())
+  window.on('page-title-updated', (event) => event.preventDefault())
   window.on('close', (event) => {
     if (!quitting && trayController && !trayController.isDisposed) {
       event.preventDefault()
@@ -437,8 +447,10 @@ function registerIpc(
     }
   )
   ipcMain.handle(desktopIpcChannels.runtimeGet, () => ({
+    appName: identity.appName,
     appVersion: app.getVersion(),
     arch: process.arch,
+    channel: identity.channel,
     isPackaged: app.isPackaged,
     platform: process.platform,
     shelfFilePath,
@@ -1433,7 +1445,7 @@ function assertSettingsInput(value: unknown): UpdateDesktopSettingsInput {
 }
 
 function applyLaunchAtLogin(enabled: boolean) {
-  if (!app.isPackaged) return
+  if (identity.isDevelopment) return
   if (app.getLoginItemSettings().openAtLogin === enabled) return
   app.setLoginItemSettings({ openAtLogin: enabled })
 }
@@ -1465,8 +1477,6 @@ function isRendererUrl(value: string): boolean {
   }
   return value.startsWith('file:')
 }
-
-app.setName('Skill Shelf')
 
 const instanceLock = app.requestSingleInstanceLock()
 if (!instanceLock) app.quit()
@@ -1532,7 +1542,7 @@ if (instanceLock)
               openDownloadPage: () => shell.openExternal(MAC_DOWNLOAD_PAGE),
             }
           : {}),
-        disabledReason: !app.isPackaged
+        disabledReason: identity.isDevelopment
           ? 'development'
           : process.platform !== 'darwin' &&
               !existsSync(join(process.resourcesPath, 'app-update.yml'))
@@ -1559,6 +1569,8 @@ if (instanceLock)
       workbench
     )
     trayController = new TrayController({
+      appName: identity.appName,
+      isDevelopment: identity.isDevelopment,
       getSettings: () => store.getSettings(),
       scanEnvironment: () => workbench.getSnapshot(),
       onScan: (result) => {

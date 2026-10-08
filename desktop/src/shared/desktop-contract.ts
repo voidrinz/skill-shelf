@@ -93,6 +93,8 @@ export interface TraySummary {
 }
 
 export interface TrayState {
+  appName: string
+  isDevelopment: boolean
   language: DesktopSettings['language']
   scanning: boolean
   summary: TraySummary | null
@@ -797,8 +799,10 @@ export interface AiChatResult {
 }
 
 export interface DesktopRuntimeInfo {
+  appName: string
   appVersion: string
   arch: string
+  channel: 'development' | 'production'
   isPackaged: boolean
   platform: string
   shelfFilePath: string

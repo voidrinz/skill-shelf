@@ -96,6 +96,9 @@ export function TrayPanel() {
       <main className="tray-panel" aria-label={t('desktop.tray.title')}>
         <header className="tray-header">
           <Brand />
+          {state?.isDevelopment ? (
+            <span className="tray-dev-badge">Dev</span>
+          ) : null}
           <button
             className="tray-icon-button"
             aria-label={t('desktop.tray.close')}

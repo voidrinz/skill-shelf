@@ -50,6 +50,15 @@ pnpm dev:desktop
 pnpm dev:website
 ```
 
+Development desktop builds are intentionally separate from the installed
+release. `pnpm dev` and `pnpm pack:desktop` use the `Skill Shelf Dev` name,
+`app.skillshelf.desktop.dev` bundle identifier, a Dev-marked icon, and a
+separate `Skill Shelf Dev` application-data directory. Use `pnpm
+--filter @skill-shelf/desktop dist:dev` when you need a local DMG or zip for
+installation testing. The Dev build does not check for public application
+updates. It still sees the same native Skills directories because those are
+owned by the local `skills` CLI.
+
 Keep the development command running while editing code:
 
 - Desktop renderer (React/CSS) and website changes update through Vite HMR.

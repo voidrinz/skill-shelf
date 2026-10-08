@@ -16,6 +16,8 @@ import type {
 import { TrayPanel } from './tray-panel'
 
 const state: TrayState = {
+  appName: 'Skill Shelf',
+  isDevelopment: false,
   language: 'en',
   theme: 'dark',
   systemLocale: 'en-US',
@@ -71,7 +73,9 @@ describe('tray panel bridge', () => {
       </I18nProvider>
     )
     await screen.findByText('75')
-    expect(document.documentElement.classList.contains('dark')).toBe(true)
+    await waitFor(() =>
+      expect(document.documentElement.classList.contains('dark')).toBe(true)
+    )
     expect(api.scanEnvironment).not.toHaveBeenCalled()
     act(() =>
       listener({ ...state, summary: { ...state.summary!, totalSkills: 76 } })

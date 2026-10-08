@@ -14,6 +14,7 @@ export default {
     process.env.SKILL_SHELF_RELEASE_ARCH ?? process.arch
   ),
   forceCodeSigning: false,
+  extraMetadata: { skillShelfChannel: 'production' },
   mac: {
     ...baseConfig.mac,
     identity: '-',
