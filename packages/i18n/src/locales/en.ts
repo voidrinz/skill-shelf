@@ -1096,8 +1096,9 @@ export const messages = {
   'website.local.saves': 'Saves local enhancements',
   'website.local.title': 'Your skills stay yours.',
   'website.meta.description':
-    'Skill Shelf is a local desktop GUI for skills.sh that diagnoses, organizes, updates, translates, and reuses the agent skills on your computer.',
-  'website.meta.title': 'Skill Shelf — Your local agent skill workspace',
+    'Organize, discover, update, and reuse AI agent skills on Mac. Built on skills.sh, Skill Shelf keeps folders and tags local without moving your existing skill files.',
+  'website.meta.title':
+    'Skill Shelf — Skills Manager for Mac and AI Coding Agents',
   'website.mini.agents': 'active agents',
   'website.mini.current': 'Current',
   'website.mini.frontend': 'Frontend rules',

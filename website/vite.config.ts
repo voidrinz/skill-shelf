@@ -4,4 +4,5 @@ import { defineConfig } from 'vite'
 
 export default defineConfig({
   plugins: [tailwindcss(), react()],
+  ssr: { noExternal: ['@skill-shelf/i18n', '@skill-shelf/ui'] },
 })

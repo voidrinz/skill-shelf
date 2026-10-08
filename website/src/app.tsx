@@ -47,12 +47,13 @@ const skills = [
 type SkillName = (typeof skills)[number]['name']
 
 function initialTheme() {
+  if (typeof localStorage === 'undefined') return 'system'
   const saved = localStorage.getItem('skill-shelf-website-theme')
   return saved === 'light' || saved === 'dark' ? saved : 'system'
 }
 
 export function App() {
-  const { locale, setLocalePreference, t } = useI18n()
+  const { locale, t } = useI18n()
   const [theme, setTheme] = useState(initialTheme)
   const [isDark, setIsDark] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -91,12 +92,6 @@ export function App() {
     return () => window.removeEventListener('keydown', close)
   }, [menuOpen])
 
-  function toggleLanguage() {
-    const next = locale === 'en' ? 'zh-CN' : 'en'
-    localStorage.setItem('skill-shelf-language', next)
-    setLocalePreference(next)
-  }
-
   function toggleTheme() {
     const next = isDark ? 'light' : 'dark'
     localStorage.setItem('skill-shelf-website-theme', next)
@@ -131,15 +126,15 @@ export function App() {
             </a>
           </div>
           <div className="nav-tools">
-            <button
+            <a
               className="icon-button language-switch"
               aria-label={t('website.language')}
-              onClick={toggleLanguage}
-              type="button"
+              href={`${import.meta.env.BASE_URL}${locale === 'en' ? 'zh-CN/' : ''}`}
+              hrefLang={locale === 'en' ? 'zh-CN' : 'en'}
             >
               <Globe2 size={16} />
               <span>{locale === 'en' ? '中文' : 'EN'}</span>
-            </button>
+            </a>
             <button
               className="icon-button"
               aria-label={t(

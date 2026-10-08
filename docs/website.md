@@ -35,3 +35,25 @@ pnpm --filter @skill-shelf/website preview --base /skill-shelf/
 ```
 
 Updating the website does not create a desktop release or rebuild installers.
+
+## Search And Sharing
+
+The build renders the React page into static HTML before publishing. Both the
+English homepage and `/zh-CN/` include their full product content, FAQs, and
+installer links without requiring JavaScript. React hydrates the page for its
+interactive previews. Language links navigate between the two published pages.
+
+Each page has a localized title and description, a canonical URL, reciprocal
+`hreflang` links, Open Graph and X sharing metadata, and SoftwareApplication
+structured data. `social-card.png` uses product branding and contains no user
+data. The build also writes `sitemap.xml` and `robots.txt`.
+
+`SITE_URL` supplies the public canonical address; the Pages workflow passes the
+configured Pages URL, and local builds default to the live project website.
+For a custom domain, update Pages settings so these URLs follow the new domain.
+
+The live sitemap is <https://voidrinz.github.io/skill-shelf/sitemap.xml>. It can
+be submitted to search-engine webmaster tools. Crawlers read `robots.txt` at
+the domain root; the file under this project path cannot override another
+site's root rules. Sitemap submission and public links help discovery, but
+indexing is controlled by each search engine.

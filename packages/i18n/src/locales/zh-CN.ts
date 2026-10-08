@@ -1021,8 +1021,8 @@ export const messages = {
   'website.local.saves': '保存本地增强',
   'website.local.title': 'Skill 始终在你手里。',
   'website.meta.description':
-    'Skill Shelf 是面向 skills.sh 的本地桌面 GUI，用于诊断、整理、更新、翻译和复用这台电脑上的 Agent Skill。',
-  'website.meta.title': 'Skill Shelf — 本机 Agent Skill 工作区',
+    'Skill Shelf 是基于 skills.sh 的 Mac Skills 管理工具，支持整理、发现、更新和跨项目复用 AI Agent Skills。文件夹和标签保存在本机，整理时不迁移原始 Skill 文件。',
+  'website.meta.title': 'Skill Shelf — Mac 上的 AI Agent Skills 管理工具',
   'website.mini.agents': '活跃 Agent',
   'website.mini.current': '最新',
   'website.mini.frontend': '前端规范',

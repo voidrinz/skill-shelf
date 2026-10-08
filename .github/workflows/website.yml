@@ -47,7 +47,7 @@ jobs:
           pnpm --filter @skill-shelf/website typecheck
           pnpm --filter @skill-shelf/i18n typecheck
           pnpm --filter @skill-shelf/i18n test
-          node --test website/scripts/prepare-downloads.test.mjs
+          pnpm --filter @skill-shelf/website test
       - name: Resolve latest Mac downloads
         env:
           GH_TOKEN: ${{ github.token }}
@@ -55,6 +55,7 @@ jobs:
       - name: Build website
         env:
           PAGES_BASE_PATH: ${{ steps.pages.outputs.base_path }}
+          SITE_URL: ${{ steps.pages.outputs.base_url }}
         run: pnpm --filter @skill-shelf/website build --base "${PAGES_BASE_PATH}/"
       - uses: actions/upload-pages-artifact@v3
         with:

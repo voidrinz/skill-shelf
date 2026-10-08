@@ -4,7 +4,7 @@
   "private": true,
   "type": "module",
   "scripts": {
-    "build": "vite build",
+    "build": "node scripts/build.mjs",
     "dev": "vite --port 17130 --strictPort --open",
     "preview": "vite preview",
     "test": "node --test scripts/*.test.mjs",

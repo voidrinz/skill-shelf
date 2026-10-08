@@ -42,9 +42,13 @@ function getSystemLocale() {
 export function I18nProvider({
   children,
   defaultPreference = 'system',
+  initialLocale = 'en',
+  initialMessages = englishMessages,
 }: {
   children: React.ReactNode
   defaultPreference?: LocalePreference
+  initialLocale?: AppLocale
+  initialMessages?: Messages
 }) {
   const [localePreference, setLocalePreference] =
     React.useState<LocalePreference>(defaultPreference)
@@ -56,7 +60,7 @@ export function I18nProvider({
   const [catalog, setCatalog] = React.useState<{
     locale: AppLocale
     messages: Messages
-  }>(() => ({ locale: 'en', messages: englishMessages }))
+  }>(() => ({ locale: initialLocale, messages: initialMessages }))
 
   React.useEffect(() => {
     let active = true

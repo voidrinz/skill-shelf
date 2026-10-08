@@ -15,3 +15,4 @@ coverage/
 *.p8
 *.pem
 *.key
+website/.prerender/
