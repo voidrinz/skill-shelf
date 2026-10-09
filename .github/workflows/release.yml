@@ -45,7 +45,7 @@ jobs:
           SOURCE_TAG: ${{ github.ref_name }}
         run: |
           for attempt in {1..40}; do
-            if gh api "repos/$RELEASES_REPOSITORY/releases/tags/$SOURCE_TAG" --jq 'select(.draft == false and .prerelease == false) | [.assets[] | select(.name | endswith(".dmg"))] | length' | grep -qx '2'; then
+            if gh api "repos/$RELEASES_REPOSITORY/releases/tags/$SOURCE_TAG" --jq 'select(.draft == false and .prerelease == false) | . as $release | [.assets[] | select(.name == ("skill-shelf-" + ($release.tag_name | ltrimstr("v")) + "-mac-arm64.dmg") and .size > 0)] | length' | grep -qx '1'; then
               exit 0
             fi
             sleep 30

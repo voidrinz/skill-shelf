@@ -82,19 +82,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm typecheck
       - run: pnpm test
-      - run: node --test desktop/release-config.test.mjs
+      - run: pnpm --filter @skill-shelf/desktop test:release
 
   build:
     needs: verify
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - runner: macos-15
-            arch: arm64
-          - runner: macos-15-intel
-            arch: x64
-    runs-on: ${{ matrix.runner }}
+    runs-on: macos-15
     defaults:
       run:
         shell: bash
@@ -113,24 +105,19 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - name: Build macOS downloads without Apple credentials
         env:
-          SKILL_SHELF_RELEASE_ARCH: ${{ matrix.arch }}
-          BUILD_ARCH: ${{ matrix.arch }}
+          SKILL_SHELF_RELEASE_ARCH: arm64
           CSC_IDENTITY_AUTO_DISCOVERY: 'false'
-        run: pnpm --filter @skill-shelf/desktop run dist --mac "--$BUILD_ARCH"
+        run: pnpm --filter @skill-shelf/desktop run dist --mac --arm64
       - name: Verify application signature
-        env:
-          BUILD_ARCH: ${{ matrix.arch }}
         run: |
-          APP_DIR=mac
-          if [ "$BUILD_ARCH" = arm64 ]; then APP_DIR=mac-arm64; fi
-          codesign --verify --deep --strict --verbose=2 "desktop/release/$APP_DIR/Skill Shelf.app"
+          codesign --verify --deep --strict --verbose=2 "desktop/release/mac-arm64/Skill Shelf.app"
       - uses: actions/upload-artifact@v4
         with:
-          name: release-mac-${{ matrix.arch }}
+          name: release-mac-arm64
           if-no-files-found: error
           path: |
-            desktop/release/*.dmg
-            desktop/release/*.zip
+            desktop/release/*-mac-arm64.dmg
+            desktop/release/*-mac-arm64.zip
 
   publish:
     needs: [verify, build]
@@ -152,10 +139,8 @@ jobs:
           merge-multiple: true
       - name: Validate the Mac downloads
         run: |
-          for arch in arm64 x64; do
-            for ext in dmg zip; do
-              test -s "artifacts/skill-shelf-${TAG#v}-mac-$arch.$ext" || { echo "Missing $arch $ext" >&2; exit 1; }
-            done
+          for ext in dmg zip; do
+            test -s "artifacts/skill-shelf-${TAG#v}-mac-arm64.$ext" || { echo "Missing arm64 $ext" >&2; exit 1; }
           done
           test -s "docs/release-notes/${TAG#v}.md" || { echo 'Missing release notes' >&2; exit 1; }
         env:
@@ -168,7 +153,7 @@ jobs:
           SKILL_SHELF_UPDATE_PRIVATE_KEY: ${{ secrets.SKILL_SHELF_UPDATE_PRIVATE_KEY }}
           TAG: ${{ needs.verify.outputs.tag }}
         run: node desktop/scripts/sign-update.mjs artifacts "${TAG#v}"
-      - name: Publish both macOS architectures together
+      - name: Publish Apple Silicon downloads
         env:
           GH_TOKEN: ${{ github.token }}
           GH_REPO: ${{ github.repository }}
