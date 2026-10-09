@@ -1,0 +1,43 @@
+desktop/src/main/index.ts
+  s_195416a04c53e0::t_e2dd1c2bec111f 3-4,67-75,214-343
+desktop/src/main/services/metadata-sync-service.test.ts
+  s_195416a04c53e0::t_edeba07ea1a276 1-516
+desktop/src/main/services/metadata-sync-service.ts
+  s_195416a04c53e0::t_6ac1c756c57375 1-635
+desktop/src/main/services/shelf-store.ts
+  s_195416a04c53e0::t_205ef7770fdd22 75-82,102-107,133-136,176-181,192-200,220-223,234-239,250-256,267-270,282-285,303-306,339-344,373-378,405-410,445-450,458-495,505-516
+desktop/src/main/services/webdav-sync-service.test.ts
+  s_195416a04c53e0::t_20cbf58bba4cfa 1-266
+desktop/src/main/services/webdav-sync-service.ts
+  s_195416a04c53e0::t_12e153ea79b12d 1-261
+desktop/src/preload/index.ts
+  s_195416a04c53e0::t_c227c9ee28c058 8-20
+desktop/src/renderer/src/sync-settings.test.tsx
+  s_195416a04c53e0::t_dca19b7d306b80 1-204
+desktop/src/renderer/src/sync-settings.tsx
+  s_195416a04c53e0::t_42652092f1a459 1-651
+desktop/src/shared/desktop-contract.ts
+  s_195416a04c53e0::t_a30411f568a528 1-7,9-17,914-924
+desktop/src/shared/sync-contract.ts
+  s_195416a04c53e0::t_cb2ee0e7e0dd4f 1-93
+packages/i18n/src/locales/en.ts
+  s_195416a04c53e0::t_41396a75f246f2 2-113
+packages/i18n/src/locales/zh-CN.ts
+  s_195416a04c53e0::t_97b1a1d24fe8e7 4-104
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "784b3e82f687c1d701c94aa3f54ef2943c9d3b95",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
