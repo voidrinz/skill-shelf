@@ -1,0 +1,21 @@
+website/src/app.tsx
+  s_837399686389a9::t_d9b49748c27897 31-32,129-138,340-349
+website/src/styles.css
+  s_837399686389a9::t_2b08bf9adb432a 134,137-141,1178,1181,1183-1187
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "827253a318b81051e91ba96f4bdf38bdde5c566b",
+  "prompts": {},
+  "sessions": {
+    "s_837399686389a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11980-c5f1-7441-9c9f-6788f911657d",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
