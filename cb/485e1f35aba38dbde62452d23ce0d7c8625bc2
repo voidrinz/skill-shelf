@@ -1,0 +1,19 @@
+desktop/src/renderer/src/ai-skill-panel.tsx
+  s_195416a04c53e0::t_52c1f755643149 127,140
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "cb485e1f35aba38dbde62452d23ce0d7c8625bc2",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
