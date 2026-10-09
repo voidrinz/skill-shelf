@@ -19,6 +19,20 @@ test('builds distinct Mac installers without updater metadata or credentials', (
   assert.equal(arm.artifactName, 'skill-shelf-${version}-${os}-${arch}.${ext}')
 })
 
+test('bundles the independent updater public key and installer without Apple credentials', () => {
+  assert.ok(
+    buildConfig.extraResources.some(
+      (entry) => entry.to === 'update-signing-public-key.json'
+    )
+  )
+  assert.ok(
+    buildConfig.extraResources.some(
+      (entry) => entry.to === 'update-installer.cjs'
+    )
+  )
+  assert.equal(buildConfig.mac.identity, '-')
+})
+
 test('rejects missing or malformed repository names and unsupported architectures', () => {
   for (const repository of [
     undefined,

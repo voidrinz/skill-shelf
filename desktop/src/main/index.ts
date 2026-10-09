@@ -90,8 +90,16 @@ import { configureAppIdentity } from './app-identity'
 import {
   GitHubReleaseChecker,
   MAC_DOWNLOAD_PAGE,
+  parseGitHubReleaseVersion,
   resolveReleaseRedirect,
 } from './services/github-release-checker'
+import {
+  MacAppUpdater,
+  canReplaceMacApplication,
+  getMacApplicationBundle,
+  readMacUpdateFailure,
+  recordMacUpdateStartup,
+} from './services/mac-app-updater'
 
 const identity = configureAppIdentity(
   app,
@@ -109,6 +117,18 @@ let quitting = false
 let rendererReady = false
 let pendingTrayAction: TrayAction | null = null
 const terminal = new TerminalService()
+const macUpdateCache = join(app.getPath('userData'), 'app-updates')
+const macUpdateStartupId = app.commandLine.getSwitchValue(
+  'skill-shelf-update-id'
+)
+
+function canInstallAppUpdate() {
+  const state = appUpdates?.getState()
+  return (
+    state?.status === 'downloaded' ||
+    (state?.status === 'error' && state.retryAction === 'install')
+  )
+}
 
 function showMainWindow(action?: TrayAction) {
   if (action) pendingTrayAction = action
@@ -358,12 +378,7 @@ function registerIpc(
     appUpdates!.download()
   )
   updateHandler(desktopIpcChannels.appUpdateInstall, async () => {
-    if (
-      updateInstallPromptOpen ||
-      appUpdates?.getState().status !== 'downloaded' ||
-      !mainWindow
-    )
-      return
+    if (updateInstallPromptOpen || !canInstallAppUpdate() || !mainWindow) return
     updateInstallPromptOpen = true
     try {
       const settings = await store.getSettings()
@@ -384,8 +399,7 @@ function registerIpc(
       })
       if (answer.response === 1)
         setImmediate(() => {
-          if (appUpdates?.getState().status === 'downloaded')
-            appUpdates.install()
+          if (canInstallAppUpdate()) void appUpdates?.install()
         })
     } finally {
       updateInstallPromptOpen = false
@@ -399,6 +413,14 @@ function registerIpc(
     )
       throw new Error('Invalid desktop sender')
     rendererReady = true
+    if (process.platform === 'darwin' && !identity.isDevelopment)
+      void recordMacUpdateStartup(
+        macUpdateCache,
+        macUpdateStartupId,
+        app.getVersion(),
+        process.execPath,
+        true
+      )
     deliverTrayAction()
   })
   ipcMain.handle(desktopIpcChannels.agentInstallRegistryGet, () => ({
@@ -1642,6 +1664,14 @@ app.on('second-instance', () => trayController && showMainWindow())
 
 if (instanceLock)
   app.whenReady().then(async () => {
+    if (process.platform === 'darwin' && !identity.isDevelopment)
+      await recordMacUpdateStartup(
+        macUpdateCache,
+        macUpdateStartupId,
+        app.getVersion(),
+        process.execPath,
+        false
+      )
     if (process.platform === 'darwin' && !app.isPackaged) {
       app.dock?.setIcon(getAppIconPath())
     }
@@ -1677,15 +1707,45 @@ if (instanceLock)
     )
     await managedSkills.initialize()
     const workbench = new WorkbenchService(catalog)
+    const macBundle = getMacApplicationBundle(process.execPath)
+    const macKeyPath = join(
+      process.resourcesPath,
+      'update-signing-public-key.json'
+    )
+    const macKey = existsSync(macKeyPath)
+      ? (JSON.parse(readFileSync(macKeyPath, 'utf8')).publicKey as string)
+      : ''
     appUpdates = new AppUpdateService(
-      process.platform === 'darwin'
-        ? new GitHubReleaseChecker(app.getVersion(), (url, options) =>
-            resolveReleaseRedirect(
-              net.request({ url, method: options.method, redirect: 'manual' }),
-              options.signal
-            )
-          )
-        : electronUpdater.autoUpdater,
+      process.platform === 'darwin' && !identity.isDevelopment
+        ? new MacAppUpdater({
+            arch: process.arch,
+            currentVersion: app.getVersion(),
+            bundlePath: macBundle ?? '',
+            cacheDir: macUpdateCache,
+            publicKey: macKey,
+            installerPath: join(process.resourcesPath, 'update-installer.cjs'),
+            executablePath: process.execPath,
+            latestVersion: async () => {
+              const response = await resolveReleaseRedirect(
+                net.request({
+                  url: MAC_DOWNLOAD_PAGE,
+                  method: 'HEAD',
+                  redirect: 'manual',
+                }),
+                AbortSignal.timeout(20000)
+              )
+              if (!response.ok)
+                throw new Error('Could not check application updates')
+              return parseGitHubReleaseVersion(response.url)
+            },
+            fetch: (url, options) => net.fetch(url, options),
+            onQuit: () => app.quit(),
+          })
+        : process.platform === 'darwin'
+          ? new GitHubReleaseChecker(app.getVersion(), async () => {
+              throw new Error('Development updates are disabled')
+            })
+          : electronUpdater.autoUpdater,
       (state) => {
         if (mainWindow && !mainWindow.isDestroyed())
           mainWindow.webContents.send(
@@ -1695,18 +1755,25 @@ if (instanceLock)
       },
       {
         arch: process.arch,
-        ...(process.platform === 'darwin'
-          ? {
-              openDownloadPage: () => shell.openExternal(MAC_DOWNLOAD_PAGE),
-            }
-          : {}),
+        startupError:
+          process.platform === 'darwin' && !identity.isDevelopment
+            ? await readMacUpdateFailure(macUpdateCache)
+            : undefined,
         disabledReason: identity.isDevelopment
           ? 'development'
-          : process.platform !== 'darwin' &&
-              !existsSync(join(process.resourcesPath, 'app-update.yml'))
+          : (
+                process.platform === 'darwin'
+                  ? !macKey ||
+                    !existsSync(
+                      join(process.resourcesPath, 'update-installer.cjs')
+                    )
+                  : !existsSync(join(process.resourcesPath, 'app-update.yml'))
+              )
             ? 'unconfigured'
             : !['darwin', 'win32', 'linux'].includes(process.platform) ||
                 !['arm64', 'x64'].includes(process.arch) ||
+                (process.platform === 'darwin' &&
+                  !canReplaceMacApplication(macBundle)) ||
                 (process.platform === 'linux' && !process.env.APPIMAGE)
               ? 'unsupported-install'
               : undefined,

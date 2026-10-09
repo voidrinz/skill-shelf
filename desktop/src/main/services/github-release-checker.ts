@@ -59,6 +59,17 @@ function versionParts(version: string): [number, number, number] {
   return parts as [number, number, number]
 }
 
+export function parseGitHubReleaseVersion(releaseUrl: string) {
+  const url = new URL(releaseUrl)
+  const tag = url.pathname.match(
+    /^\/voidrinz\/skill-shelf-releases\/releases\/tag\/v(\d+\.\d+\.\d+)$/
+  )
+  if (url.origin !== 'https://github.com' || !tag?.[1])
+    throw new Error('Unexpected application release')
+  versionParts(tag[1])
+  return tag[1]
+}
+
 export class GitHubReleaseChecker extends EventEmitter implements AppUpdater {
   autoDownload = false
   autoInstallOnAppQuit = false
@@ -80,13 +91,7 @@ export class GitHubReleaseChecker extends EventEmitter implements AppUpdater {
       signal: AbortSignal.timeout(20_000),
     })
     if (!response.ok) throw new Error('Could not check application updates')
-    const url = new URL(response.url)
-    const tag = url.pathname.match(
-      /^\/voidrinz\/skill-shelf-releases\/releases\/tag\/v(\d+\.\d+\.\d+)$/
-    )
-    if (url.origin !== 'https://github.com' || !tag?.[1])
-      throw new Error('Unexpected application release')
-    const version = tag[1]
+    const version = parseGitHubReleaseVersion(response.url)
     const latest = versionParts(version)
     const current = versionParts(this.currentVersion)
     const difference = latest

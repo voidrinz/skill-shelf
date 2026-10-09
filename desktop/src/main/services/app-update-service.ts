@@ -10,7 +10,10 @@ export interface AppUpdater {
   removeListener(event: string, listener: (...args: any[]) => void): unknown
   checkForUpdates(): Promise<unknown>
   downloadUpdate(): Promise<unknown>
-  quitAndInstall(isSilent?: boolean, isForceRunAfter?: boolean): void
+  quitAndInstall(
+    isSilent?: boolean,
+    isForceRunAfter?: boolean
+  ): void | Promise<void>
 }
 
 export class AppUpdateService {
@@ -20,6 +23,7 @@ export class AppUpdateService {
   private interval: ReturnType<typeof setInterval> | null = null
   private disposed = false
   private installing = false
+  private operationKind: 'check' | 'download' | 'install' = 'check'
   private readonly listeners: Array<[string, (...args: any[]) => void]> = []
 
   constructor(
@@ -29,11 +33,19 @@ export class AppUpdateService {
       arch: string
       disabledReason?: AppUpdateState['reason']
       openDownloadPage?: () => Promise<void>
+      startupError?: AppUpdateState['errorCode']
     }
   ) {
     this.state = {
       installMode: options.openDownloadPage ? 'manual' : 'automatic',
-      status: options.disabledReason ? 'disabled' : 'idle',
+      status: options.disabledReason
+        ? 'disabled'
+        : options.startupError
+          ? 'error'
+          : 'idle',
+      ...(options.startupError
+        ? { errorCode: options.startupError, retryAction: 'check' as const }
+        : {}),
       ...(options.disabledReason ? { reason: options.disabledReason } : {}),
       version: null,
       percent: null,
@@ -63,6 +75,9 @@ export class AppUpdateService {
       })
     )
     if (!options.openDownloadPage) {
+      this.listen('verifying', () =>
+        this.set({ status: 'verifying', percent: 100 })
+      )
       this.listen('download-progress', (progress: { percent: number }) =>
         this.set({
           status: 'downloading',
@@ -73,9 +88,9 @@ export class AppUpdateService {
         this.set({ status: 'downloaded', version: info.version, percent: 100 })
       )
     }
-    this.listen('error', () => {
+    this.listen('error', (error: unknown) => {
       this.installing = false
-      this.set({ status: 'error', percent: null })
+      this.fail(error)
     })
   }
 
@@ -102,38 +117,72 @@ export class AppUpdateService {
     if (this.operation) return this.operation
     if (
       this.disposed ||
-      ['disabled', 'downloading', 'downloaded'].includes(this.state.status)
+      [
+        'disabled',
+        'downloading',
+        'verifying',
+        'downloaded',
+        'installing',
+      ].includes(this.state.status)
     )
       return Promise.resolve(this.getState())
-    this.set({ status: 'checking', percent: null, version: null })
+    this.operationKind = 'check'
+    this.set({
+      status: 'checking',
+      percent: null,
+      version: null,
+      errorCode: undefined,
+      retryAction: undefined,
+    })
     return this.run(() => this.updater.checkForUpdates())
   }
 
   download(): Promise<AppUpdateState> {
     if (this.operation) return this.operation
-    if (this.disposed || this.state.status !== 'available')
+    if (
+      this.disposed ||
+      !(
+        this.state.status === 'available' ||
+        (this.state.status === 'error' && this.state.retryAction === 'download')
+      )
+    )
       return Promise.resolve(this.getState())
+    this.operationKind = 'download'
     if (this.options.openDownloadPage)
       return this.run(this.options.openDownloadPage)
-    this.set({ status: 'downloading', percent: 0 })
+    this.set({
+      status: 'downloading',
+      percent: 0,
+      errorCode: undefined,
+      retryAction: undefined,
+    })
     return this.run(() => this.updater.downloadUpdate())
   }
 
   install() {
+    if (this.installing) return
     if (
       this.options.openDownloadPage ||
       this.disposed ||
-      this.state.status !== 'downloaded'
+      !(
+        this.state.status === 'downloaded' ||
+        (this.state.status === 'error' && this.state.retryAction === 'install')
+      )
     )
       throw new Error('No application update is ready to install')
-    if (this.installing) return
     this.installing = true
-    try {
-      this.updater.quitAndInstall(false, true)
-    } catch {
-      this.installing = false
-      this.set({ status: 'error', percent: null })
-    }
+    this.operationKind = 'install'
+    this.set({
+      status: 'installing',
+      errorCode: undefined,
+      retryAction: undefined,
+    })
+    return Promise.resolve()
+      .then(() => this.updater.quitAndInstall(false, true))
+      .catch((error: unknown) => {
+        this.installing = false
+        this.fail(error)
+      })
   }
 
   dispose() {
@@ -158,13 +207,37 @@ export class AppUpdateService {
   private run(task: () => Promise<unknown>) {
     this.operation = Promise.resolve()
       .then(task)
-      .catch(() => {
-        this.set({ status: 'error', percent: null })
+      .catch((error: unknown) => {
+        this.fail(error)
       })
       .then(() => this.getState())
       .finally(() => {
         this.operation = null
       })
     return this.operation
+  }
+
+  private fail(error: unknown) {
+    const code =
+      error && typeof error === 'object' && 'code' in error
+        ? error.code
+        : undefined
+    const errorCode: AppUpdateState['errorCode'] =
+      code === 'verification' ||
+      code === 'permission' ||
+      code === 'installation'
+        ? code
+        : this.operationKind === 'install'
+          ? 'installation'
+          : 'network'
+    this.set({
+      status: 'error',
+      percent: null,
+      errorCode,
+      retryAction:
+        this.operationKind === 'install' && errorCode === 'verification'
+          ? 'download'
+          : this.operationKind,
+    })
   }
 }

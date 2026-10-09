@@ -869,8 +869,13 @@ export interface AppUpdateState {
     | 'current'
     | 'available'
     | 'downloading'
+    | 'verifying'
     | 'downloaded'
+    | 'installing'
     | 'error'
+  retryAction?: 'check' | 'download' | 'install'
+  errorCode?:
+    'network' | 'verification' | 'permission' | 'installation' | 'rollback'
   reason?: 'development' | 'unconfigured' | 'unsupported-install'
   version: string | null
   percent: number | null

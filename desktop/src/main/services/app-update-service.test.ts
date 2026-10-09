@@ -97,8 +97,9 @@ describe('application updates', () => {
       percent: 100,
     })
     expect(updater.checkForUpdates).toHaveBeenCalledOnce()
+    const install = service.install()
     service.install()
-    service.install()
+    await install
     expect(updater.quitAndInstall).toHaveBeenCalledWith(false, true)
     expect(updater.quitAndInstall).toHaveBeenCalledOnce()
     service.dispose()
@@ -136,13 +137,55 @@ describe('application updates', () => {
     updater.quitAndInstall.mockImplementationOnce(() => {
       throw new Error('installer failed')
     })
-    service.install()
+    await service.install()
     expect(service.getState().status).toBe('error')
     updater.emit('update-downloaded', { version: '0.2.0' })
-    service.install()
+    await service.install()
     expect(updater.quitAndInstall).toHaveBeenCalledTimes(2)
     updater.emit('error', new Error('native installer failed'))
     expect(service.getState().status).toBe('error')
+    service.dispose()
+  })
+
+  it('keeps verification busy and retries a failed download directly', async () => {
+    const updater = new Updater()
+    const service = new AppUpdateService(updater, vi.fn(), { arch: 'arm64' })
+    updater.emit('update-available', { version: '0.2.0' })
+    updater.downloadUpdate.mockRejectedValueOnce(
+      Object.assign(new Error('hash'), { code: 'verification' })
+    )
+    expect(await service.download()).toMatchObject({
+      status: 'error',
+      retryAction: 'download',
+      errorCode: 'verification',
+    })
+    updater.downloadUpdate.mockImplementationOnce(async () => {
+      updater.emit('verifying')
+      expect(service.getState().status).toBe('verifying')
+      updater.emit('update-downloaded', { version: '0.2.0' })
+    })
+    await service.download()
+    expect(updater.checkForUpdates).not.toHaveBeenCalled()
+    expect(service.getState().status).toBe('downloaded')
+    service.dispose()
+  })
+
+  it('reports async installation failures and retries the preserved download', async () => {
+    const updater = new Updater()
+    const service = new AppUpdateService(updater, vi.fn(), { arch: 'arm64' })
+    updater.emit('update-downloaded', { version: '0.2.0' })
+    updater.quitAndInstall.mockImplementationOnce(async () => {
+      throw Object.assign(new Error('not writable'), { code: 'permission' })
+    })
+    await service.install()
+    expect(service.getState()).toMatchObject({
+      status: 'error',
+      retryAction: 'install',
+      errorCode: 'permission',
+    })
+    await service.install()
+    expect(updater.quitAndInstall).toHaveBeenCalledTimes(2)
+    expect(service.getState().status).toBe('installing')
     service.dispose()
   })
 
