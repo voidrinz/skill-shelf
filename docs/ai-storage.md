@@ -21,11 +21,20 @@ Writes use a unique temporary file with `0600` permissions and an atomic
 rename. Conversation mutations are serialized and become visible in memory
 only after persistence succeeds.
 
-Metadata sync exports only AI preferences: translation language, model lists,
-default role models and context mode. It excludes API keys, provider connection
-enabled states, model verification results and conversations. Import retains the
-local credentials and saves an owner-only `ai-provider.json.sync-backup` before
-changing preferences.
+Metadata sync includes translation language, model lists, default role models and
+context mode. Version 3 snapshots also carry API keys and connection enabled states
+in an AES-256-GCM encrypted block, using a scrypt key derived from the sync password
+and a fresh random salt and nonce. Both computers use the same password, separate
+from WebDAV credentials. The password is held only while the Sync page is open.
+Keys are never shown in sync previews or written as plaintext to export files or
+WebDAV snapshots. Other metadata remains readable in the snapshot.
+
+Importing AI configuration replaces the corresponding local keys and enabled
+states. Opting out, or importing a version 1 or 2 document, retains local
+credentials. Conversations and model verification results remain local; changing
+a key resets its verification results. Imports save an owner-only
+`ai-provider.json.sync-backup` and restore earlier AI writes if a later metadata
+write fails. Local provider files and backups still use the storage described above.
 
 ## Upgrading From Earlier Versions
 

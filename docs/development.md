@@ -104,9 +104,12 @@ Quit command to exit completely.
 ## Metadata Sync
 
 Settings > Sync supports file export/import and manual WebDAV upload/pull.
-Both methods use the same version 2 metadata document; version 1 exports remain
-importable. Skill files, deployment paths, provider credentials and WebDAV
-credentials are excluded.
+Both methods use the same version 3 metadata document; versions 1 and 2 remain
+importable. Skill files, deployment paths and WebDAV credentials are excluded.
+AI provider keys and enabled states travel in an AES-256-GCM encrypted block,
+using a password-derived scrypt key with a random salt and nonce. Enter the same
+sync password (at least 8 characters) on both computers. The password stays in
+memory while the Sync page is open and is never included in the document.
 
 Skill organization and cached translations merge only into matching installed
 Skills. Translations with a different source description are skipped and counted
@@ -115,14 +118,17 @@ matched against existing managed Skills by source identity or content fingerprin
 Missing or ambiguous members are listed in the preview. Uploads preserve cloud-only
 Packs and member references.
 
-The preview has separate switches for app preferences and AI preferences. AI
-preferences include the translation language, model lists, default role models
-and context mode, and are selected by default when available. Import keeps each
-computer's API keys and connection enabled state. Imported defaults update the
-open application's AI settings immediately.
+The preview has separate switches for app preferences and AI configuration. AI
+configuration includes provider keys, enabled states, translation language, model
+lists, default role models and context mode, selected by default when available.
+Previews show only provider names, key presence and enabled state. Imports replace
+the corresponding provider credentials and update the open application's AI
+settings immediately. Opting out preserves the local configuration; imports of
+older documents without encrypted connections preserve local credentials. Model
+verification results are local and reset when the key changes.
 
 Preview revisions cover Skill organization, Packs, member identities and AI
-preferences. Local imports back up all affected metadata stores and roll back
+preferences, keys and enabled states. Local imports back up all affected metadata stores and roll back
 Pack/AI writes if a later metadata write fails. Uploads do not apply changes to
 the local stores.
 
