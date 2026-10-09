@@ -396,6 +396,9 @@ export const messages = {
   'desktop.discover.title': 'Discover useful Skills',
   'desktop.discover.topics': 'Topics',
   'desktop.managed.allSkills': 'All Skills',
+  'desktop.managed.collapseScope': 'Collapse Packs sidebar',
+  'desktop.managed.expandScope': 'Expand Packs sidebar',
+  'desktop.managed.resizeScope': 'Resize Packs sidebar',
   'desktop.managed.alreadyImported':
     'The selected Skills are already in Packs.',
   'desktop.managed.clearSearch': 'Clear search',
@@ -483,6 +486,7 @@ export const messages = {
   'desktop.managed.packMembership': 'Pack membership',
   'desktop.managed.packSourcePath': 'Pack source path',
   'desktop.managed.packs': 'Packs',
+  'desktop.managed.myPacks': 'My Packs',
   'desktop.managed.projectCount': 'Added to {count} destinations',
   'desktop.managed.projectRootDescription':
     'Choose a project root. Universal uses .agents/skills; each additional Agent uses its own project-relative directory.',

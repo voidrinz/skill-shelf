@@ -2,7 +2,9 @@ import { SearchField, preserveSearchOnEscape } from './search-field'
 import {
   lazy,
   Suspense,
+  useCallback,
   useEffect,
+  useId,
   useMemo,
   useRef,
   useState,
@@ -29,6 +31,7 @@ import {
   List as ListIcon,
   LoaderCircle,
   PackageOpen,
+  PanelLeftClose,
   PencilLine,
   Plus,
   Rocket,
@@ -101,9 +104,12 @@ import {
   getSelectedAdditionalAgentIds,
 } from './install-agent-selection'
 import { getLocalizedErrorMessage } from './localized-error'
+import { useLibraryScopeResize } from './use-library-scope-resize'
 
 const SkillFilesPanel = lazy(() => import('./skill-files-panel'))
 const MANAGED_INSPECTOR_WIDTH_KEY = 'skill-shelf:managed-inspector-width'
+const MANAGED_SCOPE_WIDTH_KEY = 'skill-shelf:managed-scope-width:v1'
+const MANAGED_SCOPE_COLLAPSED_KEY = 'skill-shelf:managed-scope-collapsed:v1'
 const DRAWER_KEYBOARD_STEP = 24
 
 export default function ManagedSkillsWorkspace({
@@ -125,6 +131,35 @@ export default function ManagedSkillsWorkspace({
   const [drawerContainer, setDrawerContainer] = useState<HTMLDivElement | null>(
     null
   )
+  const [scopeCollapsed, setScopeCollapsed] = useState(() => {
+    try {
+      return window.localStorage.getItem(MANAGED_SCOPE_COLLAPSED_KEY) === 'true'
+    } catch {
+      return false
+    }
+  })
+  const scopeResize = useLibraryScopeResize(
+    scopeCollapsed,
+    MANAGED_SCOPE_WIDTH_KEY
+  )
+  const scopePanelId = useId()
+  const scopeToggleFocusRef = useRef(false)
+  const setWorkspace = useCallback(
+    (node: HTMLDivElement | null) => {
+      scopeResize.workspaceRef.current = node
+      setDrawerContainer(node)
+    },
+    [scopeResize.workspaceRef]
+  )
+  useEffect(() => {
+    if (!scopeToggleFocusRef.current) return
+    scopeToggleFocusRef.current = false
+    scopeResize.workspaceRef.current
+      ?.querySelector<HTMLButtonElement>(
+        scopeCollapsed ? '.finder-scope-restore' : '.scope-panel-collapse'
+      )
+      ?.focus({ preventScroll: true })
+  }, [scopeCollapsed, scopeResize.workspaceRef])
   const [inspectingSkillId, setInspectingSkillId] = useState<string | null>(
     null
   )
@@ -328,32 +363,82 @@ export default function ManagedSkillsWorkspace({
     window.localStorage.setItem('skill-shelf:managed-view', mode)
   }
 
+  function changeScopeCollapsed(collapsed: boolean, restoreFocus: boolean) {
+    scopeToggleFocusRef.current = restoreFocus
+    setScopeCollapsed(collapsed)
+    try {
+      window.localStorage.setItem(
+        MANAGED_SCOPE_COLLAPSED_KEY,
+        String(collapsed)
+      )
+    } catch {
+      // Sidebar controls remain available when local storage is disabled.
+    }
+  }
+
   return (
     <div
       className="library-workspace finder-library-workspace managed-workspace"
-      ref={setDrawerContainer}
+      data-scope-collapsed={scopeCollapsed}
+      ref={setWorkspace}
+      style={scopeResize.style}
     >
-      <aside className="library-scope-panel managed-pack-sidebar">
-        <header className="scope-panel-header managed-scope-header">
-          <div>
-            <span>{t('desktop.managed.packs')}</span>
-            <p>{t('desktop.managed.sidebarDescription')}</p>
+      {scopeCollapsed ? (
+        <button
+          aria-controls={scopePanelId}
+          aria-expanded="false"
+          aria-label={t('desktop.managed.expandScope')}
+          className="scope-panel-rail finder-scope-restore"
+          onClick={(event) => changeScopeCollapsed(false, event.detail === 0)}
+          type="button"
+        >
+          <ChevronRight aria-hidden="true" />
+        </button>
+      ) : null}
+      <aside
+        className="library-scope-panel managed-pack-sidebar"
+        id={scopePanelId}
+      >
+        {!scopeCollapsed ? (
+          <div
+            aria-controls={scopePanelId}
+            aria-label={t('desktop.managed.resizeScope')}
+            aria-orientation="vertical"
+            aria-valuemax={scopeResize.bounds.max}
+            aria-valuemin={scopeResize.bounds.min}
+            aria-valuenow={scopeResize.width}
+            className="skill-drawer-resize-handle scope-panel-resize-handle"
+            onDoubleClick={scopeResize.resetWidth}
+            onKeyDown={scopeResize.handleKeyDown}
+            onPointerDown={scopeResize.handlePointerDown}
+            role="separator"
+            tabIndex={0}
+            title={t('desktop.library.resizeScopeHint')}
+          >
+            <span />
           </div>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                aria-label={t('desktop.managed.newPack')}
-                onClick={() => setEditingPack('new')}
-                size="icon-sm"
-                variant="ghost"
-              >
-                <Plus />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>{t('desktop.managed.newPack')}</TooltipContent>
-          </Tooltip>
+        ) : null}
+        <header className="scope-panel-header">
+          <div className="scope-panel-title">
+            <span>{t('desktop.managed.packs')}</span>
+            <Button
+              aria-controls={scopePanelId}
+              aria-expanded="true"
+              aria-label={t('desktop.managed.collapseScope')}
+              className="scope-panel-collapse"
+              onClick={(event) =>
+                changeScopeCollapsed(true, event.detail === 0)
+              }
+              size="xs"
+              variant="ghost"
+            >
+              <PanelLeftClose />
+              {t('desktop.library.collapseScopeAction')}
+            </Button>
+          </div>
+          <p>{t('desktop.managed.sidebarDescription')}</p>
         </header>
-        <div className="scope-filter-list managed-pack-list">
+        <div className="scope-filter-list">
           <button
             className={cn(selectedPackId === 'all' && 'is-active')}
             onClick={() => setSelectedPackId('all')}
@@ -368,26 +453,49 @@ export default function ManagedSkillsWorkspace({
             </span>
             <b>{snapshot?.skills.length ?? 0}</b>
           </button>
-          {(snapshot?.packs ?? []).map((pack) => (
-            <button
-              className={cn(selectedPackId === pack.id && 'is-active')}
-              key={pack.id}
-              onClick={() => setSelectedPackId(pack.id)}
-              type="button"
-            >
-              <span className="scope-filter-icon">
-                <Boxes />
-              </span>
-              <span>
-                <strong>{pack.name}</strong>
-                <small>
-                  {pack.description || t('desktop.managed.packDescription')}
-                </small>
-              </span>
-              <b>{pack.skillIds.length}</b>
-            </button>
-          ))}
         </div>
+        <section className="scope-projects managed-pack-section">
+          <header>
+            <div>
+              <strong>{t('desktop.managed.myPacks')}</strong>
+              <span>{snapshot?.packs.length ?? 0}</span>
+            </div>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <Button
+                  aria-label={t('desktop.managed.newPack')}
+                  onClick={() => setEditingPack('new')}
+                  size="icon-sm"
+                  variant="ghost"
+                >
+                  <Plus />
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>{t('desktop.managed.newPack')}</TooltipContent>
+            </Tooltip>
+          </header>
+          <div className="scope-filter-list managed-pack-list">
+            {(snapshot?.packs ?? []).map((pack) => (
+              <button
+                className={cn(selectedPackId === pack.id && 'is-active')}
+                key={pack.id}
+                onClick={() => setSelectedPackId(pack.id)}
+                type="button"
+              >
+                <span className="scope-filter-icon">
+                  <Boxes />
+                </span>
+                <span>
+                  <strong>{pack.name}</strong>
+                  <small>
+                    {pack.description || t('desktop.managed.packDescription')}
+                  </small>
+                </span>
+                <b>{pack.skillIds.length}</b>
+              </button>
+            ))}
+          </div>
+        </section>
         <div className="managed-sidebar-actions">
           <Button
             onClick={() => setImportOpen(true)}

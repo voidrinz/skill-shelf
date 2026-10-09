@@ -373,6 +373,9 @@ export const messages = {
   'desktop.discover.title': '发现有用的 Skill',
   'desktop.discover.topics': '主题精选',
   'desktop.managed.allSkills': '全部 Skill',
+  'desktop.managed.collapseScope': '收起 Packs 侧栏',
+  'desktop.managed.expandScope': '展开 Packs 侧栏',
+  'desktop.managed.resizeScope': '调整 Packs 侧栏宽度',
   'desktop.managed.alreadyImported': '所选 Skill 已经在 Packs 中。',
   'desktop.managed.clearSearch': '清除搜索',
   'desktop.managed.clearSelection': '清空',
@@ -458,6 +461,7 @@ export const messages = {
   'desktop.managed.packMembership': '所属 Pack',
   'desktop.managed.packSourcePath': 'Packs 源路径',
   'desktop.managed.packs': 'Packs',
+  'desktop.managed.myPacks': '我的 Packs',
   'desktop.managed.projectCount': '已添加到 {count} 个位置',
   'desktop.managed.projectRootDescription':
     '这里选择项目根目录。Universal 使用 .agents/skills，额外 Agent 使用各自的项目相对目录。',

@@ -13,9 +13,9 @@ import {
   LIBRARY_SCOPE_WIDTH_STORAGE_KEY,
 } from './library-scope-layout'
 
-function readPreferredWidth() {
+function readPreferredWidth(storageKey: string) {
   try {
-    const stored = window.localStorage.getItem(LIBRARY_SCOPE_WIDTH_STORAGE_KEY)
+    const stored = window.localStorage.getItem(storageKey)
     const width = stored === null ? Number.NaN : Number(stored)
     return Number.isFinite(width) && width > 0
       ? width
@@ -25,9 +25,14 @@ function readPreferredWidth() {
   }
 }
 
-export function useLibraryScopeResize(collapsed: boolean) {
+export function useLibraryScopeResize(
+  collapsed: boolean,
+  storageKey = LIBRARY_SCOPE_WIDTH_STORAGE_KEY
+) {
   const workspaceRef = useRef<HTMLDivElement>(null)
-  const [preferredWidth, setPreferredWidth] = useState(readPreferredWidth)
+  const [preferredWidth, setPreferredWidth] = useState(() =>
+    readPreferredWidth(storageKey)
+  )
   const [containerWidth, setContainerWidth] = useState(window.innerWidth)
   const cleanupRef = useRef<(() => void) | null>(null)
   const width = clampLibraryScopeWidth(preferredWidth, containerWidth)
@@ -58,10 +63,7 @@ export function useLibraryScopeResize(collapsed: boolean) {
     )
     setPreferredWidth(nextWidth)
     try {
-      window.localStorage.setItem(
-        LIBRARY_SCOPE_WIDTH_STORAGE_KEY,
-        String(nextWidth)
-      )
+      window.localStorage.setItem(storageKey, String(nextWidth))
     } catch {
       // Resizing remains available when local storage is disabled.
     }
