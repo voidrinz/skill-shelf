@@ -1,0 +1,21 @@
+docs/ai-storage.md
+  s_195416a04c53e0::t_747435729a5b2e 24-37
+docs/development.md
+  s_195416a04c53e0::t_747435729a5b2e 107-112,121-128,131
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c296651032c8a91fc9fa54108eeaaf938eb986fb",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
