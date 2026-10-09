@@ -1,4 +1,14 @@
-import { AppUpdateControls } from './app-update-controls'
+import { SearchField, preserveSearchOnEscape } from './search-field'
+import { AboutAppCard } from './about-app-card'
+import { AgentCoverageCard } from './agent-coverage-card'
+import { WorkbenchOverview, WorkbenchFileChecks } from './workbench-overview'
+import {
+  FileBrowserSkeleton,
+  SkillsSkeleton,
+  WorkbenchSkeleton,
+} from './loading-skeletons'
+import { SyncSettings } from './sync-settings'
+import { hasAppUpdate, useAppUpdate } from './app-update-context'
 import {
   lazy,
   Suspense,
@@ -62,7 +72,6 @@ import {
   PanelBottom,
   PanelLeft,
   PanelLeftClose,
-  PanelLeftOpen,
   PencilLine,
   Plus,
   RefreshCw,
@@ -149,7 +158,6 @@ import type {
   AiProviderModelInput,
   AiProviderModelStatus,
   AiProviderSettingsStatus,
-  AgentCoverageEntry,
   CanvasPosition,
   CatalogSnapshot,
   DesktopRuntimeInfo,
@@ -165,7 +173,6 @@ import type {
   SkillUpdateStatus,
   ShelfGroup,
   ShelfScopeKey,
-  SymlinkHealthSnapshot,
   UpdateDesktopSettingsInput,
   WorkbenchSnapshot,
 } from '../../shared/desktop-contract'
@@ -180,6 +187,7 @@ import {
 } from '../../shared/desktop-contract'
 import { getLocalizedErrorMessage } from './localized-error'
 import { MouseHoverCard } from './mouse-hover-card'
+import { useLibraryScopeResize } from './use-library-scope-resize'
 import { AI_LANGUAGE_OPTIONS } from './ai-language-options'
 import { isDescriptionClearlyInTargetLanguage } from './description-language'
 import {
@@ -310,6 +318,7 @@ type SettingsSection =
   | 'general'
   | 'shortcuts'
   | 'skills-cli'
+  | 'sync'
 
 const AiSkillPanel = lazy(() => import('./ai-skill-panel'))
 const DiscoverWorkspace = lazy(() => import('./discover-workspace'))
@@ -1342,6 +1351,15 @@ export function App() {
                   onAiSettingsChange={setAiSettings}
                   onSectionChange={setSettingsSection}
                   onSettingsChange={(input) => void updateSettings(input)}
+                  onSyncApplied={({
+                    catalog: nextCatalog,
+                    settings: nextSettings,
+                  }) => {
+                    applyCatalog(nextCatalog)
+                    applySettingsSnapshot(nextSettings)
+                    setLocalePreference(nextSettings.language)
+                    setSidebarCollapsed(nextSettings.sidebarCollapsed)
+                  }}
                   onWorkbenchSnapshotChange={setWorkbenchSnapshot}
                   runtime={runtime}
                   section={settingsSection}
@@ -1685,6 +1703,10 @@ function PrimarySidebar({
   view: ProductView
 }) {
   const { t } = useI18n()
+  const { state: appUpdate } = useAppUpdate()
+  const updateNotice = hasAppUpdate(appUpdate)
+    ? t('desktop.appUpdate.notification', { version: appUpdate?.version ?? '' })
+    : undefined
   return (
     <aside
       className="primary-sidebar"
@@ -1732,8 +1754,16 @@ function PrimarySidebar({
         <SidebarNavItem
           active={view === 'settings'}
           collapsed={collapsed}
-          icon={<SettingsIcon />}
+          icon={
+            <span className="settings-entry-icon">
+              <SettingsIcon />
+              {updateNotice ? (
+                <span aria-hidden="true" className="app-update-dot" />
+              ) : null}
+            </span>
+          }
           label={t('desktop.nav.settings')}
+          notice={updateNotice}
           onClick={() => onViewChange('settings')}
         />
       </nav>
@@ -1745,14 +1775,18 @@ function SidebarNavItem({
   collapsed,
   label,
   className,
+  notice,
   ...props
 }: Omit<NavItemProps, 'children'> & {
   collapsed: boolean
   label: string
+  notice?: string
 }) {
   const item = (
     <NavItem
-      aria-label={collapsed ? label : undefined}
+      aria-label={
+        notice ? `${label} · ${notice}` : collapsed ? label : undefined
+      }
       className={cn(className, collapsed && 'is-compact')}
       {...props}
     >
@@ -1760,11 +1794,13 @@ function SidebarNavItem({
     </NavItem>
   )
 
-  if (!collapsed) return item
+  if (!collapsed && !notice) return item
   return (
     <Tooltip>
       <TooltipTrigger asChild>{item}</TooltipTrigger>
-      <TooltipContent side="right">{label}</TooltipContent>
+      <TooltipContent side="right">
+        {notice ? `${label} · ${notice}` : label}
+      </TooltipContent>
     </Tooltip>
   )
 }
@@ -1775,6 +1811,7 @@ function LibraryScopePanel({
   onCatalogChange,
   onCollapse,
   onFilterChange,
+  resizeHandle,
 }: {
   catalog: CatalogSnapshot | null
   draggedSkillId?: string | null
@@ -1782,12 +1819,13 @@ function LibraryScopePanel({
   filter: LibraryFilter
   folderFilter?: LibraryFolderFilter
   onCatalogChange: (catalog: CatalogSnapshot) => void
-  onCollapse?: () => void
+  onCollapse?: (event: ReactMouseEvent<HTMLButtonElement>) => void
   onCreateFolder?: () => void
   onDropSkill?: (skillId: string, folderId: string | null) => void
   onDropTargetChange?: (target: LibraryFolderFilter | null) => void
   onFilterChange: (filter: LibraryFilter) => void
   onFolderFilterChange?: (filter: LibraryFolderFilter) => void
+  resizeHandle?: ReactNode
 }) {
   const { plural, t } = useI18n()
   const [busy, setBusy] = useState<string | null>(null)
@@ -1832,29 +1870,25 @@ function LibraryScopePanel({
 
   return (
     <aside className="library-scope-panel">
+      {resizeHandle}
       <header className="scope-panel-header">
-        <div>
+        <div className="scope-panel-title">
           <span>{t('desktop.library.scopeTitle')}</span>
-          <p>{t('desktop.library.scopeDescription')}</p>
+          {onCollapse ? (
+            <Button
+              aria-label={t('desktop.library.collapseScope')}
+              aria-expanded="true"
+              className="scope-panel-collapse"
+              onClick={onCollapse}
+              size="xs"
+              variant="ghost"
+            >
+              <PanelLeftClose />
+              {t('desktop.library.collapseScopeAction')}
+            </Button>
+          ) : null}
         </div>
-        {onCollapse ? (
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                aria-label={t('desktop.library.collapseScope')}
-                className="scope-panel-collapse"
-                onClick={onCollapse}
-                size="icon-sm"
-                variant="ghost"
-              >
-                <PanelLeftClose />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent side="right">
-              {t('desktop.library.collapseScope')}
-            </TooltipContent>
-          </Tooltip>
-        ) : null}
+        <p>{t('desktop.library.scopeDescription')}</p>
       </header>
 
       <nav
@@ -1978,7 +2012,7 @@ function LibraryScopePanel({
   )
 }
 
-function FinderLibraryWorkspace({
+export function FinderLibraryWorkspace({
   aiSettings,
   bulkUpdateProgress,
   busyAction,
@@ -2050,6 +2084,17 @@ function FinderLibraryWorkspace({
       window.localStorage.getItem(LIBRARY_SCOPE_COLLAPSED_STORAGE_KEY) ===
       'true'
   )
+  const scopeResize = useLibraryScopeResize(scopeCollapsed)
+  const scopeToggleFocusRef = useRef(false)
+  useEffect(() => {
+    if (!scopeToggleFocusRef.current) return
+    scopeToggleFocusRef.current = false
+    scopeResize.workspaceRef.current
+      ?.querySelector<HTMLButtonElement>(
+        scopeCollapsed ? '.finder-scope-restore' : '.scope-panel-collapse'
+      )
+      ?.focus({ preventScroll: true })
+  }, [scopeCollapsed, scopeResize.workspaceRef])
   const [queryDraft, setQueryDraft] = useState('')
   const [query, setQuery] = useState('')
   const [updateFilter, setUpdateFilter] = useState<SkillUpdateFilter | null>(
@@ -2105,6 +2150,7 @@ function FinderLibraryWorkspace({
     [catalog?.groups, scopeKey]
   )
   const normalizedQuery = query.trim().toLocaleLowerCase()
+  const filtering = Boolean(normalizedQuery || updateFilter)
   const matchingSkills = useMemo(
     () =>
       scopeSkills.filter((skill) => {
@@ -2128,13 +2174,13 @@ function FinderLibraryWorkspace({
     () => scopeSkills.filter((skill) => skill.groupId === currentFolderId),
     [currentFolderId, scopeSkills]
   )
-  const visibleSkills = normalizedQuery
+  const visibleSkills = filtering
     ? matchingSkills
     : matchingSkills.filter((skill) => skill.groupId === currentFolderId)
   const currentFolderFolders = scopeFolders.filter(
     (folder) => folder.parentId === currentFolderId
   )
-  const visibleFolders = normalizedQuery ? [] : currentFolderFolders
+  const visibleFolders = filtering ? [] : currentFolderFolders
   const activeSortKey =
     finderSortBy === 'none'
       ? viewMode === 'canvas'
@@ -2352,6 +2398,7 @@ function FinderLibraryWorkspace({
   }
 
   function cleanUpCurrentFolder(mode: FinderSortKey | 'position') {
+    if (filtering) return
     const viewportWidth = finderContentRef.current?.clientWidth ?? 980
     const items = getCurrentFolderCanvasItems()
     const sortedItems =
@@ -2365,6 +2412,7 @@ function FinderLibraryWorkspace({
   }
 
   function snapCurrentFolderToGrid() {
+    if (filtering) return
     const occupiedPositions: CanvasPosition[] = []
     sortFinderItemsByCanvasPosition(getCurrentFolderCanvasItems()).forEach(
       (item, index) => {
@@ -2423,7 +2471,8 @@ function FinderLibraryWorkspace({
     })
   }
 
-  function changeScopeCollapsed(collapsed: boolean) {
+  function changeScopeCollapsed(collapsed: boolean, restoreFocus = false) {
+    scopeToggleFocusRef.current = restoreFocus
     setScopeCollapsed(collapsed)
     window.localStorage.setItem(
       LIBRARY_SCOPE_COLLAPSED_STORAGE_KEY,
@@ -2466,13 +2515,46 @@ function FinderLibraryWorkspace({
     <div
       className="library-workspace finder-library-workspace"
       data-scope-collapsed={scopeCollapsed}
+      ref={scopeResize.workspaceRef}
+      style={scopeResize.style}
     >
+      {scopeCollapsed ? (
+        <button
+          aria-expanded="false"
+          aria-label={t('desktop.library.expandScope')}
+          className="scope-panel-rail finder-scope-restore"
+          onClick={(event) => changeScopeCollapsed(false, event.detail === 0)}
+          type="button"
+        >
+          <ChevronRight aria-hidden="true" />
+        </button>
+      ) : null}
       <LibraryScopePanel
         catalog={catalog}
         filter={filter}
         onCatalogChange={onCatalogChange}
-        onCollapse={() => changeScopeCollapsed(true)}
+        onCollapse={(event) => changeScopeCollapsed(true, event.detail === 0)}
         onFilterChange={onFilterChange}
+        resizeHandle={
+          !scopeCollapsed ? (
+            <div
+              aria-label={t('desktop.library.resizeScope')}
+              aria-orientation="vertical"
+              aria-valuemax={scopeResize.bounds.max}
+              aria-valuemin={scopeResize.bounds.min}
+              aria-valuenow={scopeResize.width}
+              className="skill-drawer-resize-handle scope-panel-resize-handle"
+              onDoubleClick={scopeResize.resetWidth}
+              onKeyDown={scopeResize.handleKeyDown}
+              onPointerDown={scopeResize.handlePointerDown}
+              role="separator"
+              tabIndex={0}
+              title={t('desktop.library.resizeScopeHint')}
+            >
+              <span />
+            </div>
+          ) : null
+        }
       />
       <section className="library-pane finder-library-pane">
         <PageHeader
@@ -2543,23 +2625,6 @@ function FinderLibraryWorkspace({
           title={getScopeTitle(filter, catalog, t)}
         />
         <div className="finder-navigation">
-          {scopeCollapsed ? (
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <button
-                  aria-label={t('desktop.library.expandScope')}
-                  className="finder-scope-restore"
-                  onClick={() => changeScopeCollapsed(false)}
-                  type="button"
-                >
-                  <PanelLeftOpen />
-                </button>
-              </TooltipTrigger>
-              <TooltipContent side="bottom">
-                {t('desktop.library.expandScope')}
-              </TooltipContent>
-            </Tooltip>
-          ) : null}
           <div
             aria-label={t('desktop.folders.history')}
             className="finder-history-controls"
@@ -2789,25 +2854,15 @@ function FinderLibraryWorkspace({
         </div>
         <div className="library-toolbar finder-toolbar">
           <form className="search-control" onSubmit={applyLibrarySearch}>
-            <div className="search-control-field">
-              <Search />
-              <Input
-                aria-label={t('desktop.library.search')}
-                onChange={(event) => setQueryDraft(event.target.value)}
-                placeholder={t('desktop.library.searchPlaceholder')}
-                type="search"
-                value={queryDraft}
-              />
-              {queryDraft ? (
-                <button
-                  aria-label={t('desktop.library.clearSearch')}
-                  onClick={clearLibrarySearch}
-                  type="button"
-                >
-                  <X />
-                </button>
-              ) : null}
-            </div>
+            <SearchField
+              appliedValue={query}
+              clearLabel={t('desktop.library.clearSearch')}
+              label={t('desktop.library.search')}
+              onChange={setQueryDraft}
+              onClear={clearLibrarySearch}
+              placeholder={t('desktop.library.searchPlaceholder')}
+              value={queryDraft}
+            />
             <Button size="sm" type="submit" variant="outline">
               <Search />
               {t('common.filter')}
@@ -2817,8 +2872,8 @@ function FinderLibraryWorkspace({
             <span className="result-count">
               {plural(
                 visibleSkills.length + visibleFolders.length,
-                'count.item.one',
-                'count.item.other'
+                filtering ? 'count.skill.one' : 'count.item.one',
+                filtering ? 'count.skill.other' : 'count.item.other'
               )}
             </span>
           </div>
@@ -2850,15 +2905,21 @@ function FinderLibraryWorkspace({
           </div>
         </div>
         <div className="finder-content" ref={finderContentRef}>
-          {!catalog && !error ? <LoadingRows /> : null}
+          {!catalog && !error ? (
+            <SkillsSkeleton view={normalizedQuery ? 'list' : viewMode} />
+          ) : null}
           {error ? <ErrorState message={error} onRetry={onRetry} /> : null}
-          {catalog && viewMode === 'canvas' && !normalizedQuery ? (
+          {catalog &&
+          visibleSkills.length + visibleFolders.length > 0 &&
+          viewMode === 'canvas' &&
+          !normalizedQuery ? (
             <FinderCanvas
               alignToGrid={finderAlignsToGrid}
               allFolders={scopeFolders}
               allSkills={scopeSkills}
               busyAction={busyAction}
               currentFolderId={currentFolderId}
+              filtering={filtering}
               folders={visibleFolders}
               groupBy={finderGroupBy}
               onCloseSelection={onCloseSelection}
@@ -2889,13 +2950,14 @@ function FinderLibraryWorkspace({
               sortDirection={finderSortDirection}
               useGroups={finderUsesGroups}
             />
-          ) : catalog ? (
+          ) : catalog && visibleSkills.length + visibleFolders.length > 0 ? (
             <FinderListView
               allFolders={scopeFolders}
-              allSkills={matchingSkills}
+              allSkills={scopeSkills}
               busyAction={busyAction}
               contextSkills={scopeSkills}
               currentFolderId={currentFolderId}
+              filtering={filtering}
               folders={orderedListFolders}
               groups={scopeFolders}
               groupBy={finderGroupBy}
@@ -2916,7 +2978,11 @@ function FinderLibraryWorkspace({
               onUpdateSkill={onUpdate}
               onViewModeChange={changeCurrentFinderViewMode}
               selectedId={selectedId}
-              searching={Boolean(normalizedQuery)}
+              resultsLabel={
+                updateFilter
+                  ? getSkillUpdateStatusLabel(updateFilter, t)
+                  : t('desktop.library.filteredResults')
+              }
               skills={orderedListSkills}
               sortBy={finderSortBy}
               sortDirection={finderSortDirection}
@@ -3026,6 +3092,7 @@ function FinderCanvas({
   allSkills,
   busyAction,
   currentFolderId,
+  filtering,
   folders,
   groupBy,
   onAlignToGridChange,
@@ -3057,6 +3124,7 @@ function FinderCanvas({
   allSkills: InstalledSkill[]
   busyAction: string | null
   currentFolderId: string | null
+  filtering: boolean
   folders: ShelfGroup[]
   groupBy: FinderSortKey
   onAlignToGridChange: (alignToGrid: boolean) => void
@@ -3190,7 +3258,7 @@ function FinderCanvas({
   const positionedItems = items.map((item, index) => {
     const groupedPosition = groupedPositions.get(item.key)
     if (groupedPosition) return { ...item, position: groupedPosition }
-    if (sortBy !== 'none') {
+    if (sortBy !== 'none' || filtering) {
       return {
         ...item,
         position: getFinderCanvasGridPosition(index, viewportWidth),
@@ -3442,6 +3510,7 @@ function FinderCanvas({
     folderId: string | null,
     movedItems: FinderCanvasDragItem[]
   ) {
+    if (filtering) return false
     const movingKeys = new Set(movedItems.map((item) => item.key))
     const movableItems = movedItems.filter(
       (item) => item.key !== `folder:${folderId}`
@@ -3599,6 +3668,7 @@ function FinderCanvas({
                 <ContextMenu key={folder.id}>
                   <FinderCanvasItem
                     canvasRef={canvasRef}
+                    draggable={!filtering}
                     dragItems={getDragItems(itemKey)}
                     itemKey={itemKey}
                     kind="folder"
@@ -3675,6 +3745,7 @@ function FinderCanvas({
                 <ContextMenu key={skill.id}>
                   <FinderCanvasItem
                     canvasRef={canvasRef}
+                    draggable={!filtering}
                     dragItems={getDragItems(itemKey)}
                     itemKey={itemKey}
                     kind="skill"
@@ -3842,7 +3913,7 @@ function FinderCanvas({
             <ContextMenuSeparator />
             <ContextMenuCheckboxItem
               checked={alignToGrid}
-              disabled={useGroups || sortBy !== 'none'}
+              disabled={filtering || useGroups || sortBy !== 'none'}
               icon={<Grid2X2 />}
               onSelect={() => onAlignToGridChange(!alignToGrid)}
             >
@@ -3926,7 +3997,9 @@ function FinderCanvas({
           </ContextMenuSubContent>
         </ContextMenuSub>
         <ContextMenuItem
-          disabled={useGroups || sortBy !== 'none' || items.length < 2}
+          disabled={
+            filtering || useGroups || sortBy !== 'none' || items.length < 2
+          }
           onSelect={() => onCleanUp('position')}
         >
           <Grid2X2 />
@@ -3934,7 +4007,9 @@ function FinderCanvas({
         </ContextMenuItem>
         <ContextMenuSub>
           <ContextMenuSubTrigger
-            disabled={useGroups || sortBy !== 'none' || items.length < 2}
+            disabled={
+              filtering || useGroups || sortBy !== 'none' || items.length < 2
+            }
           >
             <ArrowDown />
             {t('desktop.folders.cleanUpBy')}
@@ -3956,6 +4031,7 @@ function FinderCanvasItem({
   canvasRef,
   children,
   dragItems,
+  draggable = true,
   itemKey,
   kind,
   onDrop,
@@ -3969,6 +4045,7 @@ function FinderCanvasItem({
   canvasRef: React.RefObject<HTMLDivElement | null>
   children: ReactNode
   dragItems: FinderCanvasDragItem[]
+  draggable?: boolean
   itemKey: FinderCanvasItemKey
   kind: 'folder' | 'skill'
   onDrop: (folderId: string | null, items: FinderCanvasDragItem[]) => boolean
@@ -4002,7 +4079,7 @@ function FinderCanvasItem({
   }, [position.x, position.y])
 
   function handlePointerDown(event: ReactPointerEvent<HTMLDivElement>) {
-    if (!event.isPrimary || event.button !== 0) return
+    if (!draggable || !event.isPrimary || event.button !== 0) return
     const canvas = canvasRef.current
     if (!canvas) return
     const elements = new Map(
@@ -4158,6 +4235,7 @@ function FinderListView({
   busyAction,
   contextSkills,
   currentFolderId,
+  filtering,
   folders,
   groupBy,
   groups,
@@ -4176,7 +4254,7 @@ function FinderListView({
   onUpdateSkill,
   onViewModeChange,
   selectedId,
-  searching,
+  resultsLabel,
   skills,
   sortBy,
   sortDirection,
@@ -4188,6 +4266,7 @@ function FinderListView({
   busyAction: string | null
   contextSkills: InstalledSkill[]
   currentFolderId: string | null
+  filtering: boolean
   folders: ShelfGroup[]
   groupBy: FinderSortKey
   groups: ShelfGroup[]
@@ -4210,7 +4289,7 @@ function FinderListView({
   onUpdateSkill: (skillId: string) => void
   onViewModeChange: (viewMode: LibraryViewMode) => void
   selectedId: string | null
-  searching: boolean
+  resultsLabel: string
   skills: InstalledSkill[]
   sortBy: FinderSortKey | 'none'
   sortDirection: FinderSortDirection
@@ -4292,7 +4371,7 @@ function FinderListView({
         sortDirection
       )
     : [{ items: orderedItems, key: 'all' }]
-  const columnLocations = searching
+  const columnLocations = filtering
     ? [currentFolderId]
     : [
         null,
@@ -4301,7 +4380,7 @@ function FinderListView({
         ),
       ]
   const columnGroups = columnLocations.map((folderId) => {
-    const columnItems = searching
+    const columnItems = filtering
       ? items
       : createItems(
           allFolders.filter((folder) => folder.parentId === folderId),
@@ -4324,8 +4403,9 @@ function FinderListView({
             sortDirection
           )
         : [{ items: orderedColumnItems, key: 'all' }],
-      label:
-        folderId === null
+      label: filtering
+        ? resultsLabel
+        : folderId === null
           ? t('desktop.folders.all')
           : (allFolders.find((folder) => folder.id === folderId)?.name ?? ''),
     }
@@ -4776,7 +4856,7 @@ function FinderListView({
     return (
       <SkillRow
         busyAction={busyAction}
-        draggable={viewMode === 'columns'}
+        draggable={viewMode === 'columns' && !filtering}
         dragging={draggedSkillKeys.has(itemKey)}
         group={groups.find((group) => group.id === skill.groupId)}
         groups={groups}
@@ -4911,7 +4991,7 @@ function FinderListView({
                   onDrop={(event) => handleSkillDrop(event, column.folderId)}
                 >
                   <header>
-                    <FolderOpen />
+                    {filtering ? <ListIcon /> : <FolderOpen />}
                     <span>{column.label}</span>
                   </header>
                   <div>
@@ -5443,25 +5523,15 @@ function LibraryWorkspace({
         />
         <div className="library-toolbar">
           <form className="search-control" onSubmit={applyLibrarySearch}>
-            <div className="search-control-field">
-              <Search />
-              <Input
-                aria-label={t('desktop.library.search')}
-                onChange={(event) => setQueryDraft(event.target.value)}
-                placeholder={t('desktop.library.searchPlaceholder')}
-                type="search"
-                value={queryDraft}
-              />
-              {queryDraft ? (
-                <button
-                  aria-label={t('desktop.library.clearSearch')}
-                  onClick={clearLibrarySearch}
-                  type="button"
-                >
-                  <X />
-                </button>
-              ) : null}
-            </div>
+            <SearchField
+              appliedValue={query}
+              clearLabel={t('desktop.library.clearSearch')}
+              label={t('desktop.library.search')}
+              onChange={setQueryDraft}
+              onClear={clearLibrarySearch}
+              placeholder={t('desktop.library.searchPlaceholder')}
+              value={queryDraft}
+            />
             <Button size="sm" type="submit" variant="outline">
               <Search />
               {t('common.filter')}
@@ -5596,7 +5666,9 @@ function LibraryWorkspace({
           </div>
         ) : (
           <div className="skill-list" data-view={viewMode} role="list">
-            {!catalog && !error ? <LoadingRows /> : null}
+            {!catalog && !error ? (
+              <SkillsSkeleton layout="cards" view={viewMode} />
+            ) : null}
             {error ? <ErrorState message={error} onRetry={onRetry} /> : null}
             {catalog && visibleSkills.length === 0 ? (
               <EmptyState
@@ -6689,14 +6761,7 @@ function Inspector({
             </div>
           </TabsContent>
           <TabsContent className="skill-files-tab" value="files">
-            <Suspense
-              fallback={
-                <div className="file-browser-loading">
-                  <LoaderCircle className="animate-spin" />
-                  {t('desktop.files.reading')}
-                </div>
-              }
-            >
+            <Suspense fallback={<FileBrowserSkeleton />}>
               <SkillFilesPanel skillId={skill.id} />
             </Suspense>
           </TabsContent>
@@ -6948,7 +7013,7 @@ function RenameFolderDialog({
   )
 }
 
-function WorkbenchWorkspace({
+export function WorkbenchWorkspace({
   focusedAgents,
   onCatalogChange,
   onManageAgents,
@@ -6966,6 +7031,7 @@ function WorkbenchWorkspace({
   const [error, setError] = useState<string | null>(null)
   const [untrackedOpen, setUntrackedOpen] = useState(false)
   const [untrackedBusy, setUntrackedBusy] = useState<string | null>(null)
+  const initialScanStartedRef = useRef(false)
 
   const loadWorkbench = useCallback(async () => {
     setLoading(true)
@@ -6982,8 +7048,10 @@ function WorkbenchWorkspace({
   }, [onCatalogChange, onSnapshotChange, t])
 
   useEffect(() => {
+    if (snapshot || initialScanStartedRef.current) return
+    initialScanStartedRef.current = true
     void loadWorkbench()
-  }, [loadWorkbench])
+  }, [loadWorkbench, snapshot])
 
   async function trackUntrackedSkills(skillIds: string[]) {
     if (loading || untrackedBusy || skillIds.length === 0) return
@@ -7005,6 +7073,14 @@ function WorkbenchWorkspace({
       toast.error(getLocalizedErrorMessage(caught, t))
     } finally {
       setUntrackedBusy(null)
+    }
+  }
+
+  async function openDirectory(id: string) {
+    try {
+      await window.skillShelf.openWorkbenchDirectory(id)
+    } catch (error) {
+      toast.error(getLocalizedErrorMessage(error, t))
     }
   }
 
@@ -7042,10 +7118,17 @@ function WorkbenchWorkspace({
             <i />
             {t('desktop.workbench.localScan')}
           </div>
+        ) : loading ? (
+          <div
+            aria-hidden="true"
+            className="workbench-scan-meta skeleton-scan-meta"
+          >
+            <span className="skeleton-block" />
+          </div>
         ) : null}
       </PageHeader>
 
-      {loading && !snapshot ? <WorkbenchLoading /> : null}
+      {loading && !snapshot ? <WorkbenchSkeleton /> : null}
       {error && !snapshot ? (
         <div className="workbench-error">
           <CircleAlert />
@@ -7082,48 +7165,20 @@ function WorkbenchWorkspace({
               </Button>
             </section>
           ) : null}
-          <section
-            aria-label={t('desktop.workbench.stats.title')}
-            className="workbench-stats"
-          >
-            <div className="workbench-stat-intro">
-              <span>
-                <Gauge />
-              </span>
-              <div>
-                <strong>{t('desktop.workbench.stats.title')}</strong>
-                <small>{t('desktop.workbench.stats.description')}</small>
-              </div>
-            </div>
-            <WorkbenchStat
-              icon={<Library />}
-              label={t('desktop.workbench.stats.skills')}
-              value={number(snapshot.stats.totalSkills)}
-            />
-            <WorkbenchStat
-              icon={<Link2 />}
-              label={t('desktop.workbench.stats.linked')}
-              tone="success"
-              value={number(snapshot.stats.linkedSkills)}
-            />
-            <WorkbenchStat
-              icon={<Users />}
-              label={t('desktop.workbench.stats.agents')}
-              tone="blue"
-              value={number(snapshot.stats.activeAgents)}
-            />
-          </section>
-
-          <div className="workbench-diagnostics-grid">
-            <SymlinkHealthCard health={snapshot.symlinkHealth} />
-            <AgentCoverageCard
-              focusedAgents={focusedAgents}
-              onManageAgents={onManageAgents}
-              snapshot={snapshot}
-            />
-          </div>
-
-          <WorkbenchIssues health={snapshot.symlinkHealth} />
+          <WorkbenchOverview
+            snapshot={snapshot}
+            onOpenDirectory={openDirectory}
+          />
+          <AgentCoverageCard
+            focusedAgents={focusedAgents}
+            onManageAgents={onManageAgents}
+            onOpenDirectory={openDirectory}
+            snapshot={snapshot}
+          />
+          <WorkbenchFileChecks
+            snapshot={snapshot}
+            onOpenDirectory={openDirectory}
+          />
         </div>
       ) : null}
       <UntrackedSkillsDialog
@@ -7137,416 +7192,13 @@ function WorkbenchWorkspace({
   )
 }
 
-function WorkbenchStat({
-  icon,
-  label,
-  tone = 'neutral',
-  value,
-}: {
-  icon: ReactNode
-  label: string
-  tone?: 'blue' | 'neutral' | 'success'
-  value: string
-}) {
-  return (
-    <div className={cn('workbench-stat', `is-${tone}`)}>
-      <span>{icon}</span>
-      <strong>{value}</strong>
-      <small>{label}</small>
-    </div>
-  )
-}
-
-function SymlinkHealthCard({ health }: { health: SymlinkHealthSnapshot }) {
-  const { number, t } = useI18n()
-  const healthy = health.valid + health.direct
-  const attempted = healthy + health.broken + health.inaccessible
-  const ratio = attempted > 0 ? healthy / attempted : null
-  const rawPercent = ratio === null ? null : ratio * 100
-  const percent =
-    rawPercent === null
-      ? null
-      : healthy === attempted
-        ? '100'
-        : rawPercent >= 99.5
-          ? rawPercent.toFixed(1)
-          : String(Math.round(rawPercent))
-  const gaugeStyle = {
-    '--workbench-health-angle': `${(ratio ?? 0) * 360}deg`,
-  } as CSSProperties
-
-  return (
-    <section className="workbench-panel health-panel">
-      <header className="workbench-panel-header">
-        <span className="workbench-panel-icon is-health">
-          <ShieldCheck />
-        </span>
-        <div>
-          <h2>{t('desktop.workbench.health.title')}</h2>
-          <p>{t('desktop.workbench.health.description')}</p>
-        </div>
-      </header>
-      <div className="health-overview">
-        <div
-          aria-label={
-            percent === null
-              ? t('desktop.workbench.health.noSymlinks')
-              : t('desktop.workbench.health.aria', {
-                  broken: health.broken,
-                  inaccessible: health.inaccessible,
-                  percent,
-                  valid: healthy,
-                })
-          }
-          className="health-gauge"
-          role="img"
-          style={gaugeStyle}
-        >
-          <div>
-            <strong>{percent === null ? '—' : `${percent}%`}</strong>
-            <span>{t('desktop.workbench.health.score')}</span>
-          </div>
-        </div>
-        <div className="health-legend">
-          <HealthLegendItem
-            label={t('desktop.workbench.health.valid')}
-            tone="valid"
-            value={number(healthy)}
-          />
-          <HealthLegendItem
-            label={t('desktop.workbench.health.broken')}
-            tone="broken"
-            value={number(health.broken)}
-          />
-          <HealthLegendItem
-            label={t('desktop.workbench.health.manual')}
-            tone="manual"
-            value={number(health.inaccessible)}
-          />
-          <HealthLegendItem
-            label={t('desktop.workbench.health.direct')}
-            tone="direct"
-            value={number(health.direct)}
-          />
-        </div>
-      </div>
-    </section>
-  )
-}
-
-function HealthLegendItem({
-  label,
-  tone,
-  value,
-}: {
-  label: string
-  tone: 'broken' | 'direct' | 'manual' | 'valid'
-  value: string
-}) {
-  return (
-    <div className="health-legend-item">
-      <i className={`is-${tone}`} />
-      <span>{label}</span>
-      <strong>{value}</strong>
-    </div>
-  )
-}
-
-interface AgentCoverageGroup {
-  agents: AgentCoverageEntry[]
-  availableSkills: number
-  directSkills: number
-  focusedAgents: string[]
-  linkedSkills: number
-  path: string
-  ratio: number
-}
-
-function groupAgentCoverage(
-  entries: AgentCoverageEntry[],
-  focusedNames: Set<string>
-): AgentCoverageGroup[] {
-  const groups = new Map<string, AgentCoverageEntry[]>()
-  for (const entry of entries) {
-    const agents = groups.get(entry.path) ?? []
-    agents.push(entry)
-    groups.set(entry.path, agents)
-  }
-
-  return [...groups.entries()]
-    .map(([path, agents]) => {
-      const sortedAgents = [...agents].sort((left, right) => {
-        const focusDifference =
-          Number(focusedNames.has(right.name)) -
-          Number(focusedNames.has(left.name))
-        return focusDifference || left.name.localeCompare(right.name)
-      })
-      return {
-        agents: sortedAgents,
-        availableSkills: Math.max(
-          ...sortedAgents.map((agent) => agent.availableSkills)
-        ),
-        directSkills: Math.max(
-          ...sortedAgents.map((agent) => agent.directSkills)
-        ),
-        focusedAgents: sortedAgents
-          .filter((agent) => focusedNames.has(agent.name))
-          .map((agent) => agent.name),
-        linkedSkills: Math.max(
-          ...sortedAgents.map((agent) => agent.linkedSkills)
-        ),
-        path,
-        ratio: Math.max(...sortedAgents.map((agent) => agent.ratio)),
-      }
-    })
-    .sort(
-      (left, right) =>
-        right.focusedAgents.length - left.focusedAgents.length ||
-        right.availableSkills - left.availableSkills ||
-        left.agents[0]!.name.localeCompare(right.agents[0]!.name)
-    )
-}
-
-function AgentCoverageCard({
-  focusedAgents,
-  onManageAgents,
-  snapshot,
-}: {
-  focusedAgents: string[]
-  onManageAgents: () => void
-  snapshot: WorkbenchSnapshot
-}) {
-  const { number, t } = useI18n()
-  const [expanded, setExpanded] = useState(false)
-  const focusedNames = useMemo(() => new Set(focusedAgents), [focusedAgents])
-  const groups = useMemo(
-    () => groupAgentCoverage(snapshot.agentCoverage, focusedNames),
-    [focusedNames, snapshot.agentCoverage]
-  )
-  const prioritizedGroups = groups.filter(
-    (group) => group.focusedAgents.length > 0
-  )
-  const otherGroups = groups.filter((group) => group.focusedAgents.length === 0)
-  const collapsedGroups = [...prioritizedGroups, ...otherGroups.slice(0, 3)]
-  const visibleGroups = expanded ? groups : collapsedGroups
-  const hiddenGroups = groups.filter(
-    (group) => !collapsedGroups.includes(group)
-  )
-  const hiddenAgentCount = hiddenGroups.reduce(
-    (total, group) => total + group.agents.length,
-    0
-  )
-  const coveredAgentNames = new Set(
-    snapshot.agentCoverage.map((agent) => agent.name)
-  )
-  const missingFocusedAgents = focusedAgents.filter(
-    (agent) => !coveredAgentNames.has(agent)
-  )
-
-  return (
-    <section className="workbench-panel coverage-panel">
-      <header className="workbench-panel-header">
-        <span className="workbench-panel-icon is-coverage">
-          <Users />
-        </span>
-        <div>
-          <h2>{t('desktop.workbench.coverage.title')}</h2>
-          <p>{t('desktop.workbench.coverage.description')}</p>
-        </div>
-        <Button onClick={onManageAgents} size="xs" variant="ghost">
-          <Eye />
-          {t('desktop.workbench.coverage.manage')}
-        </Button>
-      </header>
-      {groups.length || missingFocusedAgents.length ? (
-        <div className="coverage-list">
-          {missingFocusedAgents.length ? (
-            <div className="coverage-focused-missing">
-              <CircleDashed />
-              <div>
-                <strong>
-                  {t('desktop.workbench.coverage.notDetected', {
-                    agents: missingFocusedAgents.slice(0, 2).join(' · '),
-                    count:
-                      missingFocusedAgents.length > 2
-                        ? ` +${missingFocusedAgents.length - 2}`
-                        : '',
-                  })}
-                </strong>
-                <small>
-                  {t('desktop.workbench.coverage.notDetectedDescription')}
-                </small>
-              </div>
-            </div>
-          ) : null}
-          {visibleGroups.map((group) => {
-            const filledSlots =
-              group.ratio === 1 ? 10 : Math.floor(group.ratio * 10)
-            const rawPercent = group.ratio * 100
-            const percent =
-              group.ratio === 1
-                ? '100'
-                : rawPercent >= 99.5
-                  ? rawPercent.toFixed(1)
-                  : String(Math.round(rawPercent))
-            const agentNames = group.agents.map((agent) => agent.name)
-            const visibleNames = agentNames.slice(0, 2)
-            const nameSummary = `${visibleNames.join(' · ')}${
-              agentNames.length > visibleNames.length
-                ? ` +${agentNames.length - visibleNames.length}`
-                : ''
-            }`
-            return (
-              <div
-                aria-label={t('desktop.workbench.coverage.aria', {
-                  available: group.availableSkills,
-                  name: agentNames.join(', '),
-                  percent,
-                  total: snapshot.stats.totalSkills,
-                })}
-                className={cn(
-                  'coverage-row',
-                  group.focusedAgents.length > 0 && 'is-focused'
-                )}
-                key={group.path}
-                role="group"
-              >
-                <div className="coverage-row-heading">
-                  <strong title={agentNames.join(' · ')}>
-                    {group.focusedAgents.length > 0 ? <Eye /> : null}
-                    {nameSummary}
-                  </strong>
-                  <span>
-                    {t('desktop.workbench.coverage.available', {
-                      available: number(group.availableSkills),
-                      total: number(snapshot.stats.totalSkills),
-                    })}
-                  </span>
-                  <b>{percent}%</b>
-                </div>
-                <div className="coverage-slots" aria-hidden="true">
-                  {Array.from({ length: 10 }, (_, index) => (
-                    <i
-                      className={cn(index < filledSlots && 'is-filled')}
-                      key={index}
-                    />
-                  ))}
-                </div>
-                <div className="coverage-row-meta">
-                  <code title={group.path}>{group.path}</code>
-                  <span>
-                    {t('desktop.workbench.coverage.linkKinds', {
-                      direct: number(group.directSkills),
-                      linked: number(group.linkedSkills),
-                    })}
-                  </span>
-                </div>
-              </div>
-            )
-          })}
-          {hiddenGroups.length > 0 ? (
-            <button
-              aria-expanded={expanded}
-              className="coverage-more"
-              onClick={() => setExpanded((current) => !current)}
-              type="button"
-            >
-              <span>
-                {expanded
-                  ? t('desktop.workbench.coverage.showLess')
-                  : t('desktop.workbench.coverage.more', {
-                      agents: number(hiddenAgentCount),
-                      directories: number(hiddenGroups.length),
-                    })}
-              </span>
-              {expanded ? <ChevronUp /> : <ChevronDown />}
-            </button>
-          ) : null}
-        </div>
-      ) : (
-        <div className="coverage-empty">
-          <Users />
-          <strong>{t('desktop.workbench.coverage.emptyTitle')}</strong>
-          <p>{t('desktop.workbench.coverage.emptyDescription')}</p>
-        </div>
-      )}
-    </section>
-  )
-}
-
-function WorkbenchIssues({ health }: { health: SymlinkHealthSnapshot }) {
-  const { plural, t } = useI18n()
-  return (
-    <section className="workbench-issues">
-      <header>
-        <div>
-          <span>
-            {health.issues.length ? <CircleAlert /> : <ShieldCheck />}
-          </span>
-          <div>
-            <h2>{t('desktop.workbench.issues.title')}</h2>
-            <p>
-              {health.issues.length
-                ? plural(
-                    health.issues.length,
-                    'desktop.workbench.issues.count.one',
-                    'desktop.workbench.issues.count.other'
-                  )
-                : t('desktop.workbench.issues.none')}
-            </p>
-          </div>
-        </div>
-        <Badge variant="outline">{t('desktop.workbench.readOnly')}</Badge>
-      </header>
-      {health.issues.length ? (
-        <div className="issue-list">
-          {health.issues.map((issue) => (
-            <div className="issue-row" key={`${issue.path}:${issue.status}`}>
-              <span className={`issue-status is-${issue.status}`}>
-                {issue.status === 'broken'
-                  ? t('desktop.workbench.issues.broken')
-                  : t('desktop.workbench.issues.inaccessible')}
-              </span>
-              <div>
-                <strong>{issue.skillName}</strong>
-                <small>{issue.agentNames.join(' · ')}</small>
-              </div>
-              <code title={issue.path}>{issue.path}</code>
-            </div>
-          ))}
-        </div>
-      ) : (
-        <div className="issues-clear">
-          <Check />
-          {t('desktop.workbench.issues.clear')}
-        </div>
-      )}
-    </section>
-  )
-}
-
-function WorkbenchLoading() {
-  const { t } = useI18n()
-  return (
-    <div
-      aria-label={t('desktop.workbench.scanning')}
-      className="workbench-loading"
-    >
-      <div className="workbench-loading-strip" />
-      <div className="workbench-loading-panels">
-        <span />
-        <span />
-      </div>
-    </div>
-  )
-}
-
 function SettingsWorkspace({
   aiSettings,
   catalog,
   onAiSettingsChange,
   onSectionChange,
   onSettingsChange,
+  onSyncApplied,
   onWorkbenchSnapshotChange,
   runtime,
   section,
@@ -7558,6 +7210,10 @@ function SettingsWorkspace({
   onAiSettingsChange: (settings: AiProviderSettingsStatus) => void
   onSectionChange: (section: SettingsSection) => void
   onSettingsChange: (input: UpdateDesktopSettingsInput) => void
+  onSyncApplied: (result: {
+    catalog: CatalogSnapshot
+    settings: DesktopSettings
+  }) => void
   onWorkbenchSnapshotChange: (snapshot: WorkbenchSnapshot) => void
   runtime: DesktopRuntimeInfo | null
   section: SettingsSection
@@ -7565,6 +7221,10 @@ function SettingsWorkspace({
   workbenchSnapshot: WorkbenchSnapshot | null
 }) {
   const { t } = useI18n()
+  const { state: appUpdate } = useAppUpdate()
+  const updateNotice = hasAppUpdate(appUpdate)
+    ? t('desktop.appUpdate.notification', { version: appUpdate?.version ?? '' })
+    : undefined
   const applicationNavigation = [
     {
       id: 'general' as const,
@@ -7586,6 +7246,7 @@ function SettingsWorkspace({
       icon: HardDrive,
       label: t('desktop.settings.skillsCli'),
     },
+    { id: 'sync' as const, icon: RefreshCw, label: t('desktop.sync.title') },
     { id: 'about' as const, icon: Info, label: t('desktop.settings.about') },
   ]
   const aiNavigation = [
@@ -7614,17 +7275,35 @@ function SettingsWorkspace({
       >
         <h1>{t('desktop.settings.title')}</h1>
         <p>{t('desktop.settings.app')}</p>
-        {applicationNavigation.map((item) => (
-          <button
-            aria-current={section === item.id ? 'page' : undefined}
-            key={item.id}
-            onClick={() => onSectionChange(item.id)}
-            type="button"
-          >
-            <item.icon />
-            <span>{item.label}</span>
-          </button>
-        ))}
+        {applicationNavigation.map((item) => {
+          const notice = item.id === 'about' ? updateNotice : undefined
+          const button = (
+            <button
+              aria-current={section === item.id ? 'page' : undefined}
+              aria-label={notice ? `${item.label} · ${notice}` : undefined}
+              key={item.id}
+              onClick={() => onSectionChange(item.id)}
+              type="button"
+            >
+              <item.icon />
+              <span>{item.label}</span>
+              {notice ? (
+                <span
+                  aria-hidden="true"
+                  className="app-update-dot settings-update-dot"
+                />
+              ) : null}
+            </button>
+          )
+          return notice ? (
+            <Tooltip key={item.id}>
+              <TooltipTrigger asChild>{button}</TooltipTrigger>
+              <TooltipContent side="right">{notice}</TooltipContent>
+            </Tooltip>
+          ) : (
+            button
+          )
+        })}
         <p className="settings-navigation-group">{t('desktop.settings.ai')}</p>
         {aiNavigation.map((item) => (
           <button
@@ -7658,6 +7337,8 @@ function SettingsWorkspace({
             settings={settings}
             workbenchSnapshot={workbenchSnapshot}
           />
+        ) : section === 'sync' ? (
+          <SyncSettings onApplied={onSyncApplied} />
         ) : section === 'ai-provider' ? (
           <AiProviderSettingsPage
             onChange={onAiSettingsChange}
@@ -8102,6 +7783,7 @@ function SkillsSettings({
         <DialogContent
           className="agent-focus-dialog"
           closeLabel={t('common.close')}
+          onEscapeKeyDown={preserveSearchOnEscape}
         >
           <DialogHeader>
             <DialogTitle>{t('desktop.settings.focusedAgents')}</DialogTitle>
@@ -8110,26 +7792,17 @@ function SkillsSettings({
             </DialogDescription>
           </DialogHeader>
           <form className="agent-focus-search" onSubmit={applyAgentSearch}>
-            <div className="agent-focus-search-field">
-              <Search />
-              <Input
-                aria-label={t('desktop.settings.searchAgents')}
-                autoFocus
-                onChange={(event) => setAgentQueryDraft(event.target.value)}
-                placeholder={t('desktop.settings.searchAgents')}
-                type="search"
-                value={agentQueryDraft}
-              />
-              {agentQueryDraft ? (
-                <button
-                  aria-label={t('desktop.settings.clearAgentSearch')}
-                  onClick={clearAgentSearch}
-                  type="button"
-                >
-                  <X />
-                </button>
-              ) : null}
-            </div>
+            <SearchField
+              appliedValue={agentQuery}
+              className="agent-focus-search-field"
+              autoFocus
+              clearLabel={t('desktop.settings.clearAgentSearch')}
+              label={t('desktop.settings.searchAgents')}
+              onChange={setAgentQueryDraft}
+              onClear={clearAgentSearch}
+              placeholder={t('desktop.settings.searchAgents')}
+              value={agentQueryDraft}
+            />
             <Button size="sm" type="submit" variant="outline">
               <Search />
               {t('common.search')}
@@ -9018,29 +8691,7 @@ function AboutSettings({ runtime }: { runtime: DesktopRuntimeInfo | null }) {
   const { t } = useI18n()
   return (
     <SettingsPage title={t('desktop.settings.about')}>
-      <div className="about-identity">
-        <span className="about-mark">
-          <BookOpen />
-        </span>
-        <div>
-          <h3>{runtime?.appName ?? 'Skill Shelf'}</h3>
-          <p>{t('desktop.about.appDescription')}</p>
-        </div>
-        <code>{runtime ? `v${runtime.appVersion}` : '…'}</code>
-      </div>
-      <section
-        className="settings-section"
-        aria-label={t('desktop.about.updates')}
-      >
-        <div className="setting-rows">
-          <SettingsRow
-            description={t('desktop.about.updatesDescription')}
-            label={t('desktop.about.updates')}
-          >
-            <AppUpdateControls />
-          </SettingsRow>
-        </div>
-      </section>
+      <AboutAppCard runtime={runtime} />
       <SettingsSection title={t('desktop.about.dataBoundary')}>
         <div className="privacy-card">
           <ShieldCheck />
@@ -9117,24 +8768,6 @@ function SettingsRow({
         <small>{description}</small>
       </div>
       {children}
-    </div>
-  )
-}
-
-function LoadingRows() {
-  const { t } = useI18n()
-  return (
-    <div aria-label={t('desktop.library.loading')} className="loading-rows">
-      {Array.from({ length: 6 }, (_, index) => (
-        <div className="loading-row" key={index}>
-          <span />
-          <div>
-            <i />
-            <i />
-            <i />
-          </div>
-        </div>
-      ))}
     </div>
   )
 }

@@ -117,6 +117,7 @@ export const messages = {
   'common.loading': 'Loading…',
   'common.openFolder': 'Open folder',
   'common.search': 'Search',
+  'common.clearSearch': 'Clear search',
   'common.source': 'Source',
   'common.tryAgain': 'Try again',
   'count.agent.one': '{count} agent',
@@ -718,6 +719,7 @@ export const messages = {
   'desktop.library.emptyDescription':
     'Install your first skill from a skills.sh or GitHub URL.',
   'desktop.library.emptyTitle': 'Your shelf is empty',
+  'desktop.library.filteredResults': 'Filtered results',
   'desktop.library.errorTitle': 'Could not read your shelf',
   'desktop.library.eyebrow': 'Skills / installed',
   'desktop.library.finderCanvas': 'Skill folder canvas',
@@ -748,7 +750,10 @@ export const messages = {
     'Choose Global or open a tracked project.',
   'desktop.library.scopeTitle': 'Install scopes',
   'desktop.library.collapseScope': 'Collapse install scopes',
+  'desktop.library.collapseScopeAction': 'Hide',
   'desktop.library.expandScope': 'Expand install scopes',
+  'desktop.library.resizeScope': 'Resize install scopes sidebar',
+  'desktop.library.resizeScopeHint': 'Drag to resize, double-click to reset',
   'desktop.library.scopeOnlyHint':
     'Folders are managed inside the Finder canvas, independently for each scope.',
   'desktop.library.search': 'Search installed skills',
@@ -1060,16 +1065,121 @@ export const messages = {
   'desktop.terminal.title': 'Terminal',
   'desktop.terminal.tryAgain': 'Try again',
   'desktop.terminal.unavailable': 'Unavailable',
+  'desktop.workbench.openDirectory': 'Open folder',
+  'desktop.workbench.inventory.title': 'Global Skills on this computer',
+  'desktop.workbench.inventory.total': '{count} in total',
+  'desktop.workbench.inventory.shared': 'Shared directory',
+  'desktop.workbench.inventory.sharedDescription':
+    'Defaults to ~/.agents/skills. Compatible Agents read it directly; others use links or copies.',
+  'desktop.workbench.inventory.exclusive': 'Outside the shared directory',
+  'desktop.workbench.inventory.exclusiveDescription':
+    'Skills in Agent-specific directories do not increase the shared coverage baseline. Expand an Agent to see names and locations.',
+  'desktop.workbench.inventory.counting':
+    'Counted by unique Skill name. Project Skills are excluded.',
+  'desktop.workbench.inventory.noSharedDirectory':
+    'Shared directory not found.',
+  'desktop.workbench.agents.showLess': 'Show fewer Agents',
+  'desktop.workbench.agents.showMore': 'Show {count} more Agents',
+  'desktop.workbench.agents.title': 'Agents and Skill distribution',
+  'desktop.workbench.agents.description':
+    'Check program presence and Skills on disk separately. Expand a row for details.',
+  'desktop.workbench.agents.filters': 'Filter Agents',
+  'desktop.workbench.agents.filter.all': 'All',
+  'desktop.workbench.agents.filter.found': 'Program found',
+  'desktop.workbench.agents.filter.not-found': 'Possible leftovers',
+  'desktop.workbench.agents.filter.unverified': 'Unverified',
+  'desktop.workbench.agents.filter.focused': 'Followed',
+  'desktop.workbench.agents.search': 'Search Agent or directory',
+  'desktop.workbench.agents.absent':
+    'Followed, with no program or directory evidence: {names}',
+  'desktop.workbench.agents.program': 'Program detection',
+  'desktop.workbench.agents.shared': 'Shared Skill coverage',
+  'desktop.workbench.agents.exclusive': 'Agent-only Skills',
+  'desktop.workbench.agents.status.found': 'Program found',
+  'desktop.workbench.agents.status.not-found': 'Program not found',
+  'desktop.workbench.agents.status.unverified': 'Program unverified',
+  'desktop.workbench.agents.directRead': 'Reads shared directory',
+  'desktop.workbench.agents.localRead': 'Local links or copies',
+  'desktop.workbench.agents.complete': 'All shared Skills covered',
+  'desktop.workbench.agents.missingCount': '{count} shared Skills missing',
+  'desktop.workbench.agents.empty': 'No Agents match this filter.',
+  'desktop.workbench.agents.limit':
+    'Coverage reflects files and read rules, not running sessions or successful Skill execution.',
+  'desktop.workbench.agents.programEvidence': 'Program evidence',
+  'desktop.workbench.agents.evidence.command': 'Command',
+  'desktop.workbench.agents.evidence.application': 'Application',
+  'desktop.workbench.agents.explanation.found':
+    'A command or application was found.',
+  'desktop.workbench.agents.explanation.not-found':
+    'Directory evidence exists, but no program was found in the checked PATH or application locations. It may have been removed or installed elsewhere.',
+  'desktop.workbench.agents.explanation.unverified':
+    'Only directory evidence is available. No program detection rule is configured for this Agent, so installation cannot be confirmed.',
+  'desktop.workbench.agents.checkedCommands': 'Commands checked: {commands}',
+  'desktop.workbench.agents.checkedApps': 'Applications checked: {apps}',
+  'desktop.workbench.agents.directory': 'Agent Skill directory',
+  'desktop.workbench.agents.localKinds':
+    'Shared Skills covered locally: {linked} links, {direct} copies.',
+  'desktop.workbench.agents.noDirectory':
+    'This Skill directory does not exist yet.',
+  'desktop.workbench.agents.readsShared':
+    'Also reads the shared directory directly: {path}',
+  'desktop.workbench.agents.configPaths':
+    'Configuration directory evidence: {paths}',
+  'desktop.workbench.agents.skillLists': 'Skill details',
+  'desktop.workbench.agents.tab.missing': 'Missing shared Skills',
+  'desktop.workbench.agents.tab.exclusive': 'Agent-only Skills',
+  'desktop.workbench.agents.tab.local': 'Local links and copies',
+  'desktop.workbench.agents.tabDescription.missing':
+    "These Skills exist in the shared directory but are not covered by this Agent's read rules.",
+  'desktop.workbench.agents.tabDescription.exclusive':
+    "These names are absent from the shared directory and do not affect other Agents' coverage.",
+  'desktop.workbench.agents.tabDescription.local':
+    "Readable Skills in this Agent's directory, including shared deployments and Agent-only Skills.",
+  'desktop.workbench.agents.tabEmpty.missing': 'No shared Skills are missing.',
+  'desktop.workbench.agents.tabEmpty.exclusive':
+    'No Skills outside the shared directory.',
+  'desktop.workbench.agents.tabEmpty.local':
+    'No readable Skills in this directory.',
+  'desktop.workbench.agents.kind.symlink': 'Link',
+  'desktop.workbench.agents.kind.copy': 'Copy / local folder',
+  'desktop.workbench.files.title': 'File and link checks',
+  'desktop.workbench.files.clear': 'No file access issues found',
+  'desktop.workbench.files.issueCount': '{count} file access issues found',
+  'desktop.workbench.files.method':
+    'Checks link targets and SKILL.md in recognized Skill deployments. Other ordinary folders are skipped. Skills are not executed or assessed for quality. Each path is checked once.',
+  'desktop.workbench.files.valid': '{count} accessible link targets',
+  'desktop.workbench.files.broken': '{count} missing link targets',
+  'desktop.workbench.files.unreadable': '{count} unreadable entries',
+  'desktop.workbench.files.missing': '{count} missing SKILL.md files',
+  'desktop.workbench.files.status.broken': 'Link target missing',
+  'desktop.workbench.files.status.inaccessible': 'Cannot access or read',
+  'desktop.workbench.files.status.missing-document': 'Missing SKILL.md',
+  'desktop.workbench.files.fix.broken':
+    'Check the link destination, restore the target, or reinstall this Skill.',
+  'desktop.workbench.files.fix.inaccessible':
+    'Check permissions for this file or directory.',
+  'desktop.workbench.files.fix.missing-document':
+    'This entry is not a readable Skill. Check for SKILL.md in its directory.',
+  'desktop.workbench.programSearch.title': 'Program search scope',
+  'desktop.workbench.programSearch.login-shell':
+    'Searches executable files using the login shell and app process PATH. On macOS, system and user Applications folders are checked too.',
+  'desktop.workbench.programSearch.process':
+    'Searches executables using the app process PATH. Login shell PATH was unavailable, so programs in other locations may be missed.',
   'desktop.workbench.coverage.aria':
-    '{name}: {available} of {total} skills available, {percent}% coverage',
-  'desktop.workbench.coverage.available': '{available} / {total} available',
+    '{name}: {available} of {total} shared skills available, {percent}% coverage',
+  'desktop.workbench.coverage.available':
+    '{available} / {total} shared available',
   'desktop.workbench.coverage.description':
-    'See which Skills each Agent can use.',
+    'Coverage is based on ~/.agents/skills. Agent-only Skills are counted separately.',
+  'desktop.workbench.coverage.exclusive':
+    '{count} additional Agent-only Skills',
+  'desktop.workbench.coverage.sharedReads': 'Reads shared directory',
+  'desktop.workbench.coverage.noSharedSkills': 'No shared Skills',
+  'desktop.workbench.coverage.noSharedAria': '{name}: no shared Skills',
   'desktop.workbench.coverage.emptyDescription':
     'Install a Skill for an Agent and its coverage will appear here.',
   'desktop.workbench.coverage.emptyTitle': 'No active Agents detected',
-  'desktop.workbench.coverage.linkKinds':
-    '{linked} linked · {direct} local folders',
+  'desktop.workbench.coverage.linkKinds': '{linked} links · {direct} copies',
   'desktop.workbench.coverage.manage': 'Manage',
   'desktop.workbench.coverage.more':
     '{agents} more Agents across {directories} directories',
@@ -1079,9 +1189,9 @@ export const messages = {
   'desktop.workbench.coverage.showLess': 'Show fewer directories',
   'desktop.workbench.coverage.title': 'Agent availability',
   'desktop.workbench.description':
-    'Scan Skill availability, link integrity, and Agent coverage on this computer, then review unrecorded Skills.',
+    'Review shared and Agent-only Skill locations, program presence, and local directories.',
   'desktop.workbench.errorTitle': 'Could not scan the local workspace',
-  'desktop.workbench.eyebrow': 'Workbench / local diagnostics',
+  'desktop.workbench.eyebrow': 'Workbench / local environment',
   'desktop.workbench.health.aria':
     '{percent}% healthy, {valid} healthy entries, {broken} broken, {inaccessible} need manual review',
   'desktop.workbench.health.broken': 'Broken',
@@ -1109,10 +1219,10 @@ export const messages = {
   'desktop.workbench.stats.agents': 'Active Agents',
   'desktop.workbench.stats.agentDirectories': 'Agent directories',
   'desktop.workbench.stats.description':
-    'Global inventory and verified installations on this computer.',
+    'Shared inventory and verified installations on this computer.',
   'desktop.workbench.stats.focusedAgents': 'Focused Agents',
   'desktop.workbench.stats.linked': 'Linked Skills',
-  'desktop.workbench.stats.skills': 'Global Skills',
+  'desktop.workbench.stats.skills': 'Shared Skills',
   'desktop.workbench.stats.title': 'Skill Stats',
   'desktop.workbench.title': 'Local Skill workbench',
   'desktop.workbench.untracked.action': 'Review and record',
@@ -1356,7 +1466,7 @@ export const messages = {
   'desktop.tray.overview': 'On this computer',
   'desktop.tray.local': 'Local',
   'desktop.tray.stats.skills': 'Global Skills',
-  'desktop.tray.stats.agents': 'Active Agents',
+  'desktop.tray.stats.agents': 'Programs found',
   'desktop.tray.stats.projects': 'Projects',
   'desktop.tray.healthy': 'No link issues found',
   'desktop.tray.issues': '{count} entries need attention',

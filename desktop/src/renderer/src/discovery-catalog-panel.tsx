@@ -1,3 +1,4 @@
+import { SearchField } from './search-field'
 import {
   useCallback,
   useEffect,
@@ -17,18 +18,17 @@ import {
   PackagePlus,
   RefreshCw,
   Search,
-  X,
 } from 'lucide-react'
 import {
   Badge,
   Button,
-  Input,
   Tooltip,
   TooltipContent,
   TooltipTrigger,
   cn,
 } from '@skill-shelf/ui'
 import { useI18n } from '@skill-shelf/i18n/react'
+import { DiscoverySkeleton } from './loading-skeletons'
 
 import type {
   CatalogSnapshot,
@@ -96,8 +96,7 @@ export default function DiscoveryCatalogPanel({
     }
   }, [loadSnapshot])
 
-  if (loading && !snapshot) return <DiscoveryLoading />
-  if (failed && !snapshot) {
+  if (failed && !snapshot && !loading && !refreshing) {
     return <DiscoveryFailure onRetry={() => void loadSnapshot(true)} />
   }
 
@@ -125,7 +124,7 @@ export default function DiscoveryCatalogPanel({
             <TooltipTrigger asChild>
               <Button
                 aria-label={t('desktop.discover.native.refresh')}
-                disabled={refreshing}
+                disabled={loading || refreshing}
                 onClick={() => void loadSnapshot(true)}
                 size="icon-sm"
                 variant="ghost"
@@ -141,6 +140,7 @@ export default function DiscoveryCatalogPanel({
             <TooltipTrigger asChild>
               <Button
                 aria-label={t('desktop.discover.native.openSource')}
+                disabled={!snapshot}
                 onClick={() =>
                   snapshot
                     ? void window.skillShelf.openDiscoveryWebsite(
@@ -168,7 +168,9 @@ export default function DiscoveryCatalogPanel({
         </div>
       ) : null}
 
-      {snapshot?.section === 'home' ? (
+      {!snapshot && (loading || refreshing) ? (
+        <DiscoverySkeleton section={section} />
+      ) : snapshot?.section === 'home' ? (
         <HomeDiscovery
           catalog={catalog}
           onInstall={onInstall}
@@ -271,6 +273,7 @@ function HomeDiscovery({
           ))}
         </div>
         <DiscoverySearch
+          appliedValue={query}
           onChange={setQueryDraft}
           onClear={() => {
             setQueryDraft('')
@@ -431,7 +434,7 @@ function TopicsDiscovery({
           ) : null}
         </header>
         {loadingSlug === selectedSlug && !detail ? (
-          <DiscoveryLoading compact />
+          <DiscoverySkeleton />
         ) : failedSlug === selectedSlug && !detail ? (
           <DiscoveryFailure
             compact
@@ -632,6 +635,7 @@ function OfficialDiscovery({
           </span>
         </div>
         <DiscoverySearch
+          appliedValue={query}
           onChange={setQueryDraft}
           onClear={() => {
             setQueryDraft('')
@@ -739,7 +743,7 @@ function OfficialCreatorView({
         </Button>
       </header>
       {loading && !detail ? (
-        <DiscoveryLoading compact />
+        <DiscoverySkeleton section="repositories" />
       ) : failed && !detail ? (
         <DiscoveryFailure compact onRetry={onRefresh} />
       ) : detail ? (
@@ -840,7 +844,7 @@ function OfficialRepositoryView({
         </Button>
       </header>
       {loading && !detail ? (
-        <DiscoveryLoading compact />
+        <DiscoverySkeleton />
       ) : failed && !detail ? (
         <DiscoveryFailure compact onRetry={onRefresh} />
       ) : detail ? (
@@ -990,12 +994,14 @@ function DiscoverySkillCard({
 }
 
 function DiscoverySearch({
+  appliedValue,
   onChange,
   onClear,
   onSubmit,
   placeholder,
   value,
 }: {
+  appliedValue: string
   onChange: (value: string) => void
   onClear: () => void
   onSubmit: (event: FormEvent<HTMLFormElement>) => void
@@ -1005,40 +1011,20 @@ function DiscoverySearch({
   const { t } = useI18n()
   return (
     <form className="discovery-native-search" onSubmit={onSubmit}>
-      <div>
-        <Search />
-        <Input
-          aria-label={placeholder}
-          onChange={(event) => onChange(event.target.value)}
-          placeholder={placeholder}
-          type="search"
-          value={value}
-        />
-        {value ? (
-          <button
-            aria-label={t('desktop.discover.clearSearch')}
-            onClick={onClear}
-            type="button"
-          >
-            <X />
-          </button>
-        ) : null}
-      </div>
+      <SearchField
+        appliedValue={appliedValue}
+        clearLabel={t('desktop.discover.clearSearch')}
+        label={placeholder}
+        onChange={onChange}
+        onClear={onClear}
+        placeholder={placeholder}
+        value={value}
+      />
       <Button size="sm" type="submit">
         <Search />
         {t('common.search')}
       </Button>
     </form>
-  )
-}
-
-function DiscoveryLoading({ compact = false }: { compact?: boolean }) {
-  const { t } = useI18n()
-  return (
-    <div className={cn('discovery-native-loading', compact && 'is-compact')}>
-      <LoaderCircle className="animate-spin" />
-      <span>{t('desktop.discover.native.loading')}</span>
-    </div>
   )
 }
 

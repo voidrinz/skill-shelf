@@ -12,6 +12,7 @@ import { useI18n } from '@skill-shelf/i18n/react'
 
 import type { CatalogSnapshot } from '../../shared/desktop-contract'
 import { getLocalizedErrorMessage } from './localized-error'
+import { ProjectsSkeleton } from './loading-skeletons'
 
 export default function ProjectsWorkspace({
   catalog,
@@ -73,7 +74,9 @@ export default function ProjectsWorkspace({
         eyebrow={t('desktop.projects.eyebrow')}
         title={t('desktop.projects.title')}
       />
-      {catalog?.projects.length ? (
+      {!catalog ? (
+        <ProjectsSkeleton />
+      ) : catalog.projects.length ? (
         <div className="project-list">
           {catalog.projects.map((project) => (
             <article className="project-row" key={project.id}>

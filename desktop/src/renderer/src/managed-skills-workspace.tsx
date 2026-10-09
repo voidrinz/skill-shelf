@@ -1,3 +1,4 @@
+import { SearchField, preserveSearchOnEscape } from './search-field'
 import {
   lazy,
   Suspense,
@@ -76,6 +77,7 @@ import {
   toast,
 } from '@skill-shelf/ui'
 import { useI18n } from '@skill-shelf/i18n/react'
+import { FileBrowserSkeleton, SkillsSkeleton } from './loading-skeletons'
 
 import type {
   AgentInstallRegistrySnapshot,
@@ -495,28 +497,18 @@ export default function ManagedSkillsWorkspace({
 
         <div className="library-toolbar finder-toolbar managed-toolbar">
           <form className="search-control" onSubmit={submitSearch}>
-            <div className="search-control-field">
-              <Search />
-              <Input
-                aria-label={t('desktop.managed.search')}
-                onChange={(event) => setQueryDraft(event.target.value)}
-                placeholder={t('desktop.managed.searchPlaceholder')}
-                type="search"
-                value={queryDraft}
-              />
-              {queryDraft ? (
-                <button
-                  aria-label={t('desktop.managed.clearSearch')}
-                  onClick={() => {
-                    setQuery('')
-                    setQueryDraft('')
-                  }}
-                  type="button"
-                >
-                  <X />
-                </button>
-              ) : null}
-            </div>
+            <SearchField
+              appliedValue={query}
+              clearLabel={t('desktop.managed.clearSearch')}
+              label={t('desktop.managed.search')}
+              onChange={setQueryDraft}
+              onClear={() => {
+                setQuery('')
+                setQueryDraft('')
+              }}
+              placeholder={t('desktop.managed.searchPlaceholder')}
+              value={queryDraft}
+            />
             <Button size="sm" type="submit" variant="outline">
               <Search />
               {t('common.filter')}
@@ -540,10 +532,7 @@ export default function ManagedSkillsWorkspace({
               </Button>
             </div>
           ) : !snapshot ? (
-            <div className="managed-state">
-              <LoaderCircle className="animate-spin" />
-              {t('common.loading')}
-            </div>
+            <SkillsSkeleton layout="managed" view={viewMode} />
           ) : visibleSkills.length === 0 ? (
             <div className="managed-state">
               <span>
@@ -1222,14 +1211,7 @@ function ManagedSkillInspector({
             </section>
           </TabsContent>
           <TabsContent className="skill-files-tab" value="files">
-            <Suspense
-              fallback={
-                <div className="file-browser-loading">
-                  <LoaderCircle className="animate-spin" />
-                  {t('desktop.files.reading')}
-                </div>
-              }
-            >
+            <Suspense fallback={<FileBrowserSkeleton />}>
               <SkillFilesPanel skillId={skill.id} />
             </Suspense>
           </TabsContent>
@@ -1299,7 +1281,11 @@ function ImportSkillsDialog({
 
   return (
     <Dialog onOpenChange={onOpenChange} open>
-      <DialogContent className="managed-dialog" closeLabel={t('common.close')}>
+      <DialogContent
+        className="managed-dialog"
+        closeLabel={t('common.close')}
+        onEscapeKeyDown={preserveSearchOnEscape}
+      >
         <DialogHeader>
           <DialogTitle>{t('desktop.managed.importTitle')}</DialogTitle>
           <DialogDescription>
@@ -1308,9 +1294,14 @@ function ImportSkillsDialog({
         </DialogHeader>
         <div className="managed-import-controls">
           <form className="managed-import-search" onSubmit={submitSearch}>
-            <Input
-              aria-label={t('desktop.managed.searchInstalled')}
-              onChange={(event) => setQueryDraft(event.target.value)}
+            <SearchField
+              appliedValue={query}
+              label={t('desktop.managed.searchInstalled')}
+              onChange={setQueryDraft}
+              onClear={() => {
+                setQueryDraft('')
+                setQuery('')
+              }}
               placeholder={t('desktop.managed.searchInstalledPlaceholder')}
               value={queryDraft}
             />
@@ -1850,6 +1841,7 @@ function DeployDialog({
                   align="start"
                   className="agent-select-menu managed-agent-menu"
                   collisionPadding={12}
+                  onEscapeKeyDown={preserveSearchOnEscape}
                 >
                   <DropdownMenuLabel className="agent-select-label">
                     <span>{t('desktop.install.chooseAgents')}</span>
@@ -1888,30 +1880,18 @@ function DeployDialog({
                     onKeyDown={(event) => event.stopPropagation()}
                     onSubmit={applyAgentSearch}
                   >
-                    <div>
-                      <Search />
-                      <Input
-                        aria-label={t('desktop.install.searchAgents')}
-                        onChange={(event) =>
-                          setAgentQueryDraft(event.target.value)
-                        }
-                        placeholder={t('desktop.install.searchAgents')}
-                        type="search"
-                        value={agentQueryDraft}
-                      />
-                      {agentQueryDraft ? (
-                        <button
-                          aria-label={t('desktop.install.clearAgentSearch')}
-                          onClick={() => {
-                            setAgentQuery('')
-                            setAgentQueryDraft('')
-                          }}
-                          type="button"
-                        >
-                          <X />
-                        </button>
-                      ) : null}
-                    </div>
+                    <SearchField
+                      appliedValue={agentQuery}
+                      clearLabel={t('desktop.install.clearAgentSearch')}
+                      label={t('desktop.install.searchAgents')}
+                      onChange={setAgentQueryDraft}
+                      onClear={() => {
+                        setAgentQuery('')
+                        setAgentQueryDraft('')
+                      }}
+                      placeholder={t('desktop.install.searchAgents')}
+                      value={agentQueryDraft}
+                    />
                     <Button
                       size="icon-sm"
                       title={t('common.search')}

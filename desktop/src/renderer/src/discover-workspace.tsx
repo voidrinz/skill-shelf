@@ -1,3 +1,4 @@
+import { SearchField, preserveSearchOnEscape } from './search-field'
 import { useEffect, useMemo, useRef, useState, type FormEvent } from 'react'
 import {
   ArrowUpRight,
@@ -11,7 +12,6 @@ import {
   PackagePlus,
   Search,
   TerminalSquare,
-  X,
 } from 'lucide-react'
 import {
   Button,
@@ -491,7 +491,11 @@ function InstallTimeline({
                 <ChevronDown />
               </Button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="agent-select-menu">
+            <DropdownMenuContent
+              align="start"
+              className="agent-select-menu"
+              onEscapeKeyDown={preserveSearchOnEscape}
+            >
               <DropdownMenuLabel className="agent-select-label">
                 <span>{t('desktop.install.chooseAgents')}</span>
                 <small>
@@ -544,25 +548,15 @@ function InstallTimeline({
                 onKeyDown={(event) => event.stopPropagation()}
                 onSubmit={applyAgentSearch}
               >
-                <div>
-                  <Search />
-                  <Input
-                    aria-label={t('desktop.install.searchAgents')}
-                    onChange={(event) => setAgentQueryDraft(event.target.value)}
-                    placeholder={t('desktop.install.searchAgents')}
-                    type="search"
-                    value={agentQueryDraft}
-                  />
-                  {agentQueryDraft ? (
-                    <button
-                      aria-label={t('desktop.install.clearAgentSearch')}
-                      onClick={clearAgentSearch}
-                      type="button"
-                    >
-                      <X />
-                    </button>
-                  ) : null}
-                </div>
+                <SearchField
+                  appliedValue={agentQuery}
+                  clearLabel={t('desktop.install.clearAgentSearch')}
+                  label={t('desktop.install.searchAgents')}
+                  onChange={setAgentQueryDraft}
+                  onClear={clearAgentSearch}
+                  placeholder={t('desktop.install.searchAgents')}
+                  value={agentQueryDraft}
+                />
                 <Button size="icon-sm" title={t('common.search')} type="submit">
                   <Search />
                 </Button>

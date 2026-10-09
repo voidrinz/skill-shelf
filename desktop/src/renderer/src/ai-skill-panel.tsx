@@ -394,7 +394,7 @@ export default function AiSkillPanel({
                 className="ai-history-menu"
                 sideOffset={8}
               >
-                <DropdownMenuLabel>
+                <DropdownMenuLabel className="ai-history-label">
                   <History />
                   {t('desktop.ai.history')}
                 </DropdownMenuLabel>

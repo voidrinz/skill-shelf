@@ -10,7 +10,6 @@ import {
   FileText,
   Folder,
   FolderOpen,
-  LoaderCircle,
   OctagonAlert,
   RotateCcw,
 } from 'lucide-react'
@@ -25,6 +24,7 @@ import type {
 } from '../../shared/desktop-contract'
 import { getLocalizedErrorMessage } from './localized-error'
 import SyntaxHighlighter from './syntax-highlighter'
+import { FileBrowserSkeleton, FileContentSkeleton } from './loading-skeletons'
 
 type MarkdownMode = 'rendered' | 'source'
 
@@ -149,12 +149,7 @@ export default function SkillFilesPanel({ skillId }: { skillId: string }) {
   }
 
   if (!tree) {
-    return (
-      <FileBrowserState
-        icon={<LoaderCircle className="animate-spin" />}
-        title={t('desktop.files.reading')}
-      />
-    )
+    return <FileBrowserSkeleton />
   }
 
   if (tree.fileCount === 0) {
@@ -227,10 +222,7 @@ export default function SkillFilesPanel({ skillId }: { skillId: string }) {
         </div>
         <div className="file-preview-content">
           {loadingContent ? (
-            <FileBrowserState
-              icon={<LoaderCircle className="animate-spin" />}
-              title={t('desktop.files.opening')}
-            />
+            <FileContentSkeleton />
           ) : contentError ? (
             <FileBrowserState
               icon={<OctagonAlert />}
