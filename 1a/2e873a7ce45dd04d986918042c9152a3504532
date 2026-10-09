@@ -1,0 +1,69 @@
+.gitignore
+  s_837399686389a9::t_27d4192c98b08a 5
+desktop/build/icon-dev.svg
+  s_837399686389a9::t_8131d7b3367b00 1
+desktop/electron-builder.dev.mjs
+  s_837399686389a9::t_2bc9b7ca1b7201 1-16
+desktop/electron-builder.release.mjs
+  s_837399686389a9::t_8910cb9144ba5d 17
+desktop/package.json
+  s_d156a057076bd4::t_3e40c181873304 12-13
+desktop/src/main/app-identity.test.ts
+  s_837399686389a9::t_f2ec6797a2e7e2 1-47
+desktop/src/main/app-identity.ts
+  s_837399686389a9::t_e76b021bfe416c 1-33
+desktop/src/main/index.ts
+  s_195416a04c53e0::t_1c65ab1004f2e3 2,78,85-92,133,144,158,450,453,1448,1545,1572-1573
+desktop/src/main/tray-controller.test.ts
+  s_195416a04c53e0::t_95ab3ed0fdd315 136-137
+desktop/src/main/tray-controller.ts
+  s_195416a04c53e0::t_4b7c62e5081d2c 29-30,64-70,74-75,80,104-105
+desktop/src/renderer/src/app.tsx
+  s_195416a04c53e0::t_45ff91faea9baa 1586-1591,7704,9026
+desktop/src/renderer/src/styles.css
+  s_195416a04c53e0::t_ec3ceaf3d2c280 328-341
+desktop/src/renderer/src/tray-panel.test.tsx
+  s_837399686389a9::t_d788e9a95bec5e 19-20,76-78
+desktop/src/renderer/src/tray-panel.tsx
+  s_837399686389a9::t_f86ea4c57c9ede 99-101
+desktop/src/renderer/src/tray-styles.css
+  s_837399686389a9::t_919e55eb7f2dd9 50-60
+desktop/src/shared/desktop-contract.ts
+  s_195416a04c53e0::t_1adced301b9392 96-97,802,805
+docs/development.md
+  s_195416a04c53e0::t_c3148a770e80dc 53-61
+scripts/generate-icons.mjs
+  s_837399686389a9::t_925a0ce6f354c1 19-26,90-91,99-103
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "1a2e873a7ce45dd04d986918042c9152a3504532",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    },
+    "s_837399686389a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11980-c5f1-7441-9c9f-6788f911657d",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    },
+    "s_d156a057076bd4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11f65-e785-7730-8ba3-2f272150ac9e",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
