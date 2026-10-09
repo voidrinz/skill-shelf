@@ -12,6 +12,9 @@ const mocks = vi.hoisted(() => ({
   panels: [] as any[],
   trays: [] as any[],
   quit: vi.fn(),
+  createFromPath: vi.fn(),
+  resize: vi.fn(),
+  setTemplateImage: vi.fn(),
 }))
 
 vi.mock('electron', async () => {
@@ -52,7 +55,7 @@ vi.mock('electron', async () => {
   }
   class StatusIcon extends EventEmitter {
     destroy = vi.fn()
-    constructor() {
+    constructor(public icon: unknown) {
       super()
       mocks.trays.push(this)
     }
@@ -74,7 +77,10 @@ vi.mock('electron', async () => {
       removeHandler: (channel: string) => mocks.handlers.delete(channel),
     },
     nativeImage: {
-      createFromPath: () => ({ resize: () => ({ setTemplateImage() {} }) }),
+      createFromPath: mocks.createFromPath.mockImplementation(() => ({
+        resize: mocks.resize.mockReturnValue({}),
+        setTemplateImage: mocks.setTemplateImage,
+      })),
     },
     nativeTheme: { shouldUseDarkColors: false },
     screen: {
@@ -132,6 +138,10 @@ const result: WorkbenchScanResult = {
 }
 
 describe('TrayController', () => {
+  const platformDescriptor = Object.getOwnPropertyDescriptor(
+    process,
+    'platform'
+  )!
   let controller: TrayController
   let openMain: ReturnType<typeof vi.fn<(action?: TrayAction) => void>>
   let onScan: ReturnType<typeof vi.fn<(result: WorkbenchScanResult) => void>>
@@ -144,6 +154,9 @@ describe('TrayController', () => {
     mocks.panels.length = 0
     mocks.trays.length = 0
     mocks.quit.mockClear()
+    mocks.createFromPath.mockClear()
+    mocks.resize.mockClear()
+    mocks.setTemplateImage.mockClear()
     openMain = vi.fn()
     onScan = vi.fn()
     scanEnvironment = vi.fn(async () => result)
@@ -160,6 +173,7 @@ describe('TrayController', () => {
 
   afterEach(() => {
     controller.destroy()
+    Object.defineProperty(process, 'platform', platformDescriptor)
     vi.useRealTimers()
   })
 
@@ -177,6 +191,56 @@ describe('TrayController', () => {
       input
     )
   }
+
+  it.each([false, true])(
+    'keeps the native macOS template and Retina image (development: %s)',
+    (isDevelopment) => {
+      controller.destroy()
+      Object.defineProperty(process, 'platform', { value: 'darwin' })
+      mocks.resize.mockClear()
+      mocks.setTemplateImage.mockClear()
+      controller = new TrayController({
+        appName: 'Skill Shelf',
+        isDevelopment,
+        getSettings: async () =>
+          ({ language: 'en', theme: 'system' }) as DesktopSettings,
+        openMain,
+        onScan,
+        scanEnvironment,
+      })
+      expect(mocks.createFromPath).toHaveBeenLastCalledWith(
+        expect.stringContaining(
+          isDevelopment ? 'trayDevTemplate.png' : 'trayTemplate.png'
+        )
+      )
+      expect(mocks.resize).not.toHaveBeenCalled()
+      expect(mocks.setTemplateImage).toHaveBeenCalledWith(true)
+      expect(mocks.trays.at(-1).icon).toBe(
+        mocks.createFromPath.mock.results.at(-1)!.value
+      )
+    }
+  )
+
+  it('sizes the Windows icon without treating it as a macOS template', () => {
+    controller.destroy()
+    Object.defineProperty(process, 'platform', { value: 'win32' })
+    mocks.resize.mockClear()
+    mocks.setTemplateImage.mockClear()
+    controller = new TrayController({
+      appName: 'Skill Shelf',
+      isDevelopment: false,
+      getSettings: async () =>
+        ({ language: 'en', theme: 'system' }) as DesktopSettings,
+      openMain,
+      onScan,
+      scanEnvironment,
+    })
+    expect(mocks.createFromPath).toHaveBeenLastCalledWith(
+      expect.stringContaining('icon.png')
+    )
+    expect(mocks.resize).toHaveBeenCalledWith({ width: 20, height: 20 })
+    expect(mocks.setTemplateImage).not.toHaveBeenCalled()
+  })
 
   it('creates lazily, cancels an opening panel, and releases it while hidden', () => {
     expect(mocks.panels).toHaveLength(0)

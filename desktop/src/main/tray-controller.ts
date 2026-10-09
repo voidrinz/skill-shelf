@@ -70,11 +70,11 @@ export class TrayController {
             : 'icon.png'
       )
     )
-    const icon = image.resize({
-      width:
-        process.platform === 'darwin' ? (options.isDevelopment ? 26 : 18) : 20,
-      height: process.platform === 'darwin' ? 18 : 20,
-    })
+    // Preserve the template's native size and its automatically loaded @2x image.
+    const icon =
+      process.platform === 'darwin'
+        ? image
+        : image.resize({ width: 20, height: 20 })
     if (process.platform === 'darwin') icon.setTemplateImage(true)
     this.tray = new Tray(icon)
     this.tray.setToolTip(options.appName)

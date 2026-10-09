@@ -87,9 +87,10 @@ await Promise.all([
 
 const mark = svg()
 const appIcon = svg(true)
-const devMark = devSvg()
 const devAppIcon = devSvg(true)
 const trayMark = `<svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="44 48 132 132">${brandMark.books.map((book) => `<path d="${book.path}" fill="#000"/>`).join('')}</svg>`
+// Template images use alpha as their mask, so the app icon's background must be omitted.
+const devTrayMark = `<svg xmlns="http://www.w3.org/2000/svg" width="26" height="18" viewBox="0 0 26 18">${trayMark}<path d="M20 9H22C24 9 25 10.4 25 12.5S24 16 22 16H20V9ZM21.5 10.5V14.5H22C23 14.5 23.5 13.8 23.5 12.5S23 10.5 22 10.5H21.5Z" fill="#000" fill-rule="evenodd"/></svg>`
 const assets = [
   [join(desktopBuild, 'trayTemplate.png'), png(trayMark, 18)],
   [join(desktopBuild, 'trayTemplate@2x.png'), png(trayMark, 36)],
@@ -99,8 +100,8 @@ const assets = [
   [join(desktopBuild, 'icon-dev.svg'), devAppIcon],
   [join(desktopBuild, 'icon-dev.png'), png(devAppIcon, 1024)],
   [join(desktopBuild, 'icon-dev.icns'), icns(devAppIcon)],
-  [join(desktopBuild, 'trayDevTemplate.png'), png(devMark, 18)],
-  [join(desktopBuild, 'trayDevTemplate@2x.png'), png(devMark, 36)],
+  [join(desktopBuild, 'trayDevTemplate.png'), png(devTrayMark, 26)],
+  [join(desktopBuild, 'trayDevTemplate@2x.png'), png(devTrayMark, 52)],
   [join(desktopBuild, 'icon.ico'), ico(mark, [16, 24, 32, 48, 64, 128, 256])],
   [join(desktopBuild, 'icon-linux.png'), png(mark, 512)],
   [join(websitePublic, 'favicon.svg'), mark],
