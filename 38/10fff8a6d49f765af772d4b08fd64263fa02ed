@@ -1,0 +1,59 @@
+desktop/src/main/index.ts
+  s_195416a04c53e0::t_2c5748a9b0654c 259-274,277-280,284-287,289-292
+desktop/src/main/services/ai-conversation-service.test.ts
+  s_837399686389a9::t_607066b7c79078 1,4,24,50-51,95-105,107-168,170-175,178-179,181-202
+desktop/src/main/services/ai-conversation-service.ts
+  s_837399686389a9::t_e68c8fe4ebdb98 1-4,41-42,45-46,48-81,84-85,100-119,124-131,134-135,140-142,256-262
+desktop/src/main/services/ai-provider-service.test.ts
+  s_837399686389a9::t_1b5a07640e5276 1,32-33,50,68-70,73-149,151,153-157,159-166,173-174,377-378,457-458,513-514,530,548,550-553,579-582
+desktop/src/main/services/ai-provider-service.ts
+  s_837399686389a9::t_850e145017f0ef 21-26,117,123-132,134-149,155,197-198,207,268,417-424,430-431,433,896-904
+desktop/src/main/services/local-ai-storage.test.ts
+  s_837399686389a9::t_f5090d032a66af 1-81
+desktop/src/main/services/local-ai-storage.ts
+  s_837399686389a9::t_b472abb6fdb4af 1-144
+desktop/src/preload/index.ts
+  s_195416a04c53e0::t_feda578dc6a6eb 75-76
+desktop/src/renderer/src/app.tsx
+  s_195416a04c53e0::t_62c791e89f863d 8261,8282-8294,8468-8486,8489,8559-8563
+desktop/src/renderer/src/localized-error.test.ts
+  s_837399686389a9::t_ec735fa1372c0e 36-51
+desktop/src/renderer/src/localized-error.ts
+  s_837399686389a9::t_06af3ff9e972ec 7-14
+desktop/src/renderer/src/styles.css
+  s_195416a04c53e0::t_c96c73522ba98f 8205-8210
+desktop/src/shared/desktop-contract.ts
+  s_195416a04c53e0::t_ba469fc46672a5 12,707-708,880
+docs/ai-storage.md
+  s_837399686389a9::t_ed0158eae98095 1-41
+docs/development.md
+  s_195416a04c53e0::t_cb84b96d4a4dd8 23-24
+packages/i18n/src/locales/en.ts
+  s_195416a04c53e0::t_32a5e95b76002d 368-369,731,767,805-812,816-817
+packages/i18n/src/locales/zh-CN.ts
+  s_195416a04c53e0::t_e6a962238bfb92 346,672,708,745-751,755-756
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "3810fff8a6d49f765af772d4b08fd64263fa02ed",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    },
+    "s_837399686389a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11980-c5f1-7441-9c9f-6788f911657d",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
