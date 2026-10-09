@@ -1,0 +1,23 @@
+docs/development.md
+  s_195416a04c53e0::t_17e028749ce906 107-109
+docs/release-notes/0.1.5.md
+  s_195416a04c53e0::t_41b9578ff973ca 3-8,17
+docs/releases.md
+  s_195416a04c53e0::t_d23024d2ea815b 35-45,58,68-72,111-113,115,117
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "7614e0049da629e9b7fba1109bcf8d0cf79218ca",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
