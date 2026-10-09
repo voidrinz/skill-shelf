@@ -1,0 +1,24 @@
+desktop/src/main/tray-controller.test.ts
+  s_195416a04c53e0::t_6dca9f97a0df53 15-17,58,80-83,141-144,157-159,176,195-243
+  s_195416a04c53e0::t_46e9d948caacc1 244
+scripts/generate-icons.mjs
+  s_195416a04c53e0::t_3319f21542ad04 92-93,103-104
+desktop/src/main/tray-controller.ts
+  s_195416a04c53e0::t_3319f21542ad04 73-77
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c1c4df2a540fbbc93c79c211359b8491559a429a",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
