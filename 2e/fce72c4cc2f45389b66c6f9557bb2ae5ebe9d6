@@ -1,0 +1,29 @@
+website/scripts/prepare-downloads.mjs
+  s_195416a04c53e0::t_84ba9672dc02d9 17,37
+website/scripts/prepare-downloads.test.mjs
+  s_195416a04c53e0::t_5fce91c7560a8b 10,18,23-34
+  s_195416a04c53e0::t_81a463ccc81bea 50
+packages/i18n/src/locales/en.ts
+  s_195416a04c53e0::t_84ba9672dc02d9 1330
+packages/i18n/src/locales/zh-CN.ts
+  s_195416a04c53e0::t_84ba9672dc02d9 1235
+  s_195416a04c53e0::t_c3e3a36df120cf 1236
+website/scripts/seo.mjs
+  s_195416a04c53e0::t_84ba9672dc02d9 47
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "2efce72c4cc2f45389b66c6f9557bb2ae5ebe9d6",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
