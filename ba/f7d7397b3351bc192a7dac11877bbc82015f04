@@ -1,0 +1,35 @@
+desktop/src/main/index.ts
+  s_195416a04c53e0::t_b964847d12dc70 753-763
+desktop/src/main/services/agent-program-service.test.ts
+  s_195416a04c53e0::t_0abc880aaf9421 1-108
+desktop/src/main/services/agent-program-service.ts
+  s_195416a04c53e0::t_8674c67f7ed5c4 1-218
+desktop/src/main/services/workbench-service.test.ts
+  s_195416a04c53e0::t_5eb2f9cca9287b 13-97,107-383,385-387,403,484-494,499-500,502,507,516,520-521,523,576-578,580-581,584,589,621,627-629,631-632,639-640,645,715,726-727,730-731,733,738,744
+desktop/src/main/services/workbench-service.ts
+  s_195416a04c53e0::t_08ba531a5b8983 1-9,14,20,25,28-32,45-46,50,52-53,55,64-70,73-84,99-112,114,118-138,142-143,145-147,149,154,160-162,180-186,192-211,224-229,231-243,278-281,304-316,318-325,328-341,343,382-383,402-403,419,427,439-440,446,448-510,512
+desktop/src/main/tray-controller.test.ts
+  s_195416a04c53e0::t_801c80a666c91b 106-111,113-121,127
+desktop/src/main/tray-controller.ts
+  s_195416a04c53e0::t_8c4a45f9d99b6d 116
+desktop/src/preload/index.ts
+  s_195416a04c53e0::t_826817cc056570 92-93
+desktop/src/shared/desktop-contract.ts
+  s_195416a04c53e0::t_b57030beb22b9c 68,218-221,223-224,232,240,244-256,260,266-274,289-290,1010
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "baf7d7397b3351bc192a7dac11877bbc82015f04",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
