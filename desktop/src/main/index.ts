@@ -14,6 +14,7 @@ import {
 } from 'electron'
 import type { OpenDialogOptions } from 'electron'
 import electronUpdater from 'electron-updater'
+import { appLinks } from '../shared/app-links'
 import {
   loadMessages,
   resolveLocalePreference,
@@ -876,6 +877,12 @@ function registerIpc(
   ipcMain.handle(desktopIpcChannels.websiteOpen, () =>
     shell.openExternal('https://skills.sh')
   )
+  ipcMain.handle(desktopIpcChannels.appLinkOpen, (_event, link: unknown) => {
+    if (link !== 'github' && link !== 'website' && link !== 'releases') {
+      throw new Error('Unknown application link')
+    }
+    return shell.openExternal(appLinks[link])
+  })
   ipcMain.handle(
     desktopIpcChannels.websiteOpenDiscovery,
     (_event, url: unknown) => {

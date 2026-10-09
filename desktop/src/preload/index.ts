@@ -114,6 +114,8 @@ const desktopApi: SkillShelfDesktopApi = {
   openSkillSource: (skillId) =>
     ipcRenderer.invoke(desktopIpcChannels.skillOpenSource, skillId),
   openWebsite: () => ipcRenderer.invoke(desktopIpcChannels.websiteOpen),
+  openAppLink: (link) =>
+    ipcRenderer.invoke(desktopIpcChannels.appLinkOpen, link),
   openDiscoveryWebsite: (url) =>
     ipcRenderer.invoke(desktopIpcChannels.websiteOpenDiscovery, url),
   openManagedSkillFolder: (skillId) =>

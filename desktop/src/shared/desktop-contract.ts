@@ -1,3 +1,4 @@
+import type { AppLink } from './app-links'
 import type {
   ApplySyncInput,
   SyncPreview,
@@ -15,6 +16,7 @@ export const desktopIpcChannels = {
   syncWebDavTest: 'sync:webdav-test',
   syncWebDavPull: 'sync:webdav-pull',
   syncWebDavPush: 'sync:webdav-push',
+  appLinkOpen: 'app-link:open',
   appUpdateGet: 'app-update:get',
   appUpdateCheck: 'app-update:check',
   appUpdateDownload: 'app-update:download',
@@ -978,6 +980,7 @@ export interface SkillShelfDesktopApi {
   openSkillFolder(skillId: string): Promise<void>
   openSkillSource(skillId: string): Promise<void>
   openWebsite(): Promise<void>
+  openAppLink(link: AppLink): Promise<void>
   openDiscoveryWebsite(url: string): Promise<void>
   openManagedSkillFolder(skillId: string): Promise<void>
   openManagedDeploymentFolder(

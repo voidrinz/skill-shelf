@@ -13,9 +13,21 @@ import type {
   AppUpdateState,
   SkillShelfDesktopApi,
 } from '../../shared/desktop-contract'
-import { AppUpdateControls } from './app-update-controls'
+import { AppUpdateControls, AppUpdateStatus } from './app-update-controls'
+import {
+  AppUpdateProvider,
+  hasAppUpdate,
+  useAppUpdate,
+} from './app-update-context'
 
 afterEach(cleanup)
+
+function UpdateNotice() {
+  const { state } = useAppUpdate()
+  return hasAppUpdate(state) ? (
+    <span data-testid="update-notice">{state?.version}</span>
+  ) : null
+}
 
 function setup(initial: AppUpdateState, getState = Promise.resolve(initial)) {
   let listener!: (state: AppUpdateState) => void
@@ -42,7 +54,11 @@ function setup(initial: AppUpdateState, getState = Promise.resolve(initial)) {
   window.skillShelf = api as unknown as SkillShelfDesktopApi
   const view = render(
     <I18nProvider defaultPreference="en">
-      <AppUpdateControls />
+      <AppUpdateProvider>
+        <UpdateNotice />
+        <AppUpdateStatus />
+        <AppUpdateControls />
+      </AppUpdateProvider>
     </I18nProvider>
   )
   return {
@@ -79,7 +95,7 @@ describe('application update controls', () => {
     )
     fireEvent.click(check)
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Open download page' })
+      await screen.findByRole('button', { name: 'Update to v0.2.0' })
     )
     await waitFor(() => expect(api.downloadAppUpdate).toHaveBeenCalledOnce())
     expect(
@@ -98,7 +114,7 @@ describe('application update controls', () => {
     )
     fireEvent.click(check)
     fireEvent.click(
-      await screen.findByRole('button', { name: 'Download update' })
+      await screen.findByRole('button', { name: 'Update to v0.2.0' })
     )
     const restart = await screen.findByRole('button', {
       name: 'Restart and update',
@@ -132,5 +148,40 @@ describe('application update controls', () => {
     expect((screen.getByRole('button') as HTMLButtonElement).disabled).toBe(
       true
     )
+  })
+
+  it('shares one subscription and keeps the notification through download and installation readiness', async () => {
+    const { api, update } = setup(initial)
+    await screen.findByText('Checks for new versions in the background.')
+    expect(screen.queryByTestId('update-notice')).toBeNull()
+    expect(api.getAppUpdate).toHaveBeenCalledOnce()
+    expect(api.onAppUpdateChanged).toHaveBeenCalledOnce()
+    update({ ...initial, status: 'available', version: '0.2.0' })
+    expect(screen.getByTestId('update-notice').textContent).toBe('0.2.0')
+    update({ ...initial, status: 'downloading', version: '0.2.0', percent: 30 })
+    expect(screen.getByTestId('update-notice').textContent).toBe('0.2.0')
+    update({ ...initial, status: 'downloaded', version: '0.2.0', percent: 100 })
+    expect(screen.getByTestId('update-notice').textContent).toBe('0.2.0')
+    expect(
+      screen.getByRole('button', { name: 'Restart and update' })
+    ).toBeTruthy()
+    update({ ...initial, status: 'current' })
+    expect(screen.queryByTestId('update-notice')).toBeNull()
+  })
+
+  it('keeps a newer event when the initial state request fails later', async () => {
+    let reject!: (error: Error) => void
+    const { update } = setup(
+      initial,
+      new Promise((_resolve, fail) => {
+        reject = fail
+      })
+    )
+    update({ ...initial, status: 'available', version: '0.2.0' })
+    await act(async () => reject(new Error('IPC failed')))
+    expect(
+      screen.getByRole('button', { name: 'Update to v0.2.0' })
+    ).toBeTruthy()
+    expect(screen.getByTestId('update-notice').textContent).toBe('0.2.0')
   })
 })
