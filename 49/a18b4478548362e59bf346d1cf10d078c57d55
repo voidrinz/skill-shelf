@@ -1,0 +1,39 @@
+desktop/src/renderer/src/app-update-controls.test.tsx
+  s_195416a04c53e0::t_9a0d91b69517f9 115
+desktop/src/renderer/src/app.tsx
+  s_195416a04c53e0::t_dc16619d214c22 7682,8987,9001
+desktop/src/renderer/src/discover-workspace.tsx
+  s_195416a04c53e0::t_cd550f99814c27 657-669
+desktop/src/renderer/src/localized-error.test.ts
+  s_837399686389a9::t_41fcfbc1a806de 22,33-51
+desktop/src/renderer/src/localized-error.ts
+  s_837399686389a9::t_3da6b1a3635f63 43,55,109
+packages/i18n/src/locales/en.ts
+  s_195416a04c53e0::t_d0fa534a0f29f4 24,32,34-35,37,57,139-140,147,150,153,159,161,173,180,185,194,206,212,218,348,353,355,365-366,388-389,396,518,520,539,542,544,558,560,565,570-571,573,575-576,580-582,588,660,674,779,802,816,823,859-860,904,906,942,946,963,966,1070,1153,1207
+packages/i18n/src/locales/zh-CN.ts
+  s_195416a04c53e0::t_b80cc73d7a1ac9 26,34-37,56,135-136,142,145,147,153,155,165,172,176,184,194,200,206,332,335-336,344,360,366,478,480,495,497-498,512,514,519,524-525,527-529,533-535,541,609,617,719,742,755,762,796-797,838,840,874,878,895,897,997,1074,1123
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "49a18b4478548362e59bf346d1cf10d078c57d55",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    },
+    "s_837399686389a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11980-c5f1-7441-9c9f-6788f911657d",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
