@@ -7,7 +7,7 @@ function release(version = '0.2.0') {
     tag_name: `v${version}`,
     draft: false,
     prerelease: false,
-    assets: ['arm64', 'x64'].map((arch) => ({
+    assets: ['arm64'].map((arch) => ({
       name: `skill-shelf-${version}-mac-${arch}.dmg`,
       size: 1024,
       browser_download_url: `https://github.com/voidrinz/skill-shelf-releases/releases/download/v${version}/skill-shelf-${version}-mac-${arch}.dmg`,
@@ -15,12 +15,23 @@ function release(version = '0.2.0') {
   }
 }
 
-test('uses both installers from the published version, without a release-page detour', () => {
+test('uses the Apple Silicon installer without requiring Intel downloads', () => {
   const downloads = selectDownloads(release('0.12.3'))
   assert.ok(
     downloads.arm64.endsWith('/v0.12.3/skill-shelf-0.12.3-mac-arm64.dmg')
   )
-  assert.ok(downloads.x64.endsWith('/v0.12.3/skill-shelf-0.12.3-mac-x64.dmg'))
+  assert.deepEqual(Object.keys(downloads), ['arm64'])
+})
+
+test('uses Apple Silicon downloads from older releases that also include Intel', () => {
+  const previous = release('0.1.6')
+  previous.assets.push({
+    name: 'skill-shelf-0.1.6-mac-x64.dmg',
+    size: 1024,
+    browser_download_url:
+      'https://github.com/voidrinz/skill-shelf-releases/releases/download/v0.1.6/skill-shelf-0.1.6-mac-x64.dmg',
+  })
+  assert.deepEqual(Object.keys(selectDownloads(previous)), ['arm64'])
 })
 
 test('rejects draft and prerelease downloads', () => {
@@ -36,7 +47,7 @@ test('rejects draft and prerelease downloads', () => {
 test('refuses to publish incomplete or empty installers', () => {
   const incomplete = release()
   incomplete.assets.pop()
-  assert.throws(() => selectDownloads(incomplete), /x64/)
+  assert.throws(() => selectDownloads(incomplete), /arm64/)
   const empty = release()
   empty.assets[0].size = 0
   assert.throws(() => selectDownloads(empty), /arm64/)

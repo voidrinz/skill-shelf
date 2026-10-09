@@ -14,7 +14,7 @@ export function selectDownloads(release) {
 
   const version = release.tag_name.slice(1)
   const downloads = {}
-  for (const arch of ['arm64', 'x64']) {
+  for (const arch of ['arm64']) {
     const name = `skill-shelf-${version}-mac-${arch}.dmg`
     const asset = release.assets?.find((candidate) => candidate.name === name)
     const expected = `https://github.com/${repository}/releases/download/${release.tag_name}/${name}`
@@ -34,7 +34,7 @@ if (
   const downloads = selectDownloads(release)
   writeFileSync(
     new URL('../.env.production.local', import.meta.url),
-    `VITE_MAC_ARM64_DOWNLOAD=${downloads.arm64}\nVITE_MAC_X64_DOWNLOAD=${downloads.x64}\n`
+    `VITE_MAC_ARM64_DOWNLOAD=${downloads.arm64}\n`
   )
   console.log(`Website downloads: ${release.tag_name}`)
 }

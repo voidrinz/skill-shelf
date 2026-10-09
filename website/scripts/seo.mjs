@@ -44,7 +44,7 @@ export function seoHead({ locale, title, description, downloads, urls }) {
         operatingSystem: 'macOS',
         applicationCategory: 'DeveloperApplication',
         inLanguage: ['en', 'zh-CN'],
-        downloadUrl: [downloads.arm64, downloads.x64],
+        downloadUrl: [downloads.arm64],
         image: urls.image,
       },
     ],

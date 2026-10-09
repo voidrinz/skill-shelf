@@ -1232,8 +1232,8 @@ export const messages = {
   'website.closing.title': '让下一个好用的 Skill，有处可放。',
   'website.demo.all': '全部 Skill',
   'website.download.appleSilicon': '下载 Apple Silicon 版',
-  'website.download.intel': '下载 Intel 版',
-  'website.download.chips': 'Apple Silicon 版适用于 M1 及更新芯片的 Mac。',
+  'website.download.chips':
+    '适用于 M1 及更新芯片的 Mac。后续版本仅支持 Apple Silicon。',
   'website.demo.description': '本地描述',
   'website.demo.discover': '发现',
   'website.demo.files': '文件',

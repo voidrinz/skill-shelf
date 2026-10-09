@@ -1326,9 +1326,8 @@ export const messages = {
   'website.closing.title': 'Make room for your next good skill.',
   'website.demo.all': 'All skills',
   'website.download.appleSilicon': 'Mac · Apple Silicon',
-  'website.download.intel': 'Mac · Intel',
   'website.download.chips':
-    'Apple Silicon supports Macs with M1 or newer chips.',
+    'For Macs with M1 or newer chips. New versions support Apple Silicon only.',
   'website.demo.description': 'Local description',
   'website.demo.discover': 'Discover',
   'website.demo.files': 'Files',

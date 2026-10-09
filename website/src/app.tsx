@@ -361,10 +361,6 @@ function DownloadActions() {
           <Download size={16} />
           {t('website.download.appleSilicon')}
         </a>
-        <a className="button button-ghost" href={macDownloads.x64}>
-          <Download size={16} />
-          {t('website.download.intel')}
-        </a>
       </div>
       <p className="download-caption">{t('website.download.chips')}</p>
     </div>

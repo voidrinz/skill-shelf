@@ -30,7 +30,6 @@ test('localized metadata escapes HTML and script content', () => {
   const description = 'Folders & tags </script><script>alert("test")</script>'
   const downloads = {
     arm64: 'https://example.com/arm64.dmg',
-    x64: 'https://example.com/x64.dmg',
   }
   const head = seoHead({
     locale: 'zh-CN',
