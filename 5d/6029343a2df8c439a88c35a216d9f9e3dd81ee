@@ -1,0 +1,33 @@
+README.md
+  s_837399686389a9::t_c0353d7bf8d8d0 1-4,7-9,11-12,14,16,18,20,22,24,26-31,33,35,37,39,41-43,45,47,49,51-53,55,57,59,61,63,65,67,69,71,73,75,77,79
+README_cn.md
+  s_837399686389a9::t_3fe05248cd7f9f 1-79
+docs/development.md
+  s_195416a04c53e0::t_3af5db0397c073 1-122
+docs/images/skills-library.svg
+  s_837399686389a9::t_87548a000ff635 1-173
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5d6029343a2df8c439a88c35a216d9f9e3dd81ee",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    },
+    "s_837399686389a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11980-c5f1-7441-9c9f-6788f911657d",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
