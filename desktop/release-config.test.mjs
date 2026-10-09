@@ -8,14 +8,15 @@ test('Mac releases use ad-hoc signing without Apple credentials or notarization'
   assert.equal(buildConfig.mac.identity, '-')
   assert.equal(buildConfig.mac.hardenedRuntime, false)
   assert.equal(buildConfig.mac.notarize, false)
-  assert.deepEqual(buildConfig.mac.target, ['dmg', 'zip'])
+  assert.deepEqual(buildConfig.mac.target, [
+    { target: 'dmg', arch: ['arm64'] },
+    { target: 'zip', arch: ['arm64'] },
+  ])
 })
 
-test('builds distinct Mac installers without updater metadata or credentials', () => {
+test('builds Apple Silicon installers without updater metadata or credentials', () => {
   const arm = getReleaseTarget('example/skill-shelf-releases', 'arm64')
-  const intel = getReleaseTarget('example/skill-shelf-releases', 'x64')
   assert.equal(arm.publish, null)
-  assert.equal(intel.publish, null)
   assert.equal(arm.artifactName, 'skill-shelf-${version}-${os}-${arch}.${ext}')
 })
 
@@ -42,6 +43,7 @@ test('rejects missing or malformed repository names and unsupported architecture
     'o/r/extra',
     'o/r\n',
   ])
-    assert.throws(() => getReleaseTarget(repository, 'x64'))
-  assert.throws(() => getReleaseTarget('example/skill-shelf-releases', 'ia32'))
+    assert.throws(() => getReleaseTarget(repository, 'arm64'))
+  for (const arch of ['x64', 'ia32', 'universal', undefined])
+    assert.throws(() => getReleaseTarget('example/skill-shelf-releases', arch))
 })

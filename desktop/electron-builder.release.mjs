@@ -11,12 +11,16 @@ export default {
   ...getReleaseTarget(
     process.env.SKILL_SHELF_RELEASES_REPOSITORY ??
       'voidrinz/skill-shelf-releases',
-    process.env.SKILL_SHELF_RELEASE_ARCH ?? process.arch
+    process.env.SKILL_SHELF_RELEASE_ARCH ?? 'arm64'
   ),
   forceCodeSigning: false,
   extraMetadata: { skillShelfChannel: 'production' },
   mac: {
     ...baseConfig.mac,
+    target: [
+      { target: 'dmg', arch: ['arm64'] },
+      { target: 'zip', arch: ['arm64'] },
+    ],
     identity: '-',
     hardenedRuntime: false,
     notarize: false,

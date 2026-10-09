@@ -60,7 +60,7 @@ function signed(value: unknown) {
   })
 }
 
-async function setup() {
+async function setup(arch: 'arm64' | 'x64' = 'arm64') {
   const cache = await realpath(
     await mkdtemp(join(tmpdir(), 'skill-shelf-updater-'))
   )
@@ -79,7 +79,7 @@ async function setup() {
   )
   const onQuit = vi.fn()
   const updater = new MacAppUpdater({
-    arch: 'arm64',
+    arch,
     currentVersion: '0.1.0',
     cacheDir: cache,
     bundlePath: join(cache, 'Skill Shelf.app'),
@@ -95,6 +95,20 @@ async function setup() {
 }
 
 describe('signed update manifests', () => {
+  it('accepts signed Apple Silicon-only releases', () => {
+    const value = manifest()
+    value.assets = value.assets.slice(0, 1)
+    expect(verifyUpdateManifest(signed(value), publicKey)).toEqual(value)
+  })
+
+  it.each([0, 3])('rejects a manifest containing %i assets', (count) => {
+    const value = manifest()
+    value.assets = Array.from({ length: count }, () => value.assets[0]!)
+    expect(() => verifyUpdateManifest(signed(value), publicKey)).toThrow(
+      'manifest'
+    )
+  })
+
   it('verifies the exact payload and selects two architecture-specific ZIPs', () => {
     expect(
       verifyUpdateManifest(signed(manifest()), publicKey).assets.map(
@@ -150,6 +164,36 @@ describe('signed update manifests', () => {
 })
 
 describe('Mac update downloads', () => {
+  it('downloads a signed Apple Silicon-only release with checksum and bundle validation', async () => {
+    const { updater, fetch, stageBundle } = await setup()
+    const value = manifest()
+    value.assets = value.assets.slice(0, 1)
+    fetch.mockResolvedValueOnce(new Response(signed(value)))
+    const ready = vi.fn()
+    updater.on('update-downloaded', ready)
+    await updater.checkForUpdates()
+    await updater.downloadUpdate()
+    expect(fetch.mock.calls[1]?.[0]).toBe(value.assets[0]!.url)
+    expect(stageBundle).toHaveBeenCalledOnce()
+    expect(stageBundle.mock.calls[0]?.[2]).toBe('0.2.0')
+    expect(ready).toHaveBeenCalledWith({ version: '0.2.0' })
+  })
+
+  it('never offers an Apple Silicon ZIP to an Intel client', async () => {
+    const { updater, fetch, stageBundle } = await setup('x64')
+    const value = manifest()
+    value.assets = value.assets.slice(0, 1)
+    fetch.mockResolvedValueOnce(new Response(signed(value)))
+    const available = vi.fn()
+    updater.on('update-available', available)
+    await expect(updater.checkForUpdates()).rejects.toThrow(
+      'No update for this architecture'
+    )
+    expect(available).not.toHaveBeenCalled()
+    await expect(updater.downloadUpdate()).rejects.toThrow('No verified update')
+    expect(stageBundle).not.toHaveBeenCalled()
+  })
+
   it('preserves a verified download when checking the same signed release again', async () => {
     const { updater, fetch, stageBundle, latestVersion } = await setup()
     await updater.checkForUpdates()

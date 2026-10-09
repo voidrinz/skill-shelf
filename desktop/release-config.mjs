@@ -9,8 +9,8 @@ export function getReleaseTarget(repository, arch) {
     throw new Error(
       'Set SKILL_SHELF_RELEASES_REPOSITORY to the public owner/skill-shelf-releases repository.'
     )
-  if (!['x64', 'arm64'].includes(arch))
-    throw new Error('Release architecture must be x64 or arm64.')
+  if (arch !== 'arm64')
+    throw new Error('Mac releases support Apple Silicon (arm64) only.')
   return {
     artifactName: 'skill-shelf-${version}-${os}-${arch}.${ext}',
     publish: null,

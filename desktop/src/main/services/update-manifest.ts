@@ -61,7 +61,8 @@ export function verifyUpdateManifest(
   if (
     manifest.schema !== 1 ||
     !Array.isArray(manifest.assets) ||
-    manifest.assets.length !== 2
+    manifest.assets.length < 1 ||
+    manifest.assets.length > 2
   )
     throw new Error('Invalid update manifest')
   compareUpdateVersions(manifest.version, manifest.version)
