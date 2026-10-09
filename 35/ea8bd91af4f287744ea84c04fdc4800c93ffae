@@ -1,0 +1,27 @@
+desktop/src/renderer/src/app-update-controls.test.tsx
+  s_195416a04c53e0::t_2e39bc4c992ac0 81-106
+desktop/src/renderer/src/app-update-controls.tsx
+  s_195416a04c53e0::t_d72dfa52fdb1a7 13-15,28,48-50,52-53,55-56,79-85,112-120
+desktop/src/renderer/src/styles.css
+  s_195416a04c53e0::t_847cdce843888e 20-34
+packages/i18n/src/locales/en.ts
+  s_195416a04c53e0::t_d2e007cc6f289f 151-168
+packages/i18n/src/locales/zh-CN.ts
+  s_195416a04c53e0::t_4cf8a3a97c596b 142-157
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "35ea8bd91af4f287744ea84c04fdc4800c93ffae",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
