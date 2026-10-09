@@ -11,12 +11,13 @@ Open the installer and drag Skill Shelf into Applications. If macOS blocks
 the first launch, follow Apple's
 [instructions for opening an app from an unidentified developer](https://support.apple.com/en-us/102445).
 
-Settings > About checks for new versions and opens this repository's download
-page. To update, quit Skill Shelf and replace the app with the latest download.
-Your Skill shelf is stored separately and is preserved. Closing the main window
+Settings > About checks for new versions, downloads a verified update in-app,
+and offers Restart and update. Clients predating this updater must install its
+first release manually once. Your Skill shelf is stored separately and is preserved. Closing the main window
 keeps the app in the menu bar; use Quit to exit.
 
-Each release includes DMG and ZIP downloads for Apple Silicon and Intel.
+Each release includes DMG and ZIP downloads for Apple Silicon and Intel, plus
+`skill-shelf-update.json`, an Ed25519-signed update manifest.
 
 ## Maintainer Setup
 
@@ -32,9 +33,14 @@ to this repository. No Apple certificate, Apple account, notarization secret,
 or `release` environment is required. Both Mac architectures must build and
 pass signature verification before publishing.
 
+Add the Actions secret `SKILL_SHELF_UPDATE_PRIVATE_KEY` to this repository. It
+must match the public key shipped in the source repository. It signs the update
+manifest and is independent of Apple certificates. Missing or mismatched keys
+prevent publishing. Keep the private key out of source control and back it up.
+
 Add user-facing notes in `docs/release-notes/<version>.md` in the source
-repository before tagging a release. Public assets contain installers only.
-Mac update checks follow the latest public release tag, without YAML metadata.
+repository before tagging a release. Mac updates follow the stable public
+release tag, then verify its signed manifest; no Electron updater YAML is needed.
 
 See the source repository's
 [release guide](https://github.com/voidrinz/skill-shelf/blob/main/docs/releases.md)

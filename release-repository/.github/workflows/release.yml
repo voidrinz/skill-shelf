@@ -160,6 +160,14 @@ jobs:
           test -s "docs/release-notes/${TAG#v}.md" || { echo 'Missing release notes' >&2; exit 1; }
         env:
           TAG: ${{ needs.verify.outputs.tag }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: Sign the application update manifest
+        env:
+          SKILL_SHELF_UPDATE_PRIVATE_KEY: ${{ secrets.SKILL_SHELF_UPDATE_PRIVATE_KEY }}
+          TAG: ${{ needs.verify.outputs.tag }}
+        run: node desktop/scripts/sign-update.mjs artifacts "${TAG#v}"
       - name: Publish both macOS architectures together
         env:
           GH_TOKEN: ${{ github.token }}
@@ -171,5 +179,5 @@ jobs:
           else
             gh release create "$TAG" --draft --title "Skill Shelf $TAG" --notes-file "docs/release-notes/${TAG#v}.md"
           fi
-          gh release upload "$TAG" artifacts/*.dmg artifacts/*.zip --clobber
+          gh release upload "$TAG" artifacts/*.dmg artifacts/*.zip artifacts/skill-shelf-update.json --clobber
           gh release edit "$TAG" --draft=false --latest
