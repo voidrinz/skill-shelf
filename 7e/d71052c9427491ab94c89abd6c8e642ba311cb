@@ -1,0 +1,32 @@
+docs/release-notes/0.1.8.md
+  s_d156a057076bd4::t_dfceb53cdf8ac3 1-20
+desktop/package.json
+  s_d156a057076bd4::t_dfceb53cdf8ac3 3
+docs/release-notes/0.1.7.md
+  s_195416a04c53e0::t_d2ce9944723ca0 16
+  s_d156a057076bd4::t_103bc0031e24e8 3-5,14,22
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7ed71052c9427491ab94c89abd6c8e642ba311cb",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    },
+    "s_d156a057076bd4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11f65-e785-7730-8ba3-2f272150ac9e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
