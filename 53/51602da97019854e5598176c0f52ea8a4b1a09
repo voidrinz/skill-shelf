@@ -1,0 +1,53 @@
+desktop/package.json
+  s_d156a057076bd4::t_4c48571d656fbd 3
+desktop/release-config.mjs
+  s_837399686389a9::t_8afa336a46c9a1 16
+desktop/release-config.test.mjs
+  s_195416a04c53e0::t_986509811add75 14,17-19
+desktop/src/main/index.ts
+  s_195416a04c53e0::t_dfb2036497e6ca 10,78-81,1495-1499,1511,1516-1517
+desktop/src/main/services/github-release-checker.test.ts
+  s_837399686389a9::t_3600ccceb83545 1-66
+desktop/src/main/services/github-release-checker.ts
+  s_195416a04c53e0::t_d6eede7f91ca40 1-69
+docs/release-notes/0.1.1.md
+  s_837399686389a9::t_a0d20ec59352ef 1-14
+docs/releases.md
+  s_195416a04c53e0::t_1a456052ab21e0 31,42,47-51,60-63,78,86-91,100-104
+release-repository/.github/workflows/release.yml
+  s_195416a04c53e0::t_fb8d28d4a058e3 142-147,153,160,172,174
+release-repository/README.md
+  s_195416a04c53e0::t_a3a3326273315f 10,17,19,35-38
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "5351602da97019854e5598176c0f52ea8a4b1a09",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    },
+    "s_837399686389a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11980-c5f1-7441-9c9f-6788f911657d",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    },
+    "s_d156a057076bd4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11f65-e785-7730-8ba3-2f272150ac9e",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
