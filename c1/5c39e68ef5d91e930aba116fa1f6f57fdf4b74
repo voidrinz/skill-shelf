@@ -1,0 +1,55 @@
+.github/workflows/website.yml
+  s_837399686389a9::t_3a89327077dd75 50,58
+.gitignore
+  s_837399686389a9::t_45ecf5c98aa8e8 18
+docs/website.md
+  s_837399686389a9::t_6e62cbd8b57497 38-59
+packages/i18n/src/locales/en.ts
+  s_195416a04c53e0::t_da46cec8283814 1099-1101
+packages/i18n/src/locales/zh-CN.ts
+  s_195416a04c53e0::t_1d6519e092e538 1024-1025
+packages/i18n/src/react.tsx
+  s_837399686389a9::t_8d8dd07926827a 45-46,50-51,63
+website/index.html
+  s_837399686389a9::t_e0953d025725b9 6,27
+website/package.json
+  s_837399686389a9::t_e5cd5026cc5583 7
+website/scripts/build.mjs
+  s_837399686389a9::t_6fb60addee13ac 1-43
+website/scripts/seo.mjs
+  s_837399686389a9::t_595b79387a587b 1-109
+website/scripts/seo.test.mjs
+  s_837399686389a9::t_613f417439fff8 1-60
+website/src/app.tsx
+  s_837399686389a9::t_cc7678c26bd072 50,56,129,132-133,137
+website/src/entry-server.tsx
+  s_837399686389a9::t_4c2c858a06b441 1-28
+website/src/main.tsx
+  s_837399686389a9::t_650462eb1c83e9 2-3,11-16,18,21-23,29-34
+website/vite.config.ts
+  s_837399686389a9::t_94d79ec7490ba5 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "c15c39e68ef5d91e930aba116fa1f6f57fdf4b74",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    },
+    "s_837399686389a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11980-c5f1-7441-9c9f-6788f911657d",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
