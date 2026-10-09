@@ -1,0 +1,44 @@
+desktop/electron-builder.release.mjs
+  s_195416a04c53e0::t_8877eeac365e81 14,20-23
+desktop/scripts/sign-update.test.mjs
+  s_195416a04c53e0::t_5fce91c7560a8b 1-52
+  s_195416a04c53e0::t_6be7778bdda92a 53-75
+desktop/release-config.mjs
+  s_195416a04c53e0::t_8877eeac365e81 12-13
+desktop/src/main/services/mac-app-updater.test.ts
+  s_195416a04c53e0::t_5fce91c7560a8b 63,82,98-111,167-192,195-196
+  s_195416a04c53e0::t_169c4dd3c63a65 193-194
+desktop/scripts/sign-update.mjs
+  s_195416a04c53e0::t_84ba9672dc02d9 11,13-23,25-35,37-40,48,50-53,55-87
+  s_195416a04c53e0::t_d7ae1a2a3928cb 88-98
+desktop/release-config.test.mjs
+  s_195416a04c53e0::t_8877eeac365e81 11-14,17,46-48
+desktop/src/main/services/update-manifest.ts
+  s_195416a04c53e0::t_8877eeac365e81 64-65
+desktop/package.json
+  s_d156a057076bd4::t_83f994ac65c479 15
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "7ac86c71b933371c79008cf2542c426682b25e2c",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    },
+    "s_d156a057076bd4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11f65-e785-7730-8ba3-2f272150ac9e",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
