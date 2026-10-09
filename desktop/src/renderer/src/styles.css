@@ -15,6 +15,17 @@
   color: var(--primary);
   background: color-mix(in srgb, var(--primary) 5%, transparent);
 }
+.app-update-check-error {
+  color: var(--destructive);
+}
+.app-update-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  max-width: 340px;
+}
 .app-update-status progress {
   width: 100%;
   height: 6px;
@@ -8254,9 +8265,10 @@ html[data-density='compact'] .finder-list-view[data-view='columns'] {
   .about-identity {
     grid-template-columns: 48px minmax(0, 1fr);
   }
-  .about-identity .app-update-action {
+  .about-identity .app-update-actions {
     grid-column: 1 / -1;
     justify-self: start;
+    justify-content: flex-start;
     max-width: 100%;
   }
 }

@@ -70,7 +70,7 @@ describe('application updates', () => {
     service.dispose()
   })
 
-  it('coalesces checks, requires an available update, and preserves a ready download', async () => {
+  it('coalesces checks, requires an available update, and can recheck a ready download', async () => {
     const updater = new Updater()
     let resolve!: () => void
     updater.checkForUpdates.mockImplementationOnce(
@@ -90,18 +90,93 @@ describe('application updates', () => {
     await first
     expect(updater.checkForUpdates).toHaveBeenCalledOnce()
     await service.download()
+    updater.checkForUpdates.mockImplementationOnce(async () => {
+      updater.emit('update-downloaded', { version: '0.2.0' })
+    })
     await service.check()
     expect(service.getState()).toMatchObject({
       status: 'downloaded',
       version: '0.2.0',
       percent: 100,
     })
-    expect(updater.checkForUpdates).toHaveBeenCalledOnce()
+    expect(updater.checkForUpdates).toHaveBeenCalledTimes(2)
     const install = service.install()
     service.install()
     await install
     expect(updater.quitAndInstall).toHaveBeenCalledWith(false, true)
     expect(updater.quitAndInstall).toHaveBeenCalledOnce()
+    service.dispose()
+  })
+
+  it('rechecks available and downloaded updates and switches to the newest version', async () => {
+    const updater = new Updater()
+    const service = new AppUpdateService(updater, vi.fn(), { arch: 'arm64' })
+    let version = '0.2.0'
+    updater.checkForUpdates.mockImplementation(async () => {
+      updater.emit('update-available', { version })
+    })
+    await service.check()
+    version = '0.3.0'
+    expect(await service.check()).toMatchObject({
+      status: 'available',
+      version,
+    })
+    updater.emit('update-downloaded', { version })
+    version = '0.4.0'
+    expect(await service.check()).toMatchObject({
+      status: 'available',
+      version,
+      percent: null,
+    })
+    expect(updater.checkForUpdates).toHaveBeenCalledTimes(3)
+    expect(() => service.install()).toThrow('No application update')
+    service.dispose()
+  })
+
+  it.each(['available', 'downloaded'] as const)(
+    'preserves an %s update after a recheck fails and clears the warning on retry',
+    async (status) => {
+      const updater = new Updater()
+      const service = new AppUpdateService(updater, vi.fn(), { arch: 'arm64' })
+      updater.emit(`update-${status}`, { version: '0.2.0' })
+      const previous = service.getState()
+      updater.checkForUpdates.mockRejectedValueOnce(new Error('offline'))
+      expect(await service.check()).toMatchObject({
+        ...previous,
+        checkErrorCode: 'network',
+      })
+      updater.checkForUpdates.mockImplementationOnce(async () => {
+        updater.emit(`update-${status}`, { version: '0.2.0' })
+      })
+      expect(await service.check()).toMatchObject({
+        status,
+        version: '0.2.0',
+        checkErrorCode: undefined,
+      })
+      if (status === 'downloaded') {
+        await service.install()
+        expect(updater.quitAndInstall).toHaveBeenCalledOnce()
+      } else {
+        await service.download()
+        expect(updater.downloadUpdate).toHaveBeenCalledOnce()
+      }
+      service.dispose()
+    }
+  )
+
+  it('keeps a ready download when newer metadata fails verification', async () => {
+    const updater = new Updater()
+    const service = new AppUpdateService(updater, vi.fn(), { arch: 'arm64' })
+    updater.emit('update-downloaded', { version: '0.2.0' })
+    updater.checkForUpdates.mockRejectedValueOnce(
+      Object.assign(new Error('invalid signature'), { code: 'verification' })
+    )
+    expect(await service.check()).toMatchObject({
+      status: 'downloaded',
+      version: '0.2.0',
+      percent: 100,
+      checkErrorCode: 'verification',
+    })
     service.dispose()
   })
 

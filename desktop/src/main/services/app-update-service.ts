@@ -24,6 +24,7 @@ export class AppUpdateService {
   private disposed = false
   private installing = false
   private operationKind: 'check' | 'download' | 'install' = 'check'
+  private checkSnapshot: AppUpdateState | null = null
   private readonly listeners: Array<[string, (...args: any[]) => void]> = []
 
   constructor(
@@ -64,6 +65,7 @@ export class AppUpdateService {
       this.set({
         status: 'available',
         version: info.version,
+        percent: null,
         checkedAt: new Date().toISOString(),
       })
     )
@@ -71,6 +73,7 @@ export class AppUpdateService {
       this.set({
         status: 'current',
         version: null,
+        percent: null,
         checkedAt: new Date().toISOString(),
       })
     )
@@ -85,7 +88,14 @@ export class AppUpdateService {
         })
       )
       this.listen('update-downloaded', (info: { version: string }) =>
-        this.set({ status: 'downloaded', version: info.version, percent: 100 })
+        this.set({
+          status: 'downloaded',
+          version: info.version,
+          percent: 100,
+          ...(this.operationKind === 'check'
+            ? { checkedAt: new Date().toISOString() }
+            : {}),
+        })
       )
     }
     this.listen('error', (error: unknown) => {
@@ -117,20 +127,17 @@ export class AppUpdateService {
     if (this.operation) return this.operation
     if (
       this.disposed ||
-      [
-        'disabled',
-        'downloading',
-        'verifying',
-        'downloaded',
-        'installing',
-      ].includes(this.state.status)
+      ['disabled', 'downloading', 'verifying', 'installing'].includes(
+        this.state.status
+      )
     )
       return Promise.resolve(this.getState())
     this.operationKind = 'check'
+    this.checkSnapshot = this.getState()
     this.set({
       status: 'checking',
       percent: null,
-      version: null,
+      checkErrorCode: undefined,
       errorCode: undefined,
       retryAction: undefined,
     })
@@ -153,6 +160,7 @@ export class AppUpdateService {
     this.set({
       status: 'downloading',
       percent: 0,
+      checkErrorCode: undefined,
       errorCode: undefined,
       retryAction: undefined,
     })
@@ -174,6 +182,7 @@ export class AppUpdateService {
     this.operationKind = 'install'
     this.set({
       status: 'installing',
+      checkErrorCode: undefined,
       errorCode: undefined,
       retryAction: undefined,
     })
@@ -213,6 +222,7 @@ export class AppUpdateService {
       .then(() => this.getState())
       .finally(() => {
         this.operation = null
+        this.checkSnapshot = null
       })
     return this.operation
   }
@@ -230,6 +240,22 @@ export class AppUpdateService {
         : this.operationKind === 'install'
           ? 'installation'
           : 'network'
+    if (
+      this.operationKind === 'check' &&
+      this.checkSnapshot?.version &&
+      (this.checkSnapshot.status === 'available' ||
+        this.checkSnapshot.status === 'downloaded' ||
+        (this.checkSnapshot.status === 'error' &&
+          (this.checkSnapshot.retryAction === 'download' ||
+            this.checkSnapshot.retryAction === 'install')))
+    ) {
+      this.set({
+        ...this.checkSnapshot,
+        checkErrorCode:
+          errorCode === 'verification' ? 'verification' : 'network',
+      })
+      return
+    }
     this.set({
       status: 'error',
       percent: null,

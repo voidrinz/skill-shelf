@@ -142,6 +142,11 @@ export const messages = {
   'desktop.appUpdate.loading': 'Reading update status…',
   'desktop.appUpdate.idle': 'Checks for new versions in the background.',
   'desktop.appUpdate.checking': 'Checking for a new version…',
+  'desktop.appUpdate.checkingAction': 'Checking…',
+  'desktop.appUpdate.checkError.network':
+    'Could not check again. Check your connection and retry. Your previous update is still available.',
+  'desktop.appUpdate.checkError.verification':
+    'The new update information could not be verified. Your previous update is still available. Check again.',
   'desktop.appUpdate.current': 'You are on the latest version.',
   'desktop.appUpdate.available': 'Version {version} is available.',
   'desktop.appUpdate.notification': 'Skill Shelf has a new version: {version}',

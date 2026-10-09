@@ -34,7 +34,7 @@ function setup(initial: AppUpdateState, getState = Promise.resolve(initial)) {
   const unsubscribe = vi.fn()
   const api = {
     getAppUpdate: vi.fn(() => getState),
-    checkAppUpdate: vi.fn(async () => ({
+    checkAppUpdate: vi.fn(async (): Promise<AppUpdateState> => ({
       ...initial,
       status: 'available' as const,
       version: '0.2.0',
@@ -78,10 +78,139 @@ const initial: AppUpdateState = {
 }
 
 describe('application update controls', () => {
+  it('keeps a separate check action and updates the download target on repeated checks', async () => {
+    const { api } = setup({
+      ...initial,
+      status: 'available',
+      version: '0.2.0',
+    })
+    await screen.findByRole('button', { name: 'Update to v0.2.0' })
+    api.checkAppUpdate.mockResolvedValueOnce({
+      ...initial,
+      status: 'available',
+      version: '0.3.0',
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Check for app updates' })
+    )
+    await screen.findByRole('button', { name: 'Update to v0.3.0' })
+    api.checkAppUpdate.mockResolvedValueOnce({
+      ...initial,
+      status: 'available',
+      version: '0.4.0',
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Check for app updates' })
+    )
+    await screen.findByRole('button', { name: 'Update to v0.4.0' })
+    expect(api.checkAppUpdate).toHaveBeenCalledTimes(2)
+    expect(api.downloadAppUpdate).not.toHaveBeenCalled()
+  })
+
+  it('keeps checking available beside a ready download and can offer a newer version', async () => {
+    const ready: AppUpdateState = {
+      ...initial,
+      status: 'downloaded',
+      version: '0.2.0',
+      percent: 100,
+    }
+    const { api } = setup(ready)
+    await screen.findByRole('button', { name: 'Restart and update' })
+    api.checkAppUpdate.mockResolvedValueOnce(ready)
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Check for app updates' })
+    )
+    await waitFor(() =>
+      expect(
+        (
+          screen.getByRole('button', {
+            name: 'Restart and update',
+          }) as HTMLButtonElement
+        ).disabled
+      ).toBe(false)
+    )
+    api.checkAppUpdate.mockResolvedValueOnce({
+      ...initial,
+      status: 'available',
+      version: '0.3.0',
+    })
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Check for app updates' })
+    )
+    await screen.findByRole('button', { name: 'Update to v0.3.0' })
+    expect(
+      screen.queryByRole('button', { name: 'Restart and update' })
+    ).toBeNull()
+    expect(api.downloadAppUpdate).not.toHaveBeenCalled()
+    expect(api.installAppUpdate).not.toHaveBeenCalled()
+  })
+
+  it('preserves a ready download and shows a warning when rechecking fails', async () => {
+    const { api } = setup({
+      ...initial,
+      status: 'downloaded',
+      version: '0.2.0',
+      percent: 100,
+    })
+    await screen.findByRole('button', { name: 'Restart and update' })
+    api.checkAppUpdate.mockRejectedValueOnce(new Error('IPC failed'))
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Check for app updates' })
+    )
+    await screen.findByRole('alert')
+    expect(screen.getByRole('alert').textContent).toContain('previous update')
+    expect(screen.getByText('Version 0.2.0 is ready to install.')).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Restart and update' }))
+    await waitFor(() => expect(api.installAppUpdate).toHaveBeenCalledOnce())
+  })
+
+  it('disables both actions during a recheck and prevents duplicate requests', async () => {
+    const { api } = setup({
+      ...initial,
+      status: 'available',
+      version: '0.2.0',
+    })
+    await screen.findByRole('button', { name: 'Update to v0.2.0' })
+    let resolve!: (value: AppUpdateState) => void
+    api.checkAppUpdate.mockImplementationOnce(
+      () =>
+        new Promise((done) => {
+          resolve = done
+        })
+    )
+    fireEvent.click(
+      screen.getByRole('button', { name: 'Check for app updates' })
+    )
+    const checking = screen.getByRole('button', { name: 'Checking…' })
+    expect((checking as HTMLButtonElement).disabled).toBe(true)
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Update to v0.2.0',
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(true)
+    fireEvent.click(checking)
+    expect(api.checkAppUpdate).toHaveBeenCalledOnce()
+    await act(async () =>
+      resolve({ ...initial, status: 'available', version: '0.3.0' })
+    )
+    expect(
+      screen.getByRole('button', { name: 'Check for app updates' })
+    ).toBeTruthy()
+  })
+
   it('shows verification and installation states and retries a download without checking again', async () => {
     const { api, update } = setup(initial)
     await screen.findByText('Checks for new versions in the background.')
     update({ ...initial, status: 'verifying', version: '0.2.0', percent: 100 })
+    expect(
+      (
+        screen.getByRole('button', {
+          name: 'Check for app updates',
+        }) as HTMLButtonElement
+      ).disabled
+    ).toBe(true)
     expect(
       (screen.getByRole('button', { name: 'Verifying…' }) as HTMLButtonElement)
         .disabled
@@ -155,9 +284,11 @@ describe('application update controls', () => {
   it('shows why development cannot update and disables the action', async () => {
     setup({ ...initial, status: 'disabled', reason: 'development' })
     await screen.findByText('Update checks are unavailable in this version.')
-    expect((screen.getByRole('button') as HTMLButtonElement).disabled).toBe(
-      true
-    )
+    expect(
+      screen
+        .getAllByRole('button')
+        .every((button) => (button as HTMLButtonElement).disabled)
+    ).toBe(true)
   })
 
   it('keeps a newer event when the initial state request finishes later', async () => {
@@ -171,9 +302,11 @@ describe('application update controls', () => {
     update({ ...initial, status: 'downloading', version: '0.2.0', percent: 50 })
     await act(async () => resolve(initial))
     expect(screen.getByRole('progressbar').getAttribute('value')).toBe('50')
-    expect((screen.getByRole('button') as HTMLButtonElement).disabled).toBe(
-      true
-    )
+    expect(
+      screen
+        .getAllByRole('button')
+        .every((button) => (button as HTMLButtonElement).disabled)
+    ).toBe(true)
   })
 
   it('shares one subscription and keeps the notification through download and installation readiness', async () => {

@@ -133,6 +133,11 @@ export const messages = {
   'desktop.appUpdate.loading': '正在读取更新状态…',
   'desktop.appUpdate.idle': '将在后台检查新版本。',
   'desktop.appUpdate.checking': '正在检查新版本…',
+  'desktop.appUpdate.checkingAction': '正在检查…',
+  'desktop.appUpdate.checkError.network':
+    '重新检查失败，请检查网络连接后再试。已保留上次的更新结果。',
+  'desktop.appUpdate.checkError.verification':
+    '新的更新信息未通过验证。已保留上次的更新结果，请重新检查。',
   'desktop.appUpdate.current': '当前已是最新版本。',
   'desktop.appUpdate.available': '发现新版本 {version}。',
   'desktop.appUpdate.notification': 'Skill Shelf 有新版本：{version}',

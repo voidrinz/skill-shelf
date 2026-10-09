@@ -25,6 +25,11 @@ export function AppUpdateStatus() {
           percent: number(Math.round(state?.percent ?? 0)),
         })}
       </span>
+      {state?.checkErrorCode ? (
+        <span className="app-update-check-error" role="alert">
+          {t(`desktop.appUpdate.checkError.${state.checkErrorCode}`)}
+        </span>
+      ) : null}
       {state?.status === 'downloading' || state?.status === 'verifying' ? (
         <progress
           aria-label={t('desktop.appUpdate.progress')}
@@ -39,10 +44,12 @@ export function AppUpdateStatus() {
 export function AppUpdateControls() {
   const { t } = useI18n()
   const { state, setState } = useAppUpdate()
-  const [pending, setPending] = useState(false)
+  const [pending, setPending] = useState<
+    'check' | 'download' | 'openDownload' | 'restart' | null
+  >(null)
 
   const busy =
-    pending ||
+    pending !== null ||
     !state ||
     state.status === 'checking' ||
     state.status === 'downloading' ||
@@ -50,74 +57,107 @@ export function AppUpdateControls() {
     state.status === 'installing'
   const action =
     state?.status === 'downloaded' ||
+    state?.status === 'installing' ||
     (state?.status === 'error' && state.retryAction === 'install')
       ? 'restart'
       : state?.status === 'available' ||
+          state?.status === 'downloading' ||
+          state?.status === 'verifying' ||
           (state?.status === 'error' && state.retryAction === 'download')
         ? state.installMode === 'manual'
           ? 'openDownload'
           : 'download'
-        : 'check'
+        : null
+  const checking = pending === 'check' || state?.status === 'checking'
 
-  async function runAction() {
-    setPending(true)
+  async function runAction(
+    nextAction: 'check' | 'download' | 'openDownload' | 'restart'
+  ) {
+    setPending(nextAction)
     try {
-      if (action === 'restart') await window.skillShelf.installAppUpdate()
+      if (nextAction === 'restart') await window.skillShelf.installAppUpdate()
       else
         setState(
-          await (action === 'download' || action === 'openDownload'
+          await (nextAction === 'download' || nextAction === 'openDownload'
             ? window.skillShelf.downloadAppUpdate()
             : window.skillShelf.checkAppUpdate())
         )
     } catch {
+      if (
+        nextAction === 'check' &&
+        state?.version &&
+        (state.status === 'available' ||
+          state.status === 'downloaded' ||
+          (state.status === 'error' &&
+            (state.retryAction === 'download' ||
+              state.retryAction === 'install')))
+      ) {
+        setState({ ...state, checkErrorCode: 'network' })
+        return
+      }
       setState({
         installMode: state?.installMode ?? 'manual',
         status: 'error',
         version: state?.version ?? null,
         percent: null,
         checkedAt: null,
-        errorCode: action === 'restart' ? 'installation' : 'network',
+        errorCode: nextAction === 'restart' ? 'installation' : 'network',
         retryAction:
-          action === 'restart'
+          nextAction === 'restart'
             ? 'install'
-            : action === 'download'
+            : nextAction === 'download'
               ? 'download'
               : 'check',
       })
     } finally {
-      setPending(false)
+      setPending(null)
     }
   }
 
   return (
-    <Button
-      className="app-update-action"
-      disabled={busy || state?.status === 'disabled'}
-      onClick={() => void runAction()}
-      size="sm"
-      title={
-        action === 'openDownload'
-          ? t('desktop.appUpdate.openDownload')
-          : undefined
-      }
-      variant={hasAppUpdate(state) ? 'default' : 'outline'}
-    >
-      {busy ? (
-        <LoaderCircle className="animate-spin" />
-      ) : action === 'download' || action === 'openDownload' ? (
-        <Download />
-      ) : (
-        <RefreshCw />
-      )}
-      {state?.status === 'verifying' || state?.status === 'installing'
-        ? t(`desktop.appUpdate.${state.status}Action`)
-        : state?.status === 'error' && state.retryAction
-          ? t(`desktop.appUpdate.retry.${state.retryAction}`)
-          : action === 'download' || action === 'openDownload'
-            ? t('desktop.appUpdate.updateTo', { version: state?.version ?? '' })
-            : busy && state?.status === 'downloading'
+    <div className="app-update-actions">
+      <Button
+        className="app-update-action"
+        disabled={busy || state?.status === 'disabled'}
+        onClick={() => void runAction('check')}
+        size="sm"
+        variant="outline"
+      >
+        {checking ? <LoaderCircle className="animate-spin" /> : <RefreshCw />}
+        {t(`desktop.appUpdate.${checking ? 'checkingAction' : 'check'}`)}
+      </Button>
+      {action ? (
+        <Button
+          className="app-update-action"
+          disabled={busy}
+          onClick={() => void runAction(action)}
+          size="sm"
+          title={
+            action === 'openDownload'
+              ? t('desktop.appUpdate.openDownload')
+              : undefined
+          }
+        >
+          {busy ? (
+            <LoaderCircle className="animate-spin" />
+          ) : action === 'download' || action === 'openDownload' ? (
+            <Download />
+          ) : (
+            <RefreshCw />
+          )}
+          {state?.status === 'verifying' || state?.status === 'installing'
+            ? t(`desktop.appUpdate.${state.status}Action`)
+            : state?.status === 'downloading'
               ? t('desktop.appUpdate.updating')
-              : t(`desktop.appUpdate.${action}`)}
-    </Button>
+              : state?.status === 'error' && state.retryAction
+                ? t(`desktop.appUpdate.retry.${state.retryAction}`)
+                : action === 'download' || action === 'openDownload'
+                  ? t('desktop.appUpdate.updateTo', {
+                      version: state?.version ?? '',
+                    })
+                  : t('desktop.appUpdate.restart')}
+        </Button>
+      ) : null}
+    </div>
   )
 }

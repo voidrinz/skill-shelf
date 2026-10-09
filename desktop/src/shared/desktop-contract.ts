@@ -874,6 +874,7 @@ export interface AppUpdateState {
     | 'installing'
     | 'error'
   retryAction?: 'check' | 'download' | 'install'
+  checkErrorCode?: 'network' | 'verification'
   errorCode?:
     'network' | 'verification' | 'permission' | 'installation' | 'rollback'
   reason?: 'development' | 'unconfigured' | 'unsupported-install'

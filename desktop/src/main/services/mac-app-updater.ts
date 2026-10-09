@@ -189,10 +189,11 @@ export class MacAppUpdater extends EventEmitter implements AppUpdater {
   }
 
   async checkForUpdates() {
-    this.manifest = null
-    this.asset = null
     const version = await this.options.latestVersion()
     if (compareUpdateVersions(version, this.options.currentVersion) <= 0) {
+      await this.discardDownload()
+      this.manifest = null
+      this.asset = null
       this.emit('update-not-available', { version })
       return
     }
@@ -232,9 +233,27 @@ export class MacAppUpdater extends EventEmitter implements AppUpdater {
         'verification',
         'No update for this architecture'
       )
+    const downloadMatches =
+      this.staged &&
+      this.archive &&
+      this.manifest?.version === manifest.version &&
+      this.asset?.arch === asset.arch &&
+      this.asset.url === asset.url &&
+      this.asset.size === asset.size &&
+      this.asset.sha256 === asset.sha256
+    if (!downloadMatches) await this.discardDownload()
     this.manifest = manifest
     this.asset = asset
-    this.emit('update-available', { version })
+    this.emit(downloadMatches ? 'update-downloaded' : 'update-available', {
+      version,
+    })
+  }
+
+  private async discardDownload() {
+    if (this.archive)
+      await rm(dirname(this.archive), { recursive: true, force: true })
+    this.staged = null
+    this.archive = null
   }
 
   async downloadUpdate() {
