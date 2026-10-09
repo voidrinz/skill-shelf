@@ -104,8 +104,9 @@ Quit command to exit completely.
 ## Desktop Releases And Updates
 
 Desktop release builds use a separate public `skill-shelf-releases` repository.
-Installed apps check for application updates in the background; Settings >
-About opens the download page for manually installing Mac updates. Skill
+Installed apps check for application updates in the background. Settings >
+About downloads signed architecture-specific Mac updates in-app and offers
+Restart and update, with readiness confirmation and rollback. Skill
 updates remain separate and use the existing Skill task queue.
 
 See [the release setup guide](releases.md) for the two-repository workflow,
