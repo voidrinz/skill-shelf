@@ -5,6 +5,19 @@ import { desktopIpcChannels } from '../shared/desktop-contract'
 import { trayApi } from './tray'
 
 const desktopApi: SkillShelfDesktopApi = {
+  exportSyncData: () => ipcRenderer.invoke(desktopIpcChannels.syncExport),
+  importSyncData: () => ipcRenderer.invoke(desktopIpcChannels.syncImport),
+  applySyncData: (input) =>
+    ipcRenderer.invoke(desktopIpcChannels.syncApply, input),
+  discardSyncPreview: (id) =>
+    ipcRenderer.invoke(desktopIpcChannels.syncDiscard, id),
+  getWebDavSettings: () => ipcRenderer.invoke(desktopIpcChannels.syncWebDavGet),
+  saveWebDavSettings: (input) =>
+    ipcRenderer.invoke(desktopIpcChannels.syncWebDavSave, input),
+  testWebDavConnection: () =>
+    ipcRenderer.invoke(desktopIpcChannels.syncWebDavTest),
+  pullWebDavSync: () => ipcRenderer.invoke(desktopIpcChannels.syncWebDavPull),
+  pushWebDavSync: () => ipcRenderer.invoke(desktopIpcChannels.syncWebDavPush),
   getAppUpdate: () => ipcRenderer.invoke(desktopIpcChannels.appUpdateGet),
   checkAppUpdate: () => ipcRenderer.invoke(desktopIpcChannels.appUpdateCheck),
   downloadAppUpdate: () =>

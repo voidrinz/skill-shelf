@@ -1,6 +1,7 @@
 import { homedir } from 'node:os'
 import { existsSync, readFileSync } from 'node:fs'
-import { basename, isAbsolute, join, resolve } from 'node:path'
+import { readFile, stat, writeFile } from 'node:fs/promises'
+import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 import {
   app,
   autoUpdater,
@@ -63,6 +64,15 @@ import {
 import { CatalogService } from './services/catalog-service'
 import { DiscoveryService } from './services/discovery-service'
 import { ShelfStore } from './services/shelf-store'
+import {
+  MAX_SYNC_BYTES,
+  MetadataSyncService,
+} from './services/metadata-sync-service'
+import {
+  WebDavSyncService,
+  type RemoteSyncFile,
+} from './services/webdav-sync-service'
+import type { ApplySyncInput } from '../shared/sync-contract'
 import { SkillsApiService } from './services/skills-api-service'
 import { listSkillFiles, readSkillFile } from './services/skill-file-service'
 import {
@@ -201,6 +211,136 @@ function registerIpc(
   terminalService: TerminalService,
   workbench: WorkbenchService
 ) {
+  const metadataSync = new MetadataSyncService(store, () =>
+    catalog.getCatalog()
+  )
+  const webDavSync = new WebDavSyncService(
+    join(dirname(shelfFilePath), 'webdav-sync.json'),
+    {
+      encryptString: (value) => safeStorage.encryptString(value),
+      decryptString: (value) => safeStorage.decryptString(value),
+      isEncryptionAvailable: () =>
+        safeStorage.isEncryptionAvailable() &&
+        (process.platform !== 'linux' ||
+          safeStorage.getSelectedStorageBackend() !== 'basic_text'),
+    }
+  )
+  let syncBusy = false
+  let uploadPreview: { id: string; remote: RemoteSyncFile } | null = null
+  const syncHandler = (
+    channel: string,
+    action: (input: unknown) => Promise<unknown> | unknown
+  ) =>
+    ipcMain.handle(channel, async (event, input: unknown) => {
+      if (
+        !mainWindow ||
+        event.sender !== mainWindow.webContents ||
+        event.senderFrame !== mainWindow.webContents.mainFrame
+      )
+        throw new Error('Invalid desktop sender')
+      if (syncBusy) throw new Error('Sync operation is busy')
+      syncBusy = true
+      try {
+        return await action(input)
+      } finally {
+        syncBusy = false
+      }
+    })
+  const syncMessages = async () =>
+    loadMessages(
+      resolveLocalePreference(
+        (await store.getSettings()).language,
+        app.getLocale()
+      )
+    )
+  syncHandler(desktopIpcChannels.syncExport, async () => {
+    const messages = await syncMessages()
+    const result = await dialog.showSaveDialog(mainWindow!, {
+      title: translate(messages, 'desktop.sync.export'),
+      defaultPath: `skill-shelf-metadata-${new Date().toISOString().slice(0, 10)}.json`,
+      filters: [{ name: 'Skill Shelf', extensions: ['json'] }],
+    })
+    if (result.canceled || !result.filePath) return false
+    await writeFile(
+      result.filePath,
+      `${JSON.stringify(await metadataSync.exportDocument(), null, 2)}\n`,
+      { mode: 0o600 }
+    )
+    return true
+  })
+  syncHandler(desktopIpcChannels.syncImport, async () => {
+    const messages = await syncMessages()
+    const result = await dialog.showOpenDialog(mainWindow!, {
+      title: translate(messages, 'desktop.sync.import'),
+      properties: ['openFile'],
+      filters: [{ name: 'Skill Shelf', extensions: ['json'] }],
+    })
+    if (result.canceled || !result.filePaths[0]) return null
+    if ((await stat(result.filePaths[0])).size > MAX_SYNC_BYTES)
+      throw new Error('Invalid sync document')
+    const preview = await metadataSync.preview(
+      await readFile(result.filePaths[0], 'utf8')
+    )
+    uploadPreview = null
+    return preview
+  })
+  syncHandler(desktopIpcChannels.syncDiscard, (input) => {
+    if (typeof input !== 'string') throw new Error('Invalid sync preview')
+    metadataSync.discard(input)
+    if (uploadPreview?.id === input) uploadPreview = null
+  })
+  syncHandler(desktopIpcChannels.syncApply, async (value) => {
+    if (!value || typeof value !== 'object')
+      throw new Error('Invalid sync choices')
+    const input = value as ApplySyncInput
+    const target = uploadPreview?.id === input.previewId ? uploadPreview : null
+    const result = await metadataSync.apply(
+      input,
+      target
+        ? (document) =>
+            webDavSync.upload(
+              `${JSON.stringify(document, null, 2)}\n`,
+              target.remote
+            )
+        : undefined
+    )
+    uploadPreview = null
+    trayController?.updateCatalog(result.catalog)
+    void trayController?.notify()
+    return result
+  })
+  syncHandler(desktopIpcChannels.syncWebDavGet, () => webDavSync.getStatus())
+  syncHandler(desktopIpcChannels.syncWebDavSave, async (input) => {
+    if (uploadPreview) {
+      metadataSync.discard(uploadPreview.id)
+      uploadPreview = null
+    }
+    return webDavSync.save(input)
+  })
+  syncHandler(desktopIpcChannels.syncWebDavTest, () => webDavSync.test())
+  syncHandler(desktopIpcChannels.syncWebDavPull, async () => {
+    const remote = await webDavSync.read()
+    if (!remote.contents) throw new Error('Sync WebDAV has no data')
+    const preview = await metadataSync.preview(remote.contents)
+    uploadPreview = null
+    return preview
+  })
+  syncHandler(desktopIpcChannels.syncWebDavPush, async () => {
+    const remote = await webDavSync.read()
+    const preview = await metadataSync.preview(
+      remote.contents ??
+        JSON.stringify({
+          format: 'skill-shelf-metadata',
+          version: 1,
+          exportedAt: new Date().toISOString(),
+          skills: [],
+          preferences: {},
+        }),
+      'upload'
+    )
+    uploadPreview = { id: preview.id, remote }
+    return preview
+  })
   const updateHandler = (channel: string, action: () => unknown) =>
     ipcMain.handle(channel, (event) => {
       if (

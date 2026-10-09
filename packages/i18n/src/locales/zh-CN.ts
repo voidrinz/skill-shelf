@@ -1,6 +1,107 @@
 import type { Messages } from '../index'
 
 export const messages = {
+  'desktop.sync.title': '同步',
+  'desktop.sync.description': '在不同电脑间同步你的 Skill 整理成果。',
+  'desktop.sync.scopeTitle': '同步已有 Skill 的管理数据',
+  'desktop.sync.scopeDescription':
+    '包含分组层级、标签、画布位置、自定义描述和翻译。Skill 文件、安装情况、本机路径和账号密钥保留在各自电脑。',
+  'desktop.sync.matchingDescription':
+    '按来源和 Skill 名称匹配；本地 Skill 使用内容指纹，项目 Skill 还会匹配项目名称。未找到或无法确定的条目会跳过。',
+  'desktop.sync.files': '导出／导入',
+  'desktop.sync.filesTitle': '通过文件迁移',
+  'desktop.sync.filesDescription':
+    '在一台电脑导出，在另一台电脑导入并预览。只为匹配的 Skill 合并管理数据。',
+  'desktop.sync.export': '导出管理数据',
+  'desktop.sync.import': '导入管理数据',
+  'desktop.sync.exported': '管理数据已导出。',
+  'desktop.sync.webdavTitle': '使用你的 WebDAV 存储',
+  'desktop.sync.webdavDescription':
+    '手动上传或拉取共享数据。上传会保留云端独有的 Skill 记录，变更预览后再确认。',
+  'desktop.sync.url': 'WebDAV 文件夹地址',
+  'desktop.sync.urlHint':
+    '填写已存在的 HTTPS 文件夹地址，两台电脑使用同一文件夹。',
+  'desktop.sync.username': '用户名',
+  'desktop.sync.password': '密码／应用专用密码',
+  'desktop.sync.passwordSaved': '保留当前密码',
+  'desktop.sync.rememberPassword': '在本机记住密码',
+  'desktop.sync.rememberHint':
+    '使用系统加密保存；不记住时，重启应用后需要重新输入。',
+  'desktop.sync.save': '保存连接',
+  'desktop.sync.reloadSettings': '重新读取连接',
+  'desktop.sync.saved': 'WebDAV 连接已保存。',
+  'desktop.sync.test': '测试连接',
+  'desktop.sync.push': '上传数据',
+  'desktop.sync.pull': '拉取数据',
+  'desktop.sync.saveFirst': '请先保存连接修改。',
+  'desktop.sync.connected': 'WebDAV 连接成功。',
+  'desktop.sync.importPreview': '导入预览',
+  'desktop.sync.uploadPreview': '上传预览',
+  'desktop.sync.importPreviewDescription':
+    '为匹配的 Skill 合并标签和管理数据，其他本机 Skill 保持原样。确认后才会写入。',
+  'desktop.sync.uploadPreviewDescription':
+    '合并共有条目，保留云端独有条目。本次上传不会修改本机管理数据。',
+  'desktop.sync.snapshotDate': '数据导出时间：{date}',
+  'desktop.sync.matched': '匹配的 Skill',
+  'desktop.sync.changed': '有变更的 Skill',
+  'desktop.sync.skipped': '跳过的 Skill',
+  'desktop.sync.uploadNew': '本机独有 Skill',
+  'desktop.sync.retained': '保留的云端条目',
+  'desktop.sync.conflicts': '字段冲突',
+  'desktop.sync.staleTranslations':
+    '{count} 条翻译的原文与本机版本不同，已跳过。',
+  'desktop.sync.skippedDetails': '查看跳过的条目',
+  'desktop.sync.retainedDetails': '查看保留的云端条目',
+  'desktop.sync.skip.not-found': '本机没有对应的 Skill',
+  'desktop.sync.skip.ambiguous': '有多个相同身份的条目，无法确定对应关系',
+  'desktop.sync.skip.no-identity': '缺少可靠的匹配信息',
+  'desktop.sync.chooseConflicts': '选择如何处理冲突',
+  'desktop.sync.allLocal': '全部保留本机',
+  'desktop.sync.allIncoming': '全部采用导入数据',
+  'desktop.sync.local': '本机数据',
+  'desktop.sync.incoming': '文件／云端数据',
+  'desktop.sync.empty': '空',
+  'desktop.sync.resolveField': '{skill}：{field}的处理方式',
+  'desktop.sync.choose': '请选择',
+  'desktop.sync.keepLocal': '保留本机数据',
+  'desktop.sync.useIncoming': '采用文件／云端数据',
+  'desktop.sync.importPreferences': '同时导入应用偏好',
+  'desktop.sync.uploadPreferences': '同时上传应用偏好',
+  'desktop.sync.preferencesDescription':
+    '语言、主题、列表密度、默认视图和 Agent 偏好。不包含本机路径和登录启动设置。',
+  'desktop.sync.noMatches': '没有找到匹配的 Skill；仍可选择导入应用偏好。',
+  'desktop.sync.confirmImport': '确认合并',
+  'desktop.sync.confirmUpload': '确认上传',
+  'desktop.sync.imported': '管理数据已合并，原有管理数据已在本机备份。',
+  'desktop.sync.uploaded': '管理数据已上传，云端独有条目已保留。',
+  'desktop.sync.fieldDescription': '描述 · {language}',
+  'desktop.sync.fieldTranslation': '翻译 · {language}',
+  'desktop.sync.fieldFolder': '分组层级',
+  'desktop.sync.fieldPosition': '画布位置',
+  'desktop.sync.fieldTags': '标签',
+  'desktop.sync.error.document':
+    '文件不是支持的 Skill Shelf 同步文件，或数据超出允许大小。',
+  'desktop.sync.error.outdated': '预览后本机数据发生了变化，请取消并重新预览。',
+  'desktop.sync.error.choices': '请先为每个冲突选择处理方式。',
+  'desktop.sync.error.ambiguous':
+    '部分 Skill 身份重复。请通过文件导入检查，云端数据未修改。',
+  'desktop.sync.error.credentials': '无法在这台电脑上安全读取或保存密码。',
+  'desktop.sync.error.url':
+    '请填写有效的 HTTPS WebDAV 文件夹地址，不要在地址中包含密码或查询参数。',
+  'desktop.sync.error.auth':
+    'WebDAV 拒绝访问，请检查用户名、密码和文件夹权限。',
+  'desktop.sync.error.remoteChanged':
+    '预览后云端文件发生变化，请取消并重新预览。',
+  'desktop.sync.error.folder':
+    'WebDAV 文件夹不存在，请先在服务器上创建，再保存其地址。',
+  'desktop.sync.error.etag':
+    '此 WebDAV 服务无法防止上传覆盖其他电脑的同时修改，请使用文件导出／导入。',
+  'desktop.sync.error.noData':
+    '这个文件夹还没有同步数据，请先从第一台电脑上传。',
+  'desktop.sync.error.timeout': 'WebDAV 请求超时，本机数据未改动，请重试。',
+  'desktop.sync.error.network': '无法连接 WebDAV，请检查地址和网络后重试。',
+  'desktop.sync.error.notConfigured': '请先保存 WebDAV 连接。',
+  'desktop.sync.error.default': '同步操作失败，填写的内容已保留，请重试。',
   'common.cancel': '取消',
   'common.close': '关闭',
   'common.filter': '筛选',

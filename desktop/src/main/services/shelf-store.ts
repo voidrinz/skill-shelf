@@ -72,6 +72,14 @@ const EMPTY_STATE: ShelfState = {
 }
 
 export class ShelfStore {
+  private mutationTail: Promise<unknown> = Promise.resolve()
+
+  private mutate<T>(operation: () => Promise<T>): Promise<T> {
+    const result = this.mutationTail.then(operation)
+    this.mutationTail = result.catch(() => undefined)
+    return result
+  }
+
   private state: ShelfState | null = null
 
   constructor(private readonly filePath: string) {}
@@ -91,6 +99,12 @@ export class ShelfStore {
   }
 
   async createGroup(input: CreateGroupInput): Promise<ShelfState> {
+    return this.mutate(() => this.createGroupMutation(input))
+  }
+
+  private async createGroupMutation(
+    input: CreateGroupInput
+  ): Promise<ShelfState> {
     const state = await this.getState()
     const name = input.name.trim().slice(0, 48)
     if (!name) throw new Error('Group name is required')
@@ -116,6 +130,10 @@ export class ShelfStore {
   }
 
   async saveGroup(input: SaveGroupInput): Promise<ShelfState> {
+    return this.mutate(() => this.saveGroupMutation(input))
+  }
+
+  private async saveGroupMutation(input: SaveGroupInput): Promise<ShelfState> {
     const state = await this.getState()
     const folder = state.groups.find((group) => group.id === input.folderId)
     if (!folder) throw new Error('Folder is no longer available')
@@ -155,6 +173,12 @@ export class ShelfStore {
   }
 
   async initializeTrackedSkills(skillIds: string[]): Promise<ShelfState> {
+    return this.mutate(() => this.initializeTrackedSkillsMutation(skillIds))
+  }
+
+  private async initializeTrackedSkillsMutation(
+    skillIds: string[]
+  ): Promise<ShelfState> {
     const state = await this.getState()
     if (state.trackedSkillIds !== null) return state
     state.trackedSkillIds = normalizeSkillIds(skillIds)
@@ -163,6 +187,15 @@ export class ShelfStore {
   }
 
   async initializeProjectSkills(
+    projectIds: string[],
+    skillIds: string[]
+  ): Promise<ShelfState> {
+    return this.mutate(() =>
+      this.initializeProjectSkillsMutation(projectIds, skillIds)
+    )
+  }
+
+  private async initializeProjectSkillsMutation(
     projectIds: string[],
     skillIds: string[]
   ): Promise<ShelfState> {
@@ -184,6 +217,10 @@ export class ShelfStore {
   }
 
   async trackSkills(skillIds: string[]): Promise<ShelfState> {
+    return this.mutate(() => this.trackSkillsMutation(skillIds))
+  }
+
+  private async trackSkillsMutation(skillIds: string[]): Promise<ShelfState> {
     const state = await this.getState()
     const tracked = new Set(state.trackedSkillIds ?? [])
     for (const skillId of normalizeSkillIds(skillIds)) tracked.add(skillId)
@@ -193,6 +230,12 @@ export class ShelfStore {
   }
 
   async replaceUpdateChecks(
+    checks: Map<string, SkillUpdateCheck>
+  ): Promise<ShelfState> {
+    return this.mutate(() => this.replaceUpdateChecksMutation(checks))
+  }
+
+  private async replaceUpdateChecksMutation(
     checks: Map<string, SkillUpdateCheck>
   ): Promise<ShelfState> {
     const state = await this.getState()
@@ -205,6 +248,13 @@ export class ShelfStore {
     skillId: string,
     check: SkillUpdateCheck
   ): Promise<ShelfState> {
+    return this.mutate(() => this.saveUpdateCheckMutation(skillId, check))
+  }
+
+  private async saveUpdateCheckMutation(
+    skillId: string,
+    check: SkillUpdateCheck
+  ): Promise<ShelfState> {
     const state = await this.getState()
     const normalized = normalizeUpdateChecks({ [skillId]: check })[skillId]
     if (!normalized) throw new Error('Invalid Skill update check')
@@ -214,6 +264,10 @@ export class ShelfStore {
   }
 
   async untrackSkills(skillIds: string[]): Promise<ShelfState> {
+    return this.mutate(() => this.untrackSkillsMutation(skillIds))
+  }
+
+  private async untrackSkillsMutation(skillIds: string[]): Promise<ShelfState> {
     const state = await this.getState()
     const removed = new Set(normalizeSkillIds(skillIds))
     state.trackedSkillIds = (state.trackedSkillIds ?? []).filter(
@@ -225,6 +279,10 @@ export class ShelfStore {
   }
 
   async addProject(directoryPath: string): Promise<ShelfState> {
+    return this.mutate(() => this.addProjectMutation(directoryPath))
+  }
+
+  private async addProjectMutation(directoryPath: string): Promise<ShelfState> {
     const path = await realpath(directoryPath)
     const pathStats = await stat(path)
     if (!pathStats.isDirectory()) throw new Error('Project must be a directory')
@@ -242,6 +300,10 @@ export class ShelfStore {
   }
 
   async removeProject(projectId: string): Promise<ShelfState> {
+    return this.mutate(() => this.removeProjectMutation(projectId))
+  }
+
+  private async removeProjectMutation(projectId: string): Promise<ShelfState> {
     const state = await this.getState()
     state.projects = state.projects.filter(
       (project) => project.id !== projectId
@@ -274,6 +336,12 @@ export class ShelfStore {
   }
 
   async saveOrganization(input: SaveOrganizationInput): Promise<ShelfState> {
+    return this.mutate(() => this.saveOrganizationMutation(input))
+  }
+
+  private async saveOrganizationMutation(
+    input: SaveOrganizationInput
+  ): Promise<ShelfState> {
     const state = await this.getState()
     const groupId = state.groups.some((group) => group.id === input.groupId)
       ? input.groupId
@@ -303,6 +371,12 @@ export class ShelfStore {
   async saveSkillDescription(
     input: SaveSkillDescriptionInput
   ): Promise<ShelfState> {
+    return this.mutate(() => this.saveSkillDescriptionMutation(input))
+  }
+
+  private async saveSkillDescriptionMutation(
+    input: SaveSkillDescriptionInput
+  ): Promise<ShelfState> {
     const state = await this.getState()
     const language = normalizeLanguageTag(input.language)
     const description = input.description.trim().slice(0, 4_000)
@@ -327,6 +401,12 @@ export class ShelfStore {
   }
 
   async saveSkillTranslation(
+    input: SaveSkillTranslationInput
+  ): Promise<ShelfState> {
+    return this.mutate(() => this.saveSkillTranslationMutation(input))
+  }
+
+  private async saveSkillTranslationMutation(
     input: SaveSkillTranslationInput
   ): Promise<ShelfState> {
     const state = await this.getState()
@@ -363,10 +443,54 @@ export class ShelfStore {
   async updateSettings(
     input: UpdateDesktopSettingsInput
   ): Promise<DesktopSettings> {
+    return this.mutate(() => this.updateSettingsMutation(input))
+  }
+
+  private async updateSettingsMutation(
+    input: UpdateDesktopSettingsInput
+  ): Promise<DesktopSettings> {
     const state = await this.getState()
     state.settings = normalizeDesktopSettings({ ...state.settings, ...input })
     await this.persist(state)
     return state.settings
+  }
+
+  async applySyncPatch(input: {
+    revision: string
+    groups: ShelfGroup[]
+    organizations: Record<string, SkillOrganization>
+    settings: DesktopSettings
+  }): Promise<void> {
+    return this.mutate(() => this.applySyncPatchMutation(input))
+  }
+
+  private async applySyncPatchMutation(input: {
+    revision: string
+    groups: ShelfGroup[]
+    organizations: Record<string, SkillOrganization>
+    settings: DesktopSettings
+  }): Promise<void> {
+    const current = await this.getState()
+    if (getSyncRevision(current) !== input.revision) {
+      throw new Error('Sync preview is outdated')
+    }
+    const next = normalizeShelfState({
+      ...current,
+      groups: input.groups,
+      organizations: input.organizations,
+      settings: input.settings,
+    })
+    // Keep the previous metadata before committing the whole merge atomically.
+    await mkdir(dirname(this.filePath), { recursive: true })
+    const backupPath = `${this.filePath}.sync-backup`
+    await writeFile(
+      `${backupPath}.tmp`,
+      `${JSON.stringify(current, null, 2)}\n`,
+      { mode: 0o600 }
+    )
+    await rename(`${backupPath}.tmp`, backupPath)
+    await this.persist(next)
+    this.state = next
   }
 
   private async persist(state: ShelfState): Promise<void> {
@@ -376,6 +500,18 @@ export class ShelfStore {
     await rename(tempPath, this.filePath)
     this.state = state
   }
+}
+
+export function getSyncRevision(state: {
+  groups: ShelfGroup[]
+  organizations: Record<string, SkillOrganization>
+  settings: DesktopSettings
+}) {
+  return JSON.stringify({
+    groups: state.groups,
+    organizations: state.organizations,
+    settings: state.settings,
+  })
 }
 
 export function normalizeShelfState(value: unknown): ShelfState {

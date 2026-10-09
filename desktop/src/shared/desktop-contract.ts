@@ -1,4 +1,20 @@
+import type {
+  ApplySyncInput,
+  SyncPreview,
+  WebDavInput,
+  WebDavStatus,
+} from './sync-contract'
+
 export const desktopIpcChannels = {
+  syncExport: 'sync:export',
+  syncImport: 'sync:import',
+  syncApply: 'sync:apply',
+  syncDiscard: 'sync:discard',
+  syncWebDavGet: 'sync:webdav-get',
+  syncWebDavSave: 'sync:webdav-save',
+  syncWebDavTest: 'sync:webdav-test',
+  syncWebDavPull: 'sync:webdav-pull',
+  syncWebDavPush: 'sync:webdav-push',
   appUpdateGet: 'app-update:get',
   appUpdateCheck: 'app-update:check',
   appUpdateDownload: 'app-update:download',
@@ -895,6 +911,17 @@ export interface TerminalExitEvent {
 }
 
 export interface SkillShelfDesktopApi {
+  exportSyncData(): Promise<boolean>
+  importSyncData(): Promise<SyncPreview | null>
+  applySyncData(
+    input: ApplySyncInput
+  ): Promise<{ catalog: CatalogSnapshot; settings: DesktopSettings }>
+  discardSyncPreview(previewId: string): Promise<void>
+  getWebDavSettings(): Promise<WebDavStatus>
+  saveWebDavSettings(input: WebDavInput): Promise<WebDavStatus>
+  testWebDavConnection(): Promise<void>
+  pullWebDavSync(): Promise<SyncPreview>
+  pushWebDavSync(): Promise<SyncPreview>
   getAppUpdate(): Promise<AppUpdateState>
   checkAppUpdate(): Promise<AppUpdateState>
   downloadAppUpdate(): Promise<AppUpdateState>

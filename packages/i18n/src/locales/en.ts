@@ -1,4 +1,116 @@
 export const messages = {
+  'desktop.sync.title': 'Sync',
+  'desktop.sync.description':
+    'Bring your Skill organization to another computer.',
+  'desktop.sync.scopeTitle':
+    'Sync the management data for Skills you already have',
+  'desktop.sync.scopeDescription':
+    'Includes folder hierarchy, tags, canvas positions, custom descriptions and translations. Skill files, installations, local paths and account keys stay on each computer.',
+  'desktop.sync.matchingDescription':
+    'Matches by source and Skill name; local Skills use content fingerprints. Project Skills also match the project name. Missing or ambiguous Skills are skipped.',
+  'desktop.sync.files': 'Export / import',
+  'desktop.sync.filesTitle': 'Transfer with a file',
+  'desktop.sync.filesDescription':
+    'Export on one computer, then import and preview on the other. Only matching Skills receive management data.',
+  'desktop.sync.export': 'Export management data',
+  'desktop.sync.import': 'Import management data',
+  'desktop.sync.exported': 'Management data exported.',
+  'desktop.sync.webdavTitle': 'Use your WebDAV storage',
+  'desktop.sync.webdavDescription':
+    'Manually upload or pull a shared snapshot. Uploads preserve cloud-only Skills; changes are previewed before you confirm.',
+  'desktop.sync.url': 'WebDAV folder URL',
+  'desktop.sync.urlHint':
+    'Use an existing HTTPS folder. Both computers should use the same folder.',
+  'desktop.sync.username': 'Username',
+  'desktop.sync.password': 'Password / app password',
+  'desktop.sync.passwordSaved': 'Keep the current password',
+  'desktop.sync.rememberPassword': 'Remember password on this computer',
+  'desktop.sync.rememberHint':
+    'Stored with system encryption. Otherwise enter it again after restarting.',
+  'desktop.sync.save': 'Save connection',
+  'desktop.sync.reloadSettings': 'Reload connection',
+  'desktop.sync.saved': 'WebDAV connection saved.',
+  'desktop.sync.test': 'Test connection',
+  'desktop.sync.push': 'Upload data',
+  'desktop.sync.pull': 'Pull data',
+  'desktop.sync.saveFirst': 'Save your connection changes first.',
+  'desktop.sync.connected': 'WebDAV connection succeeded.',
+  'desktop.sync.importPreview': 'Import preview',
+  'desktop.sync.uploadPreview': 'Upload preview',
+  'desktop.sync.importPreviewDescription':
+    'Matching Skills receive merged tags and metadata. Other local Skills stay as they are. Nothing changes until you confirm.',
+  'desktop.sync.uploadPreviewDescription':
+    'Matching entries are merged; cloud-only entries are retained. This upload does not change local management data.',
+  'desktop.sync.snapshotDate': 'Snapshot from {date}',
+  'desktop.sync.matched': 'Matched Skills',
+  'desktop.sync.changed': 'Skills with changes',
+  'desktop.sync.skipped': 'Skipped Skills',
+  'desktop.sync.uploadNew': 'Local-only Skills',
+  'desktop.sync.retained': 'Cloud entries retained',
+  'desktop.sync.conflicts': 'Field conflicts',
+  'desktop.sync.staleTranslations':
+    '{count} translations were skipped because the original description differs from this computer.',
+  'desktop.sync.skippedDetails': 'Show skipped entries',
+  'desktop.sync.retainedDetails': 'Show retained cloud entries',
+  'desktop.sync.skip.not-found': 'Not found on this computer',
+  'desktop.sync.skip.ambiguous': 'Multiple entries share the same identity',
+  'desktop.sync.skip.no-identity': 'No reliable identity available',
+  'desktop.sync.chooseConflicts': 'Choose how to resolve conflicts',
+  'desktop.sync.allLocal': 'Use all local values',
+  'desktop.sync.allIncoming': 'Use all incoming values',
+  'desktop.sync.local': 'On this computer',
+  'desktop.sync.incoming': 'From file / cloud',
+  'desktop.sync.empty': 'Empty',
+  'desktop.sync.resolveField': '{skill}: {field} resolution',
+  'desktop.sync.choose': 'Choose a value',
+  'desktop.sync.keepLocal': 'Keep local value',
+  'desktop.sync.useIncoming': 'Use incoming value',
+  'desktop.sync.importPreferences': 'Also import app preferences',
+  'desktop.sync.uploadPreferences': 'Also upload app preferences',
+  'desktop.sync.preferencesDescription':
+    'Language, theme, list density, default view and Agent preferences. Machine paths and login settings are excluded.',
+  'desktop.sync.noMatches':
+    'No matching Skills were found. You can still choose to import app preferences.',
+  'desktop.sync.confirmImport': 'Confirm merge',
+  'desktop.sync.confirmUpload': 'Confirm upload',
+  'desktop.sync.imported':
+    'Management data merged. A backup of the previous metadata was saved locally.',
+  'desktop.sync.uploaded':
+    'Management data uploaded. Cloud-only entries were preserved.',
+  'desktop.sync.fieldDescription': 'Description · {language}',
+  'desktop.sync.fieldTranslation': 'Translation · {language}',
+  'desktop.sync.fieldFolder': 'Folder hierarchy',
+  'desktop.sync.fieldPosition': 'Canvas position',
+  'desktop.sync.fieldTags': 'Tags',
+  'desktop.sync.error.document':
+    'This is not a supported Skill Shelf sync file, or its data exceeds the allowed size.',
+  'desktop.sync.error.outdated':
+    'Local data changed after this preview. Cancel and preview again.',
+  'desktop.sync.error.choices':
+    'Choose a value for every conflict before continuing.',
+  'desktop.sync.error.ambiguous':
+    'Some Skills have duplicate identities. Use file import to review them; the cloud snapshot was not changed.',
+  'desktop.sync.error.credentials':
+    'The saved password could not be read or stored securely on this computer.',
+  'desktop.sync.error.url':
+    'Enter a valid HTTPS WebDAV folder URL without credentials or query parameters.',
+  'desktop.sync.error.auth':
+    'WebDAV denied access. Check your username, password and folder permissions.',
+  'desktop.sync.error.remoteChanged':
+    'The cloud file changed after your preview. Cancel and preview again.',
+  'desktop.sync.error.folder':
+    'The WebDAV folder does not exist. Create it on your server and save its URL.',
+  'desktop.sync.error.etag':
+    'This WebDAV server cannot protect uploads from concurrent changes. Use file export / import instead.',
+  'desktop.sync.error.noData':
+    'No sync data exists in this folder yet. Upload from the first computer.',
+  'desktop.sync.error.timeout':
+    'WebDAV timed out. Your local data is unchanged; please retry.',
+  'desktop.sync.error.network':
+    'Could not connect to WebDAV. Check the address and network, then retry.',
+  'desktop.sync.error.notConfigured': 'Save a WebDAV connection first.',
+  'desktop.sync.error.default':
+    'The sync operation failed. Your draft is preserved; please retry.',
   'common.cancel': 'Cancel',
   'common.close': 'Close',
   'common.filter': 'Filter',
