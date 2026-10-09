@@ -1,0 +1,49 @@
+.github/workflows/release.yml
+  s_837399686389a9::t_181d52f37d035c 33-59
+.github/workflows/website.yml
+  s_837399686389a9::t_a317af56ea26e7 1-76
+README.md
+  s_837399686389a9::t_f485014c641fea 71-77
+docs/website.md
+  s_837399686389a9::t_c9c8fa2a1fb850 1-37
+packages/i18n/src/locales/en.ts
+  s_195416a04c53e0::t_19011042fdf62a 1042-1045
+packages/i18n/src/locales/zh-CN.ts
+  s_195416a04c53e0::t_a4afba66a5ead3 970-972
+website/package.json
+  s_837399686389a9::t_3ff48c417428bc 10
+website/scripts/prepare-downloads.mjs
+  s_837399686389a9::t_a1188586010d15 1-40
+website/scripts/prepare-downloads.test.mjs
+  s_837399686389a9::t_c58ee3a84130bd 1-55
+website/src/app.tsx
+  s_837399686389a9::t_2b1c1f19aff0c3 6,29,153-158,187,320,324,342-360
+website/src/downloads.ts
+  s_837399686389a9::t_808c1200802e8e 1-11
+website/src/styles.css
+  s_837399686389a9::t_8a931bc2a5c7a5 263-272
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "eb0bf954b90f4b72e4dd3d4d8b015236a047181d",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    },
+    "s_837399686389a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11980-c5f1-7441-9c9f-6788f911657d",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
