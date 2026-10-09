@@ -1,0 +1,39 @@
+desktop/src/renderer/src/managed-skills-workspace.tsx
+  s_195416a04c53e0::t_32a8d114bcd2ad 421-422,424-437,439,441,457-498
+  s_195416a04c53e0::t_8413096051722c 5,7,34,107,111-112,134-140,145-162,366-369,374-378,382-384,386-397,402-420
+  s_195416a04c53e0::t_db895a801470bc 141-144,370-373,398-401
+packages/i18n/src/locales/zh-CN.ts
+  s_195416a04c53e0::t_8413096051722c 376-378
+  s_195416a04c53e0::t_32a8d114bcd2ad 464
+desktop/src/renderer/src/styles.css
+  s_195416a04c53e0::t_8413096051722c 885
+  s_195416a04c53e0::t_32a8d114bcd2ad 5001
+desktop/src/renderer/src/use-library-scope-resize.ts
+  s_195416a04c53e0::t_db895a801470bc 66
+  s_195416a04c53e0::t_8413096051722c 16,18,28-31,33-35
+packages/i18n/src/locales/en.ts
+  s_195416a04c53e0::t_32a8d114bcd2ad 489
+  s_195416a04c53e0::t_8413096051722c 399-401
+desktop/src/renderer/src/managed-skills-workspace.test.tsx
+  s_195416a04c53e0::t_51235ed03be714 1-27,36,38,61-75,80-83,87-90,95-96,102-103,109-110,120-126,135-138,145-151,156-157,163-166,173,179-180,184-186,190
+  s_195416a04c53e0::t_a8fdacd8de974a 85,127,152
+  s_195416a04c53e0::t_22aa8f45f86373 112-115
+  s_195416a04c53e0::t_db895a801470bc 28-35,37,39-60,76-79,84,86,91-94,97-101,104-108,117-119,128-134,139-144,153-155,158-162,167-172,174-178,181-183,187-189
+  s_195416a04c53e0::t_a1c12b280c8a3d 111,116
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "8f737f7ddd5b4aada40c8e3ba1ff60c589cc7f7d",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
