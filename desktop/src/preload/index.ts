@@ -5,8 +5,10 @@ import { desktopIpcChannels } from '../shared/desktop-contract'
 import { trayApi } from './tray'
 
 const desktopApi: SkillShelfDesktopApi = {
-  exportSyncData: () => ipcRenderer.invoke(desktopIpcChannels.syncExport),
-  importSyncData: () => ipcRenderer.invoke(desktopIpcChannels.syncImport),
+  exportSyncData: (password) =>
+    ipcRenderer.invoke(desktopIpcChannels.syncExport, password),
+  importSyncData: (password) =>
+    ipcRenderer.invoke(desktopIpcChannels.syncImport, password),
   applySyncData: (input) =>
     ipcRenderer.invoke(desktopIpcChannels.syncApply, input),
   discardSyncPreview: (id) =>
@@ -16,8 +18,10 @@ const desktopApi: SkillShelfDesktopApi = {
     ipcRenderer.invoke(desktopIpcChannels.syncWebDavSave, input),
   testWebDavConnection: () =>
     ipcRenderer.invoke(desktopIpcChannels.syncWebDavTest),
-  pullWebDavSync: () => ipcRenderer.invoke(desktopIpcChannels.syncWebDavPull),
-  pushWebDavSync: () => ipcRenderer.invoke(desktopIpcChannels.syncWebDavPush),
+  pullWebDavSync: (password) =>
+    ipcRenderer.invoke(desktopIpcChannels.syncWebDavPull, password),
+  pushWebDavSync: (password) =>
+    ipcRenderer.invoke(desktopIpcChannels.syncWebDavPush, password),
   getAppUpdate: () => ipcRenderer.invoke(desktopIpcChannels.appUpdateGet),
   checkAppUpdate: () => ipcRenderer.invoke(desktopIpcChannels.appUpdateCheck),
   downloadAppUpdate: () =>

@@ -5,7 +5,24 @@ export const messages = {
   'desktop.sync.description': '在不同电脑间同步你的 Skill 整理成果。',
   'desktop.sync.scopeTitle': '同步整理成果与应用偏好',
   'desktop.sync.scopeDescription':
-    '包含 Packs、分组层级、标签、画布位置、自定义描述和译文；也可同步应用及 AI 偏好。Skill 文件、安装情况、本机路径和账号密钥保留在各自电脑。',
+    '包含 Packs、分组层级、标签、画布位置、自定义描述和译文；也可同步应用及 AI 配置。AI API Key 使用同步密码加密，Skill 文件、安装情况、本机路径和 WebDAV 账号凭据保留在各自电脑。',
+  'desktop.sync.encryptionTitle': 'AI 配置同步',
+  'desktop.sync.encryptionPassword': '同步密码',
+  'desktop.sync.encryptionHint':
+    '两台电脑使用同一密码（至少 8 位）保护 AI API Key。它与 WebDAV 登录密码不同，仅在当前页面打开期间保留。',
+  'desktop.sync.importAiConfiguration': '同时导入 AI 配置',
+  'desktop.sync.uploadAiConfiguration': '同时上传 AI 配置',
+  'desktop.sync.aiConfigurationDescription':
+    '包含 API Key、连接启用状态、模型、默认翻译语言和上下文偏好。导入会替换对应提供商的本机配置；连接是否可用由各电脑自行检查。',
+  'desktop.sync.aiConnectionSummary': '{provider}：{key}，{state}。',
+  'desktop.sync.aiKeyPresent': '包含 API Key',
+  'desktop.sync.aiKeyAbsent': '未设置 API Key',
+  'desktop.sync.aiConnectionEnabled': '已启用',
+  'desktop.sync.aiConnectionDisabled': '已停用',
+  'desktop.sync.error.encryptionPassword':
+    '请输入至少 8 位的同步密码以传输 AI 提供商配置，两台电脑需使用相同的密码。',
+  'desktop.sync.error.decryption':
+    '无法解密 AI 配置，请检查同步密码是否正确，或同步文件是否损坏。',
   'desktop.sync.matchingDescription':
     '按来源和 Skill 名称匹配；本地 Skill 使用内容指纹，项目 Skill 还会匹配项目名称。未找到或无法确定的条目会跳过。',
   'desktop.sync.files': '导出／导入',

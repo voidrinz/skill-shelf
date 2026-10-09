@@ -4,7 +4,24 @@ export const messages = {
     'Bring your Skill organization to another computer.',
   'desktop.sync.scopeTitle': 'Sync organization and app preferences',
   'desktop.sync.scopeDescription':
-    'Includes Packs, folder hierarchy, tags, canvas positions, custom descriptions and translations, with optional app and AI preferences. Skill files, installations, local paths and account keys stay on each computer.',
+    'Includes Packs, folder hierarchy, tags, canvas positions, custom descriptions and translations, with optional app and AI configuration. AI API keys are encrypted with your sync password. Skill files, installations, local paths and WebDAV credentials stay on each computer.',
+  'desktop.sync.encryptionTitle': 'AI configuration sync',
+  'desktop.sync.encryptionPassword': 'Sync password',
+  'desktop.sync.encryptionHint':
+    'Use the same password (at least 8 characters) on both computers to protect AI API keys. This is separate from your WebDAV password and is kept only while this page is open.',
+  'desktop.sync.importAiConfiguration': 'Also import AI configuration',
+  'desktop.sync.uploadAiConfiguration': 'Also upload AI configuration',
+  'desktop.sync.aiConfigurationDescription':
+    'Includes API keys, connection enabled states, models, default translation language and context preferences. Import replaces the corresponding local provider configuration. Connection checks run separately on each computer.',
+  'desktop.sync.aiConnectionSummary': '{provider}: {key}, {state}.',
+  'desktop.sync.aiKeyPresent': 'API key included',
+  'desktop.sync.aiKeyAbsent': 'no API key',
+  'desktop.sync.aiConnectionEnabled': 'enabled',
+  'desktop.sync.aiConnectionDisabled': 'disabled',
+  'desktop.sync.error.encryptionPassword':
+    'Enter a sync password of at least 8 characters to transfer AI provider configuration. Use the same password on both computers.',
+  'desktop.sync.error.decryption':
+    'Could not decrypt the AI configuration. Check your sync password; the file may also be damaged.',
   'desktop.sync.matchingDescription':
     'Matches by source and Skill name; local Skills use content fingerprints. Project Skills also match the project name. Missing or ambiguous Skills are skipped.',
   'desktop.sync.files': 'Export / import',

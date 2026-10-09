@@ -11,7 +11,11 @@ import type {
 import type { SyncDocument, SyncPreview } from '../../shared/sync-contract'
 import { MetadataSyncService, parseSyncDocument } from './metadata-sync-service'
 import { ShelfStore } from './shelf-store'
-import { AiProviderService } from './ai-provider-service'
+import {
+  AiProviderService,
+  type DeepSeekTextGenerator,
+} from './ai-provider-service'
+import { decryptAiConnections } from './sync-encryption'
 import { ManagedSkillService } from './managed-skill-service'
 
 const directories: string[] = []
@@ -67,7 +71,10 @@ async function setup(skills: InstalledSkill[]) {
   return { directory, path, store, service, getCatalog }
 }
 
-async function setupExtended(names: string[]) {
+async function setupExtended(
+  names: string[],
+  generateText?: DeepSeekTextGenerator
+) {
   const skills = names.map((name) => skill(name))
   const fixture = await setup(skills)
   for (const item of skills) {
@@ -94,6 +101,7 @@ async function setupExtended(names: string[]) {
   )
   const ai = new AiProviderService({
     settingsPath: join(fixture.directory, 'ai.json'),
+    generateText,
   })
   await ai.initialize()
   const service = new MetadataSyncService(fixture.store, fixture.getCatalog, {
@@ -1053,4 +1061,222 @@ describe('metadata sync', () => {
     expect(b.managed.snapshot().packs[0]!.skillIds).toEqual([])
     expect(b.managed.snapshot().skills).toHaveLength(2)
   })
+})
+
+describe('encrypted AI configuration sync', () => {
+  const encryption = { password: 'synthetic-sync-password' }
+  const configure = (
+    ai: AiProviderService,
+    apiKey = 'sk-synthetic-remote-key',
+    enabled = true
+  ) =>
+    ai.saveSettings({
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      apiKey,
+      enabled,
+      targetLanguage: 'zh-CN',
+    })
+
+  it('imports usable credentials on an unconfigured computer without exposing them in the snapshot or preview', async () => {
+    const generateText = vi.fn<DeepSeekTextGenerator>(
+      async () => 'Synthetic result'
+    )
+    const a = await setupExtended([])
+    const b = await setupExtended([], generateText)
+    await configure(a.ai)
+    const document = await a.service.exportDocument(encryption)
+    const contents = JSON.stringify(document)
+    expect(document.version).toBe(3)
+    expect(document.aiConnections).toBeTruthy()
+    expect(contents).not.toContain('sk-synthetic-remote-key')
+    expect(contents).not.toContain(encryption.password)
+    const preview = await b.service.preview(contents, 'import', encryption)
+    expect(preview.aiConnections).toEqual([
+      { provider: 'deepseek', hasApiKey: true, enabled: true },
+    ])
+    expect(JSON.stringify(preview)).not.toContain('sk-synthetic-remote-key')
+    expect(b.ai.getSettingsStatus().hasApiKey).toBe(false)
+    const result = await b.service.apply({
+      ...choices(preview),
+      includeAiPreferences: true,
+    })
+    expect(result.aiSettings).toMatchObject({
+      configured: true,
+      enabled: true,
+      targetLanguage: 'zh-CN',
+    })
+    expect(JSON.stringify(result)).not.toContain('sk-synthetic-remote-key')
+    await expect(
+      b.ai.generateText({
+        prompt: 'Synthetic prompt',
+        system: 'Synthetic system',
+      })
+    ).resolves.toMatchObject({ content: 'Synthetic result' })
+    expect(generateText).toHaveBeenCalledWith(
+      expect.objectContaining({ apiKey: 'sk-synthetic-remote-key' })
+    )
+    const reloaded = new AiProviderService({
+      settingsPath: join(b.directory, 'ai.json'),
+    })
+    expect(await reloaded.initialize()).toMatchObject({
+      configured: true,
+      enabled: true,
+    })
+  })
+
+  it('keeps all local AI configuration when the user opts out, and rejects wrong passwords before changing data', async () => {
+    const a = await setupExtended([])
+    const b = await setupExtended([])
+    await configure(a.ai)
+    await configure(b.ai, 'sk-synthetic-local-key', false)
+    const before = await readFile(join(b.directory, 'ai.json'), 'utf8')
+    const contents = JSON.stringify(await a.service.exportDocument(encryption))
+    await expect(a.service.exportDocument({})).rejects.toThrow(
+      'password required'
+    )
+    await expect(b.service.preview(contents)).rejects.toThrow(
+      'password required'
+    )
+    await expect(
+      b.service.preview(contents, 'import', { password: 'wrong-password' })
+    ).rejects.toThrow('Sync decryption failed')
+    expect(await readFile(join(b.directory, 'ai.json'), 'utf8')).toBe(before)
+    const preview = await b.service.preview(contents, 'import', encryption)
+    await b.service.apply({ ...choices(preview), includeAiPreferences: false })
+    expect(await readFile(join(b.directory, 'ai.json'), 'utf8')).toBe(before)
+  })
+
+  it('uploads encrypted local configuration without changing local data and preserves cloud credentials when opted out', async () => {
+    const a = await setupExtended([])
+    const b = await setupExtended([])
+    await configure(a.ai)
+    await configure(b.ai, 'sk-synthetic-local-key', false)
+    const remote = await a.service.exportDocument(encryption)
+    const contents = JSON.stringify(remote)
+    const before = await readFile(join(b.directory, 'ai.json'), 'utf8')
+    const upload = vi.fn(async (_document: SyncDocument) => {})
+    const first = await b.service.preview(contents, 'upload', encryption)
+    await b.service.apply(
+      { ...choices(first), includeAiPreferences: false },
+      upload
+    )
+    expect(upload.mock.calls[0]![0].aiConnections).toEqual(remote.aiConnections)
+    const second = await b.service.preview(contents, 'upload', encryption)
+    await b.service.apply(
+      { ...choices(second), includeAiPreferences: true },
+      upload
+    )
+    const uploaded = upload.mock.calls[1]![0]
+    expect(uploaded.version).toBe(3)
+    expect(JSON.stringify(uploaded)).not.toContain('sk-synthetic-local-key')
+    expect(
+      await decryptAiConnections(uploaded.aiConnections!, encryption.password)
+    ).toEqual([
+      {
+        provider: 'deepseek',
+        apiKey: 'sk-synthetic-local-key',
+        enabled: false,
+      },
+    ])
+    expect(await readFile(join(b.directory, 'ai.json'), 'utf8')).toBe(before)
+    const emptyRemote = { ...remote, skills: [], aiConnections: undefined }
+    const fresh = await b.service.preview(
+      JSON.stringify(emptyRemote),
+      'upload',
+      encryption
+    )
+    await b.service.apply(
+      { ...choices(fresh), includeAiPreferences: true },
+      upload
+    )
+    expect(upload.mock.calls[2]![0].aiConnections).toBeTruthy()
+  })
+
+  it.each(['key', 'enabled'] as const)(
+    'rejects an obsolete preview after the local provider %s changes',
+    async (change) => {
+      const a = await setupExtended([])
+      const b = await setupExtended([])
+      await configure(a.ai)
+      await configure(b.ai, 'sk-synthetic-local-key')
+      const preview = await b.service.preview(
+        JSON.stringify(await a.service.exportDocument(encryption)),
+        'import',
+        encryption
+      )
+      await configure(
+        b.ai,
+        change === 'key' ? 'sk-synthetic-newer-key' : 'sk-synthetic-local-key',
+        change !== 'enabled'
+      )
+      await expect(
+        b.service.apply({ ...choices(preview), includeAiPreferences: true })
+      ).rejects.toThrow('outdated')
+      expect(b.ai.getPortableConnections()[0]).toMatchObject({
+        apiKey:
+          change === 'key'
+            ? 'sk-synthetic-newer-key'
+            : 'sk-synthetic-local-key',
+      })
+    }
+  )
+
+  it('restores previous credentials and verification results when a later write fails, then permits retry', async () => {
+    const a = await setupExtended([])
+    const b = await setupExtended([], async () => 'OK')
+    await configure(a.ai)
+    await configure(b.ai, 'sk-synthetic-local-key', true)
+    await b.ai.verify({ provider: 'deepseek', modelId: 'deepseek-v4-flash' })
+    const before = b.ai.getSettingsStatus()
+    const preview = await b.service.preview(
+      JSON.stringify(await a.service.exportDocument(encryption)),
+      'import',
+      encryption
+    )
+    vi.spyOn(b.store, 'applySyncPatch').mockRejectedValueOnce(
+      new Error('Disk full')
+    )
+    await expect(
+      b.service.apply({ ...choices(preview), includeAiPreferences: true })
+    ).rejects.toThrow('Disk full')
+    expect(b.ai.getSettingsStatus()).toEqual(before)
+    expect(b.ai.getPortableConnections()[0]!.apiKey).toBe(
+      'sk-synthetic-local-key'
+    )
+    await b.service.apply({ ...choices(preview), includeAiPreferences: true })
+    expect(b.ai.getPortableConnections()[0]!.apiKey).toBe(
+      'sk-synthetic-remote-key'
+    )
+    expect(b.ai.getSettingsStatus().availableModels[0]!.verification).toBe(
+      'unverified'
+    )
+    expect(
+      await readFile(join(b.directory, 'ai.json.sync-backup'), 'utf8')
+    ).toContain('sk-synthetic-local-key')
+  })
+
+  it.each(['disabled', 'removed'] as const)(
+    'syncs an explicitly %s provider without re-enabling it',
+    async (state) => {
+      const a = await setupExtended([])
+      const b = await setupExtended([])
+      await configure(a.ai, 'sk-synthetic-remote-key', false)
+      await configure(b.ai, 'sk-synthetic-local-key', true)
+      if (state === 'removed') await a.ai.clearSettings('deepseek')
+      const preview = await b.service.preview(
+        JSON.stringify(await a.service.exportDocument(encryption)),
+        'import',
+        encryption
+      )
+      await b.service.apply({ ...choices(preview), includeAiPreferences: true })
+      expect(b.ai.getSettingsStatus()).toMatchObject({
+        enabled: false,
+        hasApiKey: state !== 'removed',
+      })
+      expect(b.ai.getPortableConnections()[0]!.apiKey).toBe(
+        state === 'removed' ? null : 'sk-synthetic-remote-key'
+      )
+    }
+  )
 })

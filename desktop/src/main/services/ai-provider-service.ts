@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible'
 import { generateText as generateTextWithAiSdk } from 'ai'
 
@@ -17,7 +18,11 @@ import {
   aiProviderRegistry,
   defaultAiModelRoleSettings,
 } from '../../shared/desktop-contract'
-import type { PortableAiPreferences } from '../../shared/sync-contract'
+import type {
+  PortableAiConnection,
+  PortableAiPreferences,
+} from '../../shared/sync-contract'
+import { normalizeAiConnections } from './sync-encryption'
 
 import {
   LocalAiStorage,
@@ -281,11 +286,39 @@ export class AiProviderService {
     }
   }
 
-  prepareSyncPreferences(value: PortableAiPreferences, revision: string) {
+  getPortableConnections(): PortableAiConnection[] {
+    return Object.values(this.configuration?.connections ?? {}).map(
+      (connection) => ({
+        provider: connection.provider,
+        apiKey: connection.apiKey,
+        enabled: connection.enabled,
+      })
+    )
+  }
+
+  getSyncRevision(): string {
+    return createHash('sha256')
+      .update(
+        JSON.stringify({
+          preferences: this.getPortablePreferences(),
+          connections: this.getPortableConnections(),
+        })
+      )
+      .digest('hex')
+  }
+
+  prepareSyncPreferences(
+    value: PortableAiPreferences,
+    revision: string,
+    connections?: PortableAiConnection[]
+  ) {
     this.storage.assertWritable()
-    if (JSON.stringify(this.getPortablePreferences()) !== revision)
+    if (this.getSyncRevision() !== revision)
       throw new Error('Sync preview is outdated')
     const preferences = normalizePortableAiPreferences(value)
+    const incomingConnections = connections
+      ? normalizeAiConnections(connections)
+      : []
     const original = this.configuration
     const previous = structuredClone(
       original ?? defaultConfiguration(this.now())
@@ -297,14 +330,23 @@ export class AiProviderService {
     )) {
       const provider = assertProviderId(providerValue)
       const connection = previous.connections[provider]
+      const incoming = incomingConnections.find(
+        (item) => item.provider === provider
+      )
+      const apiKey = incoming ? incoming.apiKey : (connection?.apiKey ?? null)
       next.connections[provider] = {
-        apiKey: connection?.apiKey ?? null,
+        apiKey,
         availableModels: models,
-        enabled: connection?.enabled ?? false,
-        modelVerifications: retainModelVerifications(
-          connection?.modelVerifications ?? {},
-          models
-        ),
+        enabled:
+          Boolean(apiKey) &&
+          (incoming?.enabled ?? connection?.enabled ?? false),
+        modelVerifications:
+          apiKey !== connection?.apiKey
+            ? {}
+            : retainModelVerifications(
+                connection?.modelVerifications ?? {},
+                models
+              ),
         provider,
         updatedAt,
       }

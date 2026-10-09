@@ -5,6 +5,11 @@ import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
 import type { SyncDocument } from '../../shared/sync-contract'
 import { WebDavSyncService, validateWebDavInput } from './webdav-sync-service'
+import {
+  defaultAiModelRoleSettings,
+  aiProviderRegistry,
+} from '../../shared/desktop-contract'
+import { decryptAiConnections, encryptAiConnections } from './sync-encryption'
 
 const directories: string[] = []
 const servers: Server[] = []
@@ -46,7 +51,26 @@ async function setup(request?: typeof fetch, storage = encryption) {
 }
 
 describe('WebDAV sync', () => {
-  it('uses a real WebDAV endpoint with authentication and conditional writes, including remote conflicts', async () => {
+  it('transfers encrypted AI configuration through a real WebDAV endpoint with authentication and conditional writes', async () => {
+    const syncPassword = 'synthetic-sync-password'
+    const connections = [
+      {
+        provider: 'deepseek' as const,
+        apiKey: 'sk-synthetic-provider-key',
+        enabled: true,
+      },
+    ]
+    const protectedDocument: SyncDocument = {
+      ...document,
+      version: 3,
+      aiPreferences: {
+        availableModels: { deepseek: [...aiProviderRegistry[0].models] },
+        contextMode: 'skill-md',
+        models: defaultAiModelRoleSettings,
+        targetLanguage: 'zh-CN',
+      },
+      aiConnections: await encryptAiConnections(connections, syncPassword),
+    }
     let contents: string | null = null
     let etag = '"v1"'
     const requests: Array<{ method: string; path: string }> = []
@@ -100,12 +124,20 @@ describe('WebDAV sync', () => {
     await service.test()
     const missing = await service.read()
     expect(missing).toEqual({ contents: null, etag: null })
-    await service.upload(JSON.stringify(document), missing)
+    await service.upload(JSON.stringify(protectedDocument), missing)
     const first = await service.read()
     expect(JSON.parse(first.contents!).preferences.theme).toBe('dark')
+    expect(first.contents).not.toContain(connections[0]!.apiKey)
+    expect(first.contents).not.toContain(syncPassword)
+    expect(
+      await decryptAiConnections(
+        JSON.parse(first.contents!).aiConnections,
+        syncPassword
+      )
+    ).toEqual(connections)
     etag = '"changed-by-another-computer"'
     await expect(
-      service.upload(JSON.stringify(document), first)
+      service.upload(JSON.stringify(protectedDocument), first)
     ).rejects.toThrow('HTTP 412')
     expect(
       requests.every((request) =>

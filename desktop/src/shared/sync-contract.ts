@@ -46,12 +46,34 @@ export interface SyncSkill {
 
 export interface SyncDocument {
   format: 'skill-shelf-metadata'
-  version: 1 | 2
+  version: 1 | 2 | 3
   exportedAt: string
   skills: SyncSkill[]
   preferences: Partial<PortableSettings>
   packs?: SyncPack[]
   aiPreferences?: PortableAiPreferences
+  aiConnections?: EncryptedAiConnections
+}
+
+export interface PortableAiConnection {
+  provider: AiProviderId
+  apiKey: string | null
+  enabled: boolean
+}
+
+export interface EncryptedAiConnections {
+  cipher: 'aes-256-gcm'
+  kdf: 'scrypt'
+  salt: string
+  iv: string
+  tag: string
+  ciphertext: string
+}
+
+export interface SyncAiConnectionPreview {
+  provider: AiProviderId
+  hasApiKey: boolean
+  enabled: boolean
 }
 
 export interface PortableAiPreferences {
@@ -110,6 +132,7 @@ export interface SyncPreview {
   preferences: Partial<PortableSettings>
   packs?: SyncPackPreview
   aiPreferences?: PortableAiPreferences
+  aiConnections?: SyncAiConnectionPreview[]
 }
 
 export interface ApplySyncInput {

@@ -74,6 +74,7 @@ import {
   type RemoteSyncFile,
 } from './services/webdav-sync-service'
 import type { ApplySyncInput } from '../shared/sync-contract'
+import { assertSyncPassword } from './services/sync-encryption'
 import { SkillsApiService } from './services/skills-api-service'
 import { listSkillFiles, readSkillFile } from './services/skill-file-service'
 import {
@@ -263,7 +264,10 @@ function registerIpc(
         app.getLocale()
       )
     )
-  syncHandler(desktopIpcChannels.syncExport, async () => {
+  syncHandler(desktopIpcChannels.syncExport, async (input) => {
+    const password = assertSyncPassword(input)
+    if (aiProvider.getPortableConnections().length && !password)
+      throw new Error('Sync encryption password required')
     const messages = await syncMessages()
     const result = await dialog.showSaveDialog(mainWindow!, {
       title: translate(messages, 'desktop.sync.export'),
@@ -273,12 +277,13 @@ function registerIpc(
     if (result.canceled || !result.filePath) return false
     await writeFile(
       result.filePath,
-      `${JSON.stringify(await metadataSync.exportDocument(), null, 2)}\n`,
+      `${JSON.stringify(await metadataSync.exportDocument({ password }), null, 2)}\n`,
       { mode: 0o600 }
     )
     return true
   })
-  syncHandler(desktopIpcChannels.syncImport, async () => {
+  syncHandler(desktopIpcChannels.syncImport, async (input) => {
+    const password = assertSyncPassword(input)
     const messages = await syncMessages()
     const result = await dialog.showOpenDialog(mainWindow!, {
       title: translate(messages, 'desktop.sync.import'),
@@ -289,7 +294,9 @@ function registerIpc(
     if ((await stat(result.filePaths[0])).size > MAX_SYNC_BYTES)
       throw new Error('Invalid sync document')
     const preview = await metadataSync.preview(
-      await readFile(result.filePaths[0], 'utf8')
+      await readFile(result.filePaths[0], 'utf8'),
+      'import',
+      { password }
     )
     uploadPreview = null
     return preview
@@ -330,14 +337,18 @@ function registerIpc(
     return webDavSync.save(input)
   })
   syncHandler(desktopIpcChannels.syncWebDavTest, () => webDavSync.test())
-  syncHandler(desktopIpcChannels.syncWebDavPull, async () => {
+  syncHandler(desktopIpcChannels.syncWebDavPull, async (input) => {
+    const password = assertSyncPassword(input)
     const remote = await webDavSync.read()
     if (!remote.contents) throw new Error('Sync WebDAV has no data')
-    const preview = await metadataSync.preview(remote.contents)
+    const preview = await metadataSync.preview(remote.contents, 'import', {
+      password,
+    })
     uploadPreview = null
     return preview
   })
-  syncHandler(desktopIpcChannels.syncWebDavPush, async () => {
+  syncHandler(desktopIpcChannels.syncWebDavPush, async (input) => {
+    const password = assertSyncPassword(input)
     const remote = await webDavSync.read()
     const preview = await metadataSync.preview(
       remote.contents ??
@@ -348,7 +359,8 @@ function registerIpc(
           skills: [],
           preferences: {},
         }),
-      'upload'
+      'upload',
+      { password }
     )
     uploadPreview = { id: preview.id, remote }
     return preview

@@ -920,15 +920,15 @@ export interface TerminalExitEvent {
 }
 
 export interface SkillShelfDesktopApi {
-  exportSyncData(): Promise<boolean>
-  importSyncData(): Promise<SyncPreview | null>
+  exportSyncData(password?: string): Promise<boolean>
+  importSyncData(password?: string): Promise<SyncPreview | null>
   applySyncData(input: ApplySyncInput): Promise<SyncApplyResult>
   discardSyncPreview(previewId: string): Promise<void>
   getWebDavSettings(): Promise<WebDavStatus>
   saveWebDavSettings(input: WebDavInput): Promise<WebDavStatus>
   testWebDavConnection(): Promise<void>
-  pullWebDavSync(): Promise<SyncPreview>
-  pushWebDavSync(): Promise<SyncPreview>
+  pullWebDavSync(password?: string): Promise<SyncPreview>
+  pushWebDavSync(password?: string): Promise<SyncPreview>
   getAppUpdate(): Promise<AppUpdateState>
   checkAppUpdate(): Promise<AppUpdateState>
   downloadAppUpdate(): Promise<AppUpdateState>

@@ -126,6 +126,110 @@ it('opens an unconfigured sync page in StrictMode without alerts or automatic sy
   expect(api.pushWebDavSync).not.toHaveBeenCalled()
 })
 
+it('passes the session sync password to file and WebDAV operations without saving it as a WebDAV credential', async () => {
+  const { api } = setup()
+  const password = 'synthetic-sync-password'
+  const exporting = screen.getByRole('button', {
+    name: 'Export management data',
+  })
+  await waitFor(() =>
+    expect((exporting as HTMLButtonElement).disabled).toBe(false)
+  )
+  const input = screen.getByLabelText('Sync password') as HTMLInputElement
+  expect(input.type).toBe('password')
+  fireEvent.change(input, { target: { value: password } })
+  fireEvent.click(exporting)
+  await waitFor(() => expect(api.exportSyncData).toHaveBeenCalledWith(password))
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Import management data' })
+  )
+  await screen.findByRole('dialog')
+  expect(api.importSyncData).toHaveBeenCalledWith(password)
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  fireEvent.click(screen.getByRole('button', { name: 'Upload data' }))
+  await screen.findByRole('dialog')
+  expect(api.pushWebDavSync).toHaveBeenCalledWith(password)
+  fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
+  fireEvent.click(screen.getByRole('button', { name: 'Pull data' }))
+  await screen.findByRole('dialog')
+  expect(api.pullWebDavSync).toHaveBeenCalledWith(password)
+  expect(api.saveWebDavSettings).not.toHaveBeenCalled()
+})
+
+it('previews provider key presence and enabled state with a single opt-out for AI configuration', async () => {
+  const value: SyncPreview = {
+    ...preview,
+    matched: 0,
+    changed: 0,
+    conflicts: [],
+    aiPreferences: {
+      availableModels: {
+        deepseek: [{ id: 'deepseek-v4-flash', displayName: 'Flash' }],
+      },
+      contextMode: 'skill-md',
+      targetLanguage: 'zh-CN',
+      models: {
+        chat: { provider: 'deepseek', model: 'deepseek-v4-flash' },
+        writing: { provider: 'deepseek', model: 'deepseek-v4-flash' },
+        analysis: { provider: 'deepseek', model: 'deepseek-v4-flash' },
+      },
+    },
+    aiConnections: [{ provider: 'deepseek', hasApiKey: true, enabled: true }],
+  }
+  const { api } = setup({ importPreview: value })
+  const importing = screen.getByRole('button', {
+    name: 'Import management data',
+  })
+  await waitFor(() =>
+    expect((importing as HTMLButtonElement).disabled).toBe(false)
+  )
+  fireEvent.click(importing)
+  await screen.findByRole('dialog')
+  expect(screen.getByText('DeepSeek: API key included, enabled.')).toBeTruthy()
+  const option = screen.getByRole('switch', {
+    name: 'Also import AI configuration',
+  })
+  expect(option.getAttribute('aria-checked')).toBe('true')
+  const confirm = screen.getByRole('button', { name: 'Confirm merge' })
+  expect((confirm as HTMLButtonElement).disabled).toBe(false)
+  fireEvent.click(option)
+  expect((confirm as HTMLButtonElement).disabled).toBe(true)
+  fireEvent.click(
+    screen.getByRole('switch', { name: 'Also import app preferences' })
+  )
+  fireEvent.click(confirm)
+  await waitFor(() =>
+    expect(api.applySyncData).toHaveBeenCalledWith({
+      previewId: value.id,
+      resolutions: {},
+      includePreferences: true,
+      includeAiPreferences: false,
+    })
+  )
+})
+
+it.each([
+  [
+    'Sync encryption password required',
+    'Enter a sync password of at least 8 characters',
+  ],
+  ['Sync decryption failed', 'Could not decrypt the AI configuration'],
+])('explains %s without showing transport details', async (message, text) => {
+  const { api } = setup()
+  api.importSyncData.mockRejectedValueOnce(new Error(message))
+  const importing = screen.getByRole('button', {
+    name: 'Import management data',
+  })
+  await waitFor(() =>
+    expect((importing as HTMLButtonElement).disabled).toBe(false)
+  )
+  fireEvent.click(importing)
+  expect((await screen.findByRole('alert')).textContent).toContain(text)
+  expect(screen.queryByRole('dialog')).toBeNull()
+})
+
 it('places configuration read failures within WebDAV and clears them after reloading', async () => {
   const { api } = setup({
     loadError: new Error('Sync credentials unavailable'),

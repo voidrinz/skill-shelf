@@ -25,6 +25,7 @@ import type {
   SyncPreview,
   WebDavStatus,
 } from '../../shared/sync-contract'
+import { aiProviderRegistry } from '../../shared/desktop-contract'
 import { AI_LANGUAGE_OPTIONS } from './ai-language-options'
 
 type SyncResult = SyncApplyResult
@@ -45,6 +46,7 @@ export function SyncSettings({
   const [url, setUrl] = useState('')
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [syncPassword, setSyncPassword] = useState('')
   const [rememberPassword, setRememberPassword] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
@@ -155,6 +157,13 @@ export function SyncSettings({
     (option) => option.id === aiLanguage
   )
   const aiLanguageName = aiLanguageOption ? t(aiLanguageOption.key) : aiLanguage
+  const aiSettingsLabel = preview?.aiConnections?.length
+    ? preview.mode === 'upload'
+      ? 'desktop.sync.uploadAiConfiguration'
+      : 'desktop.sync.importAiConfiguration'
+    : preview?.mode === 'upload'
+      ? 'desktop.sync.uploadAiPreferences'
+      : 'desktop.sync.importAiPreferences'
 
   return (
     <div className="settings-page sync-settings">
@@ -180,6 +189,32 @@ export function SyncSettings({
         </div>
       ) : null}
       <section className="settings-section">
+        <h3>{t('desktop.sync.encryptionTitle')}</h3>
+        <div className="setting-rows">
+          <div className="setting-row sync-encryption-row">
+            <div>
+              <label htmlFor="sync-encryption-password">
+                <strong>{t('desktop.sync.encryptionPassword')}</strong>
+              </label>
+              <small id="sync-encryption-hint">
+                {t('desktop.sync.encryptionHint')}
+              </small>
+            </div>
+            <Input
+              id="sync-encryption-password"
+              aria-describedby="sync-encryption-hint"
+              className="setting-input"
+              type="password"
+              value={syncPassword}
+              disabled={Boolean(busy)}
+              maxLength={1024}
+              onChange={(event) => setSyncPassword(event.target.value)}
+              autoComplete="off"
+            />
+          </div>
+        </div>
+      </section>
+      <section className="settings-section">
         <h3>{t('desktop.sync.files')}</h3>
         <div className="setting-rows sync-method">
           <FileJson aria-hidden="true" />
@@ -194,7 +229,11 @@ export function SyncSettings({
               variant="outline"
               onClick={() =>
                 void run('export', async () => {
-                  if (await window.skillShelf.exportSyncData())
+                  if (
+                    await window.skillShelf.exportSyncData(
+                      syncPassword || undefined
+                    )
+                  )
                     setStatus(t('desktop.sync.exported'))
                 })
               }
@@ -207,7 +246,11 @@ export function SyncSettings({
               variant="outline"
               onClick={() =>
                 void run('import', async () =>
-                  showPreview(await window.skillShelf.importSyncData())
+                  showPreview(
+                    await window.skillShelf.importSyncData(
+                      syncPassword || undefined
+                    )
+                  )
                 )
               }
             >
@@ -334,7 +377,11 @@ export function SyncSettings({
               variant="outline"
               onClick={() =>
                 void run('push', async () =>
-                  showPreview(await window.skillShelf.pushWebDavSync())
+                  showPreview(
+                    await window.skillShelf.pushWebDavSync(
+                      syncPassword || undefined
+                    )
+                  )
                 )
               }
             >
@@ -346,7 +393,11 @@ export function SyncSettings({
               variant="outline"
               onClick={() =>
                 void run('pull', async () =>
-                  showPreview(await window.skillShelf.pullWebDavSync())
+                  showPreview(
+                    await window.skillShelf.pullWebDavSync(
+                      syncPassword || undefined
+                    )
+                  )
                 )
               }
             >
@@ -593,24 +644,41 @@ export function SyncSettings({
                 {preview.aiPreferences ? (
                   <label className="sync-preferences">
                     <Switch
-                      aria-label={t(
-                        preview.mode === 'upload'
-                          ? 'desktop.sync.uploadAiPreferences'
-                          : 'desktop.sync.importAiPreferences'
-                      )}
+                      aria-label={t(aiSettingsLabel)}
                       checked={includeAiPreferences}
                       disabled={Boolean(busy)}
                       onCheckedChange={setIncludeAiPreferences}
                     />
                     <div>
-                      <strong>
+                      <strong>{t(aiSettingsLabel)}</strong>
+                      <p>
                         {t(
-                          preview.mode === 'upload'
-                            ? 'desktop.sync.uploadAiPreferences'
-                            : 'desktop.sync.importAiPreferences'
+                          preview.aiConnections?.length
+                            ? 'desktop.sync.aiConfigurationDescription'
+                            : 'desktop.sync.aiPreferencesDescription'
                         )}
-                      </strong>
-                      <p>{t('desktop.sync.aiPreferencesDescription')}</p>
+                      </p>
+                      {preview.aiConnections?.map((connection) => (
+                        <p key={connection.provider}>
+                          {t('desktop.sync.aiConnectionSummary', {
+                            provider:
+                              aiProviderRegistry.find(
+                                (provider) =>
+                                  provider.id === connection.provider
+                              )?.displayName ?? connection.provider,
+                            key: t(
+                              connection.hasApiKey
+                                ? 'desktop.sync.aiKeyPresent'
+                                : 'desktop.sync.aiKeyAbsent'
+                            ),
+                            state: t(
+                              connection.enabled
+                                ? 'desktop.sync.aiConnectionEnabled'
+                                : 'desktop.sync.aiConnectionDisabled'
+                            ),
+                          })}
+                        </p>
+                      ))}
                       <p>
                         {t('desktop.sync.aiDefaults', {
                           language: aiLanguageName,
@@ -710,6 +778,13 @@ function fieldLabel(conflict: SyncConflict, t: Translate) {
 }
 function syncError(error: unknown, t: Translate) {
   const message = error instanceof Error ? error.message : String(error)
+  if (message.includes('Sync decryption failed'))
+    return t('desktop.sync.error.decryption')
+  if (
+    message.includes('sync encryption password') ||
+    message.includes('Sync encryption password')
+  )
+    return t('desktop.sync.error.encryptionPassword')
   if (message.includes('rollback failed'))
     return t('desktop.sync.error.rollback')
   if (message.includes('Invalid sync document'))

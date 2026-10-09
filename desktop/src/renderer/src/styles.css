@@ -10069,6 +10069,12 @@ html[data-density='compact']
   gap: 14px;
   margin-top: 18px;
 }
+.sync-encryption-row {
+  flex-wrap: wrap;
+}
+.sync-encryption-row > div:first-child {
+  flex-basis: 280px;
+}
 .sync-webdav-form > label {
   display: grid;
   align-content: start;

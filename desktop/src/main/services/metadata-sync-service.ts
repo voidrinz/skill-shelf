@@ -16,6 +16,7 @@ import {
   type SyncFolder,
   type SyncPreview,
   type SyncSkill,
+  type PortableAiConnection,
 } from '../../shared/sync-contract'
 import {
   getSyncRevision,
@@ -29,6 +30,13 @@ import {
 } from './ai-provider-service'
 import { ManagedSkillService } from './managed-skill-service'
 import { exportSyncPacks, parseSyncPacks, planSyncPacks } from './pack-sync'
+import {
+  assertSyncPassword,
+  decryptAiConnections,
+  encryptAiConnections,
+  parseEncryptedAiConnections,
+  type SyncEncryptionOptions,
+} from './sync-encryption'
 
 export const MAX_SYNC_BYTES = 10 * 1024 * 1024
 const MAX_SKILLS = 10_000
@@ -41,6 +49,20 @@ const emptyOrganization = (): SkillOrganization => ({
 })
 type ShelfState = Awaited<ReturnType<ShelfStore['getState']>>
 
+function mergeAiConnections(
+  remote: PortableAiConnection[],
+  local: PortableAiConnection[]
+) {
+  return [
+    ...new Map(
+      [...remote, ...local].map((connection) => [
+        connection.provider,
+        connection,
+      ])
+    ).values(),
+  ]
+}
+
 export class MetadataSyncService {
   private pending: {
     document: SyncDocument
@@ -51,6 +73,8 @@ export class MetadataSyncService {
     managedRevision?: string
     memberRevision?: string
     aiRevision?: string
+    aiConnections?: PortableAiConnection[]
+    encryption?: SyncEncryptionOptions
   } | null = null
   constructor(
     private readonly store: ShelfStore,
@@ -61,19 +85,26 @@ export class MetadataSyncService {
     } = {}
   ) {}
 
-  async exportDocument(): Promise<SyncDocument> {
+  async exportDocument(
+    encryption?: SyncEncryptionOptions
+  ): Promise<SyncDocument> {
     const catalog = await this.getCatalog()
     const state = structuredClone(await this.store.getState())
-    return this.documentFromState(catalog, state)
+    return this.documentFromState(catalog, state, encryption)
   }
 
   private async documentFromState(
     catalog: CatalogSnapshot,
-    state: ShelfState
+    state: ShelfState,
+    encryption?: SyncEncryptionOptions
   ): Promise<SyncDocument> {
-    return {
+    const connections =
+      this.extensions.aiProvider?.getPortableConnections() ?? []
+    const aiPreferences = this.extensions.aiProvider?.getPortablePreferences()
+    const aiRevision = this.extensions.aiProvider?.getSyncRevision()
+    const document: SyncDocument = {
       format: 'skill-shelf-metadata',
-      version: 2,
+      version: encryption ? 3 : 2,
       exportedAt: new Date().toISOString(),
       skills: await Promise.all(
         catalog.skills.map(async (skill) => {
@@ -110,17 +141,47 @@ export class MetadataSyncService {
             ),
           }
         : {}),
-      ...(this.extensions.aiProvider
-        ? { aiPreferences: this.extensions.aiProvider.getPortablePreferences() }
+      ...(aiPreferences ? { aiPreferences } : {}),
+      ...(encryption && connections.length
+        ? {
+            aiConnections: await encryptAiConnections(
+              connections,
+              encryption.password
+            ),
+          }
         : {}),
     }
+    if (
+      aiRevision &&
+      this.extensions.aiProvider?.getSyncRevision() !== aiRevision
+    )
+      throw new Error('Sync preview is outdated')
+    return document
   }
 
   async preview(
     contents: string,
-    mode: SyncPreview['mode'] = 'import'
+    mode: SyncPreview['mode'] = 'import',
+    encryption?: SyncEncryptionOptions
   ): Promise<SyncPreview> {
     const document = parseSyncDocument(contents)
+    const aiConnections = document.aiConnections
+      ? await decryptAiConnections(document.aiConnections, encryption?.password)
+      : undefined
+    if (
+      aiConnections?.some(
+        (connection) =>
+          !document.aiPreferences?.availableModels[connection.provider]
+      )
+    )
+      throw new Error('Invalid sync document')
+    const localConnections =
+      mode === 'upload' && encryption
+        ? (this.extensions.aiProvider?.getPortableConnections() ?? [])
+        : []
+    const aiRevision = this.extensions.aiProvider?.getSyncRevision()
+    if (localConnections.length && !assertSyncPassword(encryption?.password))
+      throw new Error('Sync encryption password required')
     const catalog = await this.getCatalog()
     const state = structuredClone(await this.store.getState())
     const revision = getSyncRevision(state)
@@ -217,6 +278,23 @@ export class MetadataSyncService {
         ? this.extensions.aiProvider?.getPortablePreferences()
         : document.aiPreferences
     if (aiPreferences) preview.aiPreferences = aiPreferences
+    const previewConnections =
+      mode === 'upload'
+        ? mergeAiConnections(aiConnections ?? [], localConnections)
+        : aiConnections
+    if (previewConnections?.length)
+      preview.aiConnections = previewConnections.map(
+        ({ provider, apiKey, enabled }) => ({
+          provider,
+          hasApiKey: Boolean(apiKey),
+          enabled,
+        })
+      )
+    if (
+      aiRevision &&
+      this.extensions.aiProvider?.getSyncRevision() !== aiRevision
+    )
+      throw new Error('Sync preview is outdated')
     this.pending = {
       document,
       preview,
@@ -233,11 +311,11 @@ export class MetadataSyncService {
         : {}),
       ...(aiPreferences && this.extensions.aiProvider
         ? {
-            aiRevision: JSON.stringify(
-              this.extensions.aiProvider.getPortablePreferences()
-            ),
+            aiRevision,
           }
         : {}),
+      aiConnections,
+      encryption,
     }
     return preview
   }
@@ -318,8 +396,7 @@ export class MetadataSyncService {
     if (
       input.includeAiPreferences &&
       pending.aiRevision &&
-      JSON.stringify(this.extensions.aiProvider?.getPortablePreferences()) !==
-        pending.aiRevision
+      this.extensions.aiProvider?.getSyncRevision() !== pending.aiRevision
     )
       throw new Error('Sync preview is outdated')
     if (upload) {
@@ -359,12 +436,36 @@ export class MetadataSyncService {
       if (
         input.includeAiPreferences &&
         pending.aiRevision &&
-        JSON.stringify(this.extensions.aiProvider?.getPortablePreferences()) !==
-          pending.aiRevision
+        this.extensions.aiProvider?.getSyncRevision() !== pending.aiRevision
+      )
+        throw new Error('Sync preview is outdated')
+      const connections =
+        input.includeAiPreferences && pending.encryption
+          ? mergeAiConnections(
+              pending.aiConnections ?? [],
+              this.extensions.aiProvider?.getPortableConnections() ?? []
+            )
+          : undefined
+      const aiConnections = connections?.length
+        ? await encryptAiConnections(connections, pending.encryption?.password)
+        : pending.document.aiConnections
+      if (
+        input.includeAiPreferences &&
+        pending.aiRevision &&
+        this.extensions.aiProvider?.getSyncRevision() !== pending.aiRevision
+      )
+        throw new Error('Sync preview is outdated')
+      if (
+        getSyncRevision(await this.store.getState()) !== pending.revision ||
+        (pending.managedRevision &&
+          JSON.stringify(this.extensions.managedSkills?.snapshot()) !==
+            pending.managedRevision)
       )
         throw new Error('Sync preview is outdated')
       await upload({
         ...localDocument,
+        version:
+          pending.encryption || aiConnections ? 3 : localDocument.version,
         skills: [...merged.values(), ...unmatched],
         preferences: input.includePreferences
           ? localDocument.preferences
@@ -373,6 +474,7 @@ export class MetadataSyncService {
         aiPreferences: input.includeAiPreferences
           ? localDocument.aiPreferences
           : pending.document.aiPreferences,
+        ...(aiConnections ? { aiConnections } : {}),
       })
     } else {
       if (input.includePreferences)
@@ -402,7 +504,8 @@ export class MetadataSyncService {
         patches.push(
           this.extensions.aiProvider.prepareSyncPreferences(
             pending.document.aiPreferences,
-            pending.aiRevision
+            pending.aiRevision,
+            pending.aiConnections
           )
         )
       try {
@@ -643,7 +746,11 @@ export function parseSyncDocument(contents: string): SyncDocument {
     const document = record(JSON.parse(contents))
     if (
       document.format !== 'skill-shelf-metadata' ||
-      (document.version !== 1 && document.version !== 2) ||
+      (document.version !== 1 &&
+        document.version !== 2 &&
+        document.version !== 3) ||
+      (document.aiConnections !== undefined &&
+        (document.version !== 3 || document.aiPreferences === undefined)) ||
       typeof document.exportedAt !== 'string' ||
       !Number.isFinite(Date.parse(document.exportedAt)) ||
       !Array.isArray(document.skills) ||
@@ -749,6 +856,9 @@ export function parseSyncDocument(contents: string): SyncDocument {
               document.aiPreferences
             ),
           }
+        : {}),
+      ...(document.aiConnections !== undefined
+        ? { aiConnections: parseEncryptedAiConnections(document.aiConnections) }
         : {}),
     }
   } catch {
