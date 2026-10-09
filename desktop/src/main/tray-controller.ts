@@ -113,7 +113,7 @@ export class TrayController {
 
   updateWorkbench(result: WorkbenchScanResult) {
     this.summary = {
-      activeAgents: result.snapshot.stats.activeAgents,
+      activeAgents: result.snapshot.stats.detectedAgents,
       brokenLinks:
         result.snapshot.symlinkHealth.broken +
         result.snapshot.symlinkHealth.inaccessible,

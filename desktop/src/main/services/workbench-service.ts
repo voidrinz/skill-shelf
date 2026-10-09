@@ -1,19 +1,35 @@
-import { access, readdir, readlink, realpath, stat } from 'node:fs/promises'
+import {
+  access,
+  readdir,
+  readFile,
+  readlink,
+  realpath,
+  stat,
+} from 'node:fs/promises'
+import { homedir } from 'node:os'
 import { basename, dirname, isAbsolute, join, resolve } from 'node:path'
 
 import type {
   AgentCoverageEntry,
+  AgentProgramDetection,
   CatalogSnapshot,
   SymlinkHealthSnapshot,
   SymlinkIssue,
   WorkbenchScanResult,
   WorkbenchSnapshot,
+  WorkbenchSkillFile,
 } from '../../shared/desktop-contract'
 import {
   AGENT_REGISTRY_SOURCE,
   getAgentRegistry,
+  getUniversalInstallTarget,
   type AgentRegistryEntry,
 } from './agent-registry'
+import { parseSkillDocument } from './skill-document'
+import {
+  AgentProgramService,
+  type AgentProgramProvider,
+} from './agent-program-service'
 
 interface CatalogProvider {
   scanExternalSkills(): Promise<CatalogSnapshot>
@@ -26,12 +42,17 @@ interface DirectoryScan {
   inaccessible: number
   issues: Omit<SymlinkIssue, 'agentNames'>[]
   linkedSkillNames: Set<string>
+  missingDocuments: number
+  skills: WorkbenchSkillFile[]
   valid: number
 }
 
-interface ActiveAgent {
+interface ObservedAgent {
   directory: string
+  directoryExists: boolean
+  configurationPaths: string[]
   directoryKey: string
+  program: AgentProgramDetection
   registry: AgentRegistryEntry
 }
 
@@ -40,8 +61,26 @@ export class WorkbenchService {
 
   constructor(
     private readonly catalog: CatalogProvider,
-    private readonly registry = getAgentRegistry()
+    private readonly registry = getAgentRegistry(),
+    private readonly sharedSkillDirectory = join(
+      homedir(),
+      '.agents',
+      'skills'
+    ),
+    private readonly programs: AgentProgramProvider = new AgentProgramService()
   ) {}
+
+  async getDirectoryPath(id: string): Promise<string> {
+    const agent = this.registry.find((entry) => entry.id === id)
+    if (id !== 'shared' && !agent) throw new Error('Unknown Agent directory')
+    const path =
+      id === 'shared'
+        ? this.sharedSkillDirectory
+        : await selectExistingSkillDirectory(agent!.skillDirectories)
+    if (!path || !(await directoryExists(path)))
+      throw new Error('Directory not found')
+    return path
+  }
 
   getSnapshot(): Promise<WorkbenchScanResult> {
     if (!this.pendingScan)
@@ -57,38 +96,70 @@ export class WorkbenchService {
     const globalSkills = installedSkills.filter(
       (skill) => skill.scope === 'global'
     )
-    const globalSkillNames = new Set(globalSkills.map((skill) => skill.name))
-    const sourceDirectoryKeys = new Set(
+    // Only the canonical shared directory defines cross-Agent coverage.
+    const [sharedScan, sharedDirectoryKey, programScan] = await Promise.all([
+      scanSkillDirectory(
+        this.sharedSkillDirectory,
+        new Set(globalSkills.map((skill) => skill.name))
+      ),
+      canonicalPath(this.sharedSkillDirectory),
+      this.programs.scan(this.registry),
+    ])
+    const sharedSkillNames = new Set([
+      ...sharedScan.directSkillNames,
+      ...sharedScan.linkedSkillNames,
+    ])
+    const observedAgents = (
       await Promise.all(
-        globalSkills.map((skill) => canonicalPath(dirname(skill.path)))
-      )
-    )
-    const activeAgents = (
-      await Promise.all(
-        this.registry.map(async (registry): Promise<ActiveAgent | null> => {
+        this.registry.map(async (registry): Promise<ObservedAgent | null> => {
           const directory = await selectExistingSkillDirectory(
             registry.skillDirectories
           )
-          if (!directory) return null
-          const directoryKey = await canonicalPath(directory)
+          const configurationPaths = (
+            await Promise.all(
+              registry.detectionPaths.map(async (path) =>
+                (await directoryExists(path)) ? path : null
+              )
+            )
+          ).filter((path): path is string => path !== null)
+          const program = programScan.agents.get(registry.id) ?? {
+            status: 'unverified',
+            evidence: [],
+            commands: [],
+            applications: [],
+          }
+          if (
+            !directory &&
+            configurationPaths.length === 0 &&
+            program.status !== 'found'
+          )
+            return null
+          const expectedDirectory = directory ?? registry.skillDirectories[0]!
+          const directoryKey = await canonicalPath(expectedDirectory)
 
           // Universal-source Agents read ~/.agents/skills directly. That source
           // is inventory, not an Agent-owned installation directory.
-          if (sourceDirectoryKeys.has(directoryKey)) return null
+          if (directoryKey === sharedDirectoryKey && program.status !== 'found')
+            return null
           return {
-            directory,
+            directory: expectedDirectory,
+            directoryExists: directory !== null,
+            configurationPaths,
             directoryKey,
+            program,
             registry,
           }
         })
       )
-    ).filter((agent): agent is ActiveAgent => agent !== null)
+    ).filter((agent): agent is ObservedAgent => agent !== null)
 
     const agentsByDirectory = new Map<
       string,
       { agentNames: string[]; directory: string }
     >()
-    for (const agent of activeAgents) {
+    for (const agent of observedAgents) {
+      if (!agent.directoryExists || agent.directoryKey === sharedDirectoryKey)
+        continue
       const group = agentsByDirectory.get(agent.directoryKey) ?? {
         agentNames: [],
         directory: agent.directory,
@@ -106,14 +177,38 @@ export class WorkbenchService {
               {
                 agentNames,
                 directory,
-                scan: await scanSkillDirectory(directory),
+                scan: await scanSkillDirectory(
+                  directory,
+                  new Set([
+                    ...sharedSkillNames,
+                    ...globalSkills.map((skill) => skill.name),
+                  ])
+                ),
               },
             ] as const
         )
       )
     )
-    const symlinkHealth = combineHealth(scans)
-    const agentCoverage = buildCoverage(globalSkills, activeAgents, scans)
+    const symlinkHealth = combineHealth(
+      new Map([
+        ...scans,
+        [
+          sharedDirectoryKey,
+          {
+            agentNames: [],
+            directory: this.sharedSkillDirectory,
+            scan: sharedScan,
+          },
+        ],
+      ])
+    )
+    const agentCoverage = buildCoverage(sharedSkillNames, observedAgents, scans)
+    const globalSkillNames = new Set([
+      ...sharedSkillNames,
+      ...agentCoverage.flatMap((agent) =>
+        agent.localSkills.map((skill) => skill.name)
+      ),
+    ])
 
     return {
       catalog,
@@ -126,9 +221,26 @@ export class WorkbenchService {
           source: 'skills-cli',
         },
         scannedAt: new Date().toISOString(),
+        sharedDirectory: {
+          exists: await directoryExists(this.sharedSkillDirectory),
+          path: this.sharedSkillDirectory,
+          skillNames: [...sharedSkillNames].sort(),
+        },
+        programSearch: programScan.search,
         stats: {
-          activeAgents: activeAgents.length,
-          linkedSkills: countDeployedSkills(globalSkillNames, scans),
+          detectedAgents: observedAgents.filter(
+            (agent) => agent.program.status === 'found'
+          ).length,
+          directoryAgents: observedAgents.filter(
+            (agent) =>
+              agent.directoryExists && agent.directoryKey !== sharedDirectoryKey
+          ).length,
+          directoryOnlyAgents: observedAgents.filter(
+            (agent) => agent.program.status === 'not-found'
+          ).length,
+          exclusiveSkills: globalSkillNames.size - sharedSkillNames.size,
+          linkedSkills: countDeployedSkills(sharedSkillNames, scans),
+          sharedSkills: sharedSkillNames.size,
           totalSkills: globalSkillNames.size,
         },
         symlinkHealth,
@@ -163,7 +275,10 @@ async function directoryExists(path: string): Promise<boolean> {
   }
 }
 
-async function scanSkillDirectory(directory: string): Promise<DirectoryScan> {
+async function scanSkillDirectory(
+  directory: string,
+  expectedSkillNames: Set<string>
+): Promise<DirectoryScan> {
   let entries
   try {
     entries = await readdir(directory, { withFileTypes: true })
@@ -186,34 +301,46 @@ async function scanSkillDirectory(directory: string): Promise<DirectoryScan> {
     entries
       .filter((entry) => !entry.name.startsWith('.'))
       .map(async (entry): Promise<DirectoryScan> => {
-        const entryPath = join(directory, entry.name)
-        if (entry.isSymbolicLink()) {
-          const status = await inspectSymlink(entryPath)
-          if (status === 'valid') {
-            const scan = emptyScan()
-            scan.linkedSkillNames.add(entry.name)
-            scan.valid = 1
-            return scan
-          }
-          return {
-            ...emptyScan(),
-            [status]: 1,
-            issues: [{ path: entryPath, skillName: entry.name, status }],
-          }
+        if (!entry.isDirectory() && !entry.isSymbolicLink()) return emptyScan()
+        const path = join(directory, entry.name)
+        const scan = emptyScan()
+        const linked = entry.isSymbolicLink()
+        if (linked) {
+          const status = await inspectSymlink(path)
+          if (status !== 'valid')
+            return {
+              ...scan,
+              [status]: 1,
+              issues: [{ path, skillName: entry.name, status }],
+            }
+          scan.valid = 1
         }
-
-        if (entry.isDirectory()) {
-          try {
-            await access(join(entryPath, 'SKILL.md'))
-            const scan = emptyScan()
+        try {
+          const name = parseSkillDocument(
+            await readFile(join(path, 'SKILL.md'), 'utf8'),
+            entry.name
+          ).name
+          if (linked) scan.linkedSkillNames.add(name)
+          else {
+            scan.directSkillNames.add(name)
             scan.direct = 1
-            scan.directSkillNames.add(entry.name)
-            return scan
-          } catch {
-            return emptyScan()
           }
+          scan.skills.push({ kind: linked ? 'symlink' : 'copy', name, path })
+        } catch (error) {
+          const status = isMissingPathError(error)
+            ? 'missing-document'
+            : 'inaccessible'
+          // Helper and runtime folders are not failed Skills merely because they lack SKILL.md.
+          if (
+            status === 'missing-document' &&
+            !expectedSkillNames.has(entry.name)
+          )
+            return scan
+          if (status === 'missing-document') scan.missingDocuments = 1
+          else scan.inaccessible = 1
+          scan.issues.push({ path, skillName: entry.name, status })
         }
-        return emptyScan()
+        return scan
       })
   )
 
@@ -252,6 +379,8 @@ function emptyScan(): DirectoryScan {
     inaccessible: 0,
     issues: [],
     linkedSkillNames: new Set(),
+    missingDocuments: 0,
+    skills: [],
     valid: 0,
   }
 }
@@ -270,6 +399,8 @@ function mergeScan(left: DirectoryScan, right: DirectoryScan): DirectoryScan {
       ...left.linkedSkillNames,
       ...right.linkedSkillNames,
     ]),
+    missingDocuments: left.missingDocuments + right.missingDocuments,
+    skills: [...left.skills, ...right.skills],
     valid: left.valid + right.valid,
   }
 }
@@ -285,6 +416,7 @@ function combineHealth(
     direct: 0,
     inaccessible: 0,
     issues: [],
+    missingDocuments: 0,
     valid: 0,
   }
   for (const { agentNames, scan } of scans.values()) {
@@ -292,6 +424,7 @@ function combineHealth(
     health.direct += scan.direct
     health.inaccessible += scan.inaccessible
     health.valid += scan.valid
+    health.missingDocuments += scan.missingDocuments
     health.issues.push(
       ...scan.issues.map((issue) => ({ ...issue, agentNames }))
     )
@@ -303,72 +436,85 @@ function combineHealth(
 }
 
 function buildCoverage(
-  globalSkills: CatalogSnapshot['skills'],
-  activeAgents: ActiveAgent[],
+  sharedSkillNames: Set<string>,
+  observedAgents: ObservedAgent[],
   scans: Map<
     string,
     { agentNames: string[]; directory: string; scan: DirectoryScan }
   >
 ): AgentCoverageEntry[] {
-  const globalSkillNames = new Set(globalSkills.map((skill) => skill.name))
-  const availableSkillsByAgent = buildAvailableSkillsByAgent(globalSkills)
+  const sharedReaders = new Set<string>(getUniversalInstallTarget().agentIds)
 
-  return activeAgents
-    .map(({ directory, directoryKey, registry }) => {
-      const scan = scans.get(directoryKey)?.scan ?? emptyScan()
-      const linkedSkills = countMatchingNames(
-        scan.linkedSkillNames,
-        globalSkillNames
-      )
-      const directSkills = countMatchingNames(
-        scan.directSkillNames,
-        globalSkillNames
-      )
-      const availableSkillNames = new Set([
-        ...(availableSkillsByAgent.get(normalizeAgentKey(registry.name)) ?? []),
-        ...(availableSkillsByAgent.get(normalizeAgentKey(registry.id)) ?? []),
-        ...[...scan.linkedSkillNames, ...scan.directSkillNames].filter((name) =>
-          globalSkillNames.has(name)
-        ),
-      ])
-      const availableSkills = availableSkillNames.size
-      return {
-        availableSkills,
-        directSkills,
-        id: registry.id,
-        linkedSkills,
-        name: registry.name,
-        path: directory,
-        ratio:
-          globalSkillNames.size > 0
-            ? Math.min(1, availableSkills / globalSkillNames.size)
-            : 0,
+  return observedAgents
+    .map(
+      ({
+        directory,
+        directoryKey,
+        directoryExists,
+        configurationPaths,
+        program,
+        registry,
+      }) => {
+        const scan = scans.get(directoryKey)?.scan ?? emptyScan()
+        const readsSharedDirectory = sharedReaders.has(registry.id)
+        const localNames = new Set([
+          ...scan.linkedSkillNames,
+          ...scan.directSkillNames,
+        ])
+        const knownNames = new Set([
+          ...(readsSharedDirectory ? sharedSkillNames : []),
+          ...localNames,
+        ])
+        const availableSkills = countMatchingNames(knownNames, sharedSkillNames)
+        const linkedSkills = countMatchingNames(
+          scan.linkedSkillNames,
+          sharedSkillNames
+        )
+        const directSkills = countMatchingNames(
+          new Set(
+            [...scan.directSkillNames].filter(
+              (name) => !scan.linkedSkillNames.has(name)
+            )
+          ),
+          sharedSkillNames
+        )
+        const sharedSkills =
+          availableSkills - countMatchingNames(localNames, sharedSkillNames)
+        const exclusiveSkills = knownNames.size - availableSkills
+        return {
+          availableSkills,
+          directSkills,
+          directoryExists,
+          configurationPaths,
+          program,
+          readsSharedDirectory,
+          localSkills: [...scan.skills].sort((left, right) =>
+            left.name.localeCompare(right.name)
+          ),
+          missingSkillNames: [...sharedSkillNames]
+            .filter((name) => !knownNames.has(name))
+            .sort(),
+          exclusiveSkillNames: [...knownNames]
+            .filter((name) => !sharedSkillNames.has(name))
+            .sort(),
+          exclusiveSkills,
+          id: registry.id,
+          linkedSkills,
+          name: registry.name,
+          path: directory,
+          ratio:
+            sharedSkillNames.size > 0
+              ? availableSkills / sharedSkillNames.size
+              : 0,
+          sharedSkills,
+        }
       }
-    })
+    )
     .sort(
       (left, right) =>
         right.availableSkills - left.availableSkills ||
         left.name.localeCompare(right.name)
     )
-}
-
-function buildAvailableSkillsByAgent(
-  globalSkills: CatalogSnapshot['skills']
-): Map<string, Set<string>> {
-  const availableSkills = new Map<string, Set<string>>()
-  for (const skill of globalSkills) {
-    for (const agent of skill.agents) {
-      const key = normalizeAgentKey(agent)
-      const names = availableSkills.get(key) ?? new Set<string>()
-      names.add(skill.name)
-      availableSkills.set(key, names)
-    }
-  }
-  return availableSkills
-}
-
-function normalizeAgentKey(value: string): string {
-  return value.toLocaleLowerCase('en-US').replace(/[^a-z0-9]+/g, '')
 }
 
 function countDeployedSkills(

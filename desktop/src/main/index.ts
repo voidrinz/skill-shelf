@@ -751,6 +751,17 @@ function registerIpc(
     return result
   })
   ipcMain.handle(
+    desktopIpcChannels.workbenchOpenDirectory,
+    async (_event, agentId: unknown) => {
+      if (typeof agentId !== 'string')
+        throw new Error('Invalid Agent directory')
+      const error = await shell.openPath(
+        await workbench.getDirectoryPath(agentId)
+      )
+      if (error) throw new Error(error)
+    }
+  )
+  ipcMain.handle(
     desktopIpcChannels.terminalCreate,
     async (event, input: unknown) => {
       const request = assertTerminalCreateInput(input)

@@ -65,6 +65,7 @@ export const desktopIpcChannels = {
   websiteOpen: 'website:open',
   websiteOpenDiscovery: 'website:open-discovery',
   workbenchGet: 'workbench:get',
+  workbenchOpenDirectory: 'workbench:open-directory',
   workbenchChanged: 'workbench:changed',
   trayAction: 'tray:action',
   trayReady: 'tray:ready',
@@ -214,8 +215,13 @@ export interface CatalogSnapshot {
 }
 
 export interface WorkbenchStats {
-  activeAgents: number
+  detectedAgents: number
+  directoryAgents: number
+  directoryOnlyAgents: number
+  exclusiveSkills: number
   linkedSkills: number
+  sharedSkills: number
+  // Readable global inventory deduplicated by name; coverage uses sharedSkills.
   totalSkills: number
 }
 
@@ -223,7 +229,7 @@ export interface SymlinkIssue {
   agentNames: string[]
   path: string
   skillName: string
-  status: 'broken' | 'inaccessible'
+  status: 'broken' | 'inaccessible' | 'missing-document'
 }
 
 export interface SymlinkHealthSnapshot {
@@ -231,17 +237,41 @@ export interface SymlinkHealthSnapshot {
   direct: number
   inaccessible: number
   issues: SymlinkIssue[]
+  missingDocuments: number
   valid: number
+}
+
+export interface AgentProgramDetection {
+  status: 'found' | 'not-found' | 'unverified'
+  evidence: Array<{ kind: 'command' | 'application'; path: string }>
+  commands: string[]
+  applications: string[]
+}
+
+export interface WorkbenchSkillFile {
+  kind: 'copy' | 'symlink'
+  name: string
+  path: string
 }
 
 export interface AgentCoverageEntry {
   availableSkills: number
   directSkills: number
+  exclusiveSkills: number
   id: string
   linkedSkills: number
   name: string
   path: string
   ratio: number
+  directoryExists: boolean
+  configurationPaths: string[]
+  program: AgentProgramDetection
+  readsSharedDirectory: boolean
+  localSkills: WorkbenchSkillFile[]
+  missingSkillNames: string[]
+  exclusiveSkillNames: string[]
+  // Shared availability not already counted as a local link or copy.
+  sharedSkills: number
 }
 
 export interface WorkbenchSnapshot {
@@ -256,6 +286,8 @@ export interface WorkbenchSnapshot {
     source: 'skills-cli'
   }
   scannedAt: string
+  sharedDirectory: { exists: boolean; path: string; skillNames: string[] }
+  programSearch: { source: 'login-shell' | 'process'; paths: string[] }
   stats: WorkbenchStats
   symlinkHealth: SymlinkHealthSnapshot
   untrackedSkills: InstalledSkill[]
@@ -975,4 +1007,5 @@ export interface SkillShelfDesktopApi {
     input: AiProviderVerificationInput
   ): Promise<AiProviderSettingsStatus>
   getWorkbench(): Promise<WorkbenchScanResult>
+  openWorkbenchDirectory(agentId: string): Promise<void>
 }

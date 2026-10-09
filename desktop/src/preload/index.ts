@@ -89,6 +89,8 @@ const desktopApi: SkillShelfDesktopApi = {
   getManagedSkillImportCandidates: () =>
     ipcRenderer.invoke(desktopIpcChannels.managedSkillImportCandidates),
   getWorkbench: () => ipcRenderer.invoke(desktopIpcChannels.workbenchGet),
+  openWorkbenchDirectory: (agentId) =>
+    ipcRenderer.invoke(desktopIpcChannels.workbenchOpenDirectory, agentId),
   getSkillFiles: (skillId) =>
     ipcRenderer.invoke(desktopIpcChannels.skillFilesGet, skillId),
   searchMarketplace: (query) =>
