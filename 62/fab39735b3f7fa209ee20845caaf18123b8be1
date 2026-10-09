@@ -1,0 +1,29 @@
+desktop/package.json
+  s_d156a057076bd4::t_68243d7cc6d2ad 3
+docs/release-notes/0.1.2.md
+  s_837399686389a9::t_1b84cf72785ecd 1-12
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "62fab39735b3f7fa209ee20845caaf18123b8be1",
+  "prompts": {},
+  "sessions": {
+    "s_837399686389a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11980-c5f1-7441-9c9f-6788f911657d",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    },
+    "s_d156a057076bd4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11f65-e785-7730-8ba3-2f272150ac9e",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
