@@ -1,0 +1,27 @@
+desktop/src/main/services/mac-app-updater.ts
+  s_195416a04c53e0::t_5f29f3bda2b0db 449,457-458
+  s_195416a04c53e0::t_ebd1e420a3762c 4-8,10-24,38
+desktop/src/main/services/mac-update-electron.test.ts
+  s_195416a04c53e0::t_38de2e13c203eb 3
+  s_195416a04c53e0::t_7bc963b7d2d736 30-32
+  s_195416a04c53e0::t_ce7b9c2c6d4908 12-17,22-26,52-57,144-156
+  s_195416a04c53e0::t_4852740dea6800 1-2,4-11,18-21,27-29,33-51,58-143,157
+desktop/update-installer.cjs
+  s_195416a04c53e0::t_ebd1e420a3762c 1-4
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c8b3cec536a164d720b70955e28061c4aea5d167",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
