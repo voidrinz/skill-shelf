@@ -21,6 +21,12 @@ Writes use a unique temporary file with `0600` permissions and an atomic
 rename. Conversation mutations are serialized and become visible in memory
 only after persistence succeeds.
 
+Metadata sync exports only AI preferences: translation language, model lists,
+default role models and context mode. It excludes API keys, provider connection
+enabled states, model verification results and conversations. Import retains the
+local credentials and saves an owner-only `ai-provider.json.sync-backup` before
+changing preferences.
+
 ## Upgrading From Earlier Versions
 
 Older provider envelopes (versions 1, 2, and 3) and encrypted conversation

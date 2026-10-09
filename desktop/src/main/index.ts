@@ -85,6 +85,7 @@ import { SkillAiService } from './services/skill-ai-service'
 import { TerminalService } from './services/terminal-service'
 import { WorkbenchService } from './services/workbench-service'
 import { TrayController } from './tray-controller'
+import { createSyncIpcHandler } from './sync-ipc-handler'
 import { AppUpdateService } from './services/app-update-service'
 import { configureAppIdentity } from './app-identity'
 import {
@@ -232,8 +233,10 @@ function registerIpc(
   terminalService: TerminalService,
   workbench: WorkbenchService
 ) {
-  const metadataSync = new MetadataSyncService(store, () =>
-    catalog.getCatalog()
+  const metadataSync = new MetadataSyncService(
+    store,
+    () => catalog.getCatalog(),
+    { aiProvider, managedSkills }
   )
   const webDavSync = new WebDavSyncService(
     join(dirname(shelfFilePath), 'webdav-sync.json'),
@@ -246,27 +249,13 @@ function registerIpc(
           safeStorage.getSelectedStorageBackend() !== 'basic_text'),
     }
   )
-  let syncBusy = false
   let uploadPreview: { id: string; remote: RemoteSyncFile } | null = null
+  const handleSync = createSyncIpcHandler(() => mainWindow)
   const syncHandler = (
     channel: string,
-    action: (input: unknown) => Promise<unknown> | unknown
-  ) =>
-    ipcMain.handle(channel, async (event, input: unknown) => {
-      if (
-        !mainWindow ||
-        event.sender !== mainWindow.webContents ||
-        event.senderFrame !== mainWindow.webContents.mainFrame
-      )
-        throw new Error('Invalid desktop sender')
-      if (syncBusy) throw new Error('Sync operation is busy')
-      syncBusy = true
-      try {
-        return await action(input)
-      } finally {
-        syncBusy = false
-      }
-    })
+    action: (input: unknown) => Promise<unknown> | unknown,
+    options?: { readOnly?: boolean }
+  ) => ipcMain.handle(channel, handleSync(action, options))
   const syncMessages = async () =>
     loadMessages(
       resolveLocalePreference(
@@ -330,7 +319,9 @@ function registerIpc(
     void trayController?.notify()
     return result
   })
-  syncHandler(desktopIpcChannels.syncWebDavGet, () => webDavSync.getStatus())
+  syncHandler(desktopIpcChannels.syncWebDavGet, () => webDavSync.getStatus(), {
+    readOnly: true,
+  })
   syncHandler(desktopIpcChannels.syncWebDavSave, async (input) => {
     if (uploadPreview) {
       metadataSync.discard(uploadPreview.id)

@@ -17,6 +17,7 @@ import {
   aiProviderRegistry,
   defaultAiModelRoleSettings,
 } from '../../shared/desktop-contract'
+import type { PortableAiPreferences } from '../../shared/sync-contract'
 
 import {
   LocalAiStorage,
@@ -260,6 +261,82 @@ export class AiProviderService {
     await this.writeConfiguration(configuration)
     this.configuration = configuration
     return this.getSettingsStatus()
+  }
+
+  getPortablePreferences(): PortableAiPreferences {
+    const status = this.getSettingsStatus()
+    return {
+      availableModels: Object.fromEntries(
+        status.connections.map((connection) => [
+          connection.provider,
+          connection.availableModels.map(({ id, displayName }) => ({
+            id,
+            displayName,
+          })),
+        ])
+      ),
+      contextMode: status.contextMode,
+      models: cloneRoleSettings(status.models),
+      targetLanguage: status.targetLanguage,
+    }
+  }
+
+  prepareSyncPreferences(value: PortableAiPreferences, revision: string) {
+    this.storage.assertWritable()
+    if (JSON.stringify(this.getPortablePreferences()) !== revision)
+      throw new Error('Sync preview is outdated')
+    const preferences = normalizePortableAiPreferences(value)
+    const original = this.configuration
+    const previous = structuredClone(
+      original ?? defaultConfiguration(this.now())
+    )
+    const next = structuredClone(previous)
+    const updatedAt = this.now().toISOString()
+    for (const [providerValue, models] of Object.entries(
+      preferences.availableModels
+    )) {
+      const provider = assertProviderId(providerValue)
+      const connection = previous.connections[provider]
+      next.connections[provider] = {
+        apiKey: connection?.apiKey ?? null,
+        availableModels: models,
+        enabled: connection?.enabled ?? false,
+        modelVerifications: retainModelVerifications(
+          connection?.modelVerifications ?? {},
+          models
+        ),
+        provider,
+        updatedAt,
+      }
+    }
+    next.contextMode = preferences.contextMode
+    next.models = cloneRoleSettings(preferences.models)
+    next.targetLanguage = preferences.targetLanguage
+    next.updatedAt = updatedAt
+    let committed = false
+    return {
+      commit: async () => {
+        if (this.configuration !== original)
+          throw new Error('Sync preview is outdated')
+        await this.storage.backupForSync({
+          version: 4,
+          configuration: previous,
+        })
+        if (this.configuration !== original)
+          throw new Error('Sync preview is outdated')
+        await this.writeConfiguration(next)
+        this.configuration = next
+        committed = true
+      },
+      rollback: async () => {
+        if (!committed) return
+        if (this.configuration !== next)
+          throw new Error('Sync preview is outdated')
+        await this.writeConfiguration(previous)
+        this.configuration = original
+        committed = false
+      },
+    }
   }
 
   async clearSettings(
@@ -821,6 +898,48 @@ function normalizeLanguage(value: string): string {
     return canonical
   } catch {
     throw new Error('Invalid language')
+  }
+}
+
+export function normalizePortableAiPreferences(
+  value: unknown
+): PortableAiPreferences {
+  if (!value || typeof value !== 'object' || Array.isArray(value))
+    throw new Error('Invalid AI preferences')
+  const candidate = value as Partial<PortableAiPreferences>
+  if (
+    typeof candidate.targetLanguage !== 'string' ||
+    !candidate.models ||
+    !candidate.availableModels ||
+    typeof candidate.availableModels !== 'object' ||
+    Array.isArray(candidate.availableModels)
+  )
+    throw new Error('Invalid AI preferences')
+  const availableModels: PortableAiPreferences['availableModels'] = {}
+  for (const [providerValue, models] of Object.entries(
+    candidate.availableModels
+  )) {
+    availableModels[assertProviderId(providerValue)] =
+      normalizeAvailableModels(models)
+  }
+  const models = {
+    analysis: normalizeSelection(candidate.models.analysis),
+    chat: normalizeSelection(candidate.models.chat),
+    writing: normalizeSelection(candidate.models.writing),
+  }
+  for (const selection of Object.values(models)) {
+    if (
+      !availableModels[selection.provider]?.some(
+        (model) => model.id === selection.model
+      )
+    )
+      throw new Error('Invalid AI model selection')
+  }
+  return {
+    availableModels,
+    contextMode: assertContextMode(candidate.contextMode),
+    models,
+    targetLanguage: normalizeLanguage(candidate.targetLanguage),
   }
 }
 

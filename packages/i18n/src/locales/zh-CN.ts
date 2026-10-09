@@ -3,9 +3,9 @@ import type { Messages } from '../index'
 export const messages = {
   'desktop.sync.title': '同步',
   'desktop.sync.description': '在不同电脑间同步你的 Skill 整理成果。',
-  'desktop.sync.scopeTitle': '同步已有 Skill 的管理数据',
+  'desktop.sync.scopeTitle': '同步整理成果与应用偏好',
   'desktop.sync.scopeDescription':
-    '包含分组层级、标签、画布位置、自定义描述和翻译。Skill 文件、安装情况、本机路径和账号密钥保留在各自电脑。',
+    '包含 Packs、分组层级、标签、画布位置、自定义描述和译文；也可同步应用及 AI 偏好。Skill 文件、安装情况、本机路径和账号密钥保留在各自电脑。',
   'desktop.sync.matchingDescription':
     '按来源和 Skill 名称匹配；本地 Skill 使用内容指纹，项目 Skill 还会匹配项目名称。未找到或无法确定的条目会跳过。',
   'desktop.sync.files': '导出／导入',
@@ -69,7 +69,20 @@ export const messages = {
   'desktop.sync.uploadPreferences': '同时上传应用偏好',
   'desktop.sync.preferencesDescription':
     '语言、主题、列表密度、默认视图和 Agent 偏好。不包含本机路径和登录启动设置。',
-  'desktop.sync.noMatches': '没有找到匹配的 Skill；仍可选择导入应用偏好。',
+  'desktop.sync.importAiPreferences': '同时导入 AI 偏好',
+  'desktop.sync.uploadAiPreferences': '同时上传 AI 偏好',
+  'desktop.sync.aiPreferencesDescription':
+    '默认翻译语言、默认模型、模型列表和上下文偏好。保留本机 API 密钥及连接启用状态。',
+  'desktop.sync.aiDefaults':
+    '翻译：{language}；对话：{chat}；写作：{writing}；分析：{analysis}。',
+  'desktop.sync.packsSummary':
+    '{count} 个 Pack，其中 {changed} 个有变更，匹配到 {matched} 个本机托管 Skill 成员。',
+  'desktop.sync.packMembersSkipped':
+    '{count} 个 Pack 成员在本机未匹配，查看详情',
+  'desktop.sync.packMembersRetained':
+    '{count} 个云端 Pack 成员在本机未匹配，上传时保留，查看详情',
+  'desktop.sync.noMatches':
+    '没有找到匹配的 Skill；仍可合并 Packs 和选定的偏好。',
   'desktop.sync.confirmImport': '确认合并',
   'desktop.sync.confirmUpload': '确认上传',
   'desktop.sync.imported': '管理数据已合并，原有管理数据已在本机备份。',
@@ -79,6 +92,7 @@ export const messages = {
   'desktop.sync.fieldFolder': '分组层级',
   'desktop.sync.fieldPosition': '画布位置',
   'desktop.sync.fieldTags': '标签',
+  'desktop.sync.fieldPackDescription': 'Pack 说明',
   'desktop.sync.error.document':
     '文件不是支持的 Skill Shelf 同步文件，或数据超出允许大小。',
   'desktop.sync.error.outdated': '预览后本机数据发生了变化，请取消并重新预览。',
@@ -101,7 +115,11 @@ export const messages = {
   'desktop.sync.error.timeout': 'WebDAV 请求超时，本机数据未改动，请重试。',
   'desktop.sync.error.network': '无法连接 WebDAV，请检查地址和网络后重试。',
   'desktop.sync.error.notConfigured': '请先保存 WebDAV 连接。',
+  'desktop.sync.error.loadConnection':
+    '无法读取本机保存的 WebDAV 连接，请重新读取或填写后保存。',
   'desktop.sync.error.default': '同步操作失败，填写的内容已保留，请重试。',
+  'desktop.sync.error.rollback':
+    '同步未完成，部分数据未能恢复。原有数据已在本机备份，请检查后重试。',
   'common.cancel': '取消',
   'common.close': '关闭',
   'common.filter': '筛选',

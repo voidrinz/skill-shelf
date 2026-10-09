@@ -1,4 +1,4 @@
-import { mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -11,6 +11,8 @@ import type {
 import type { SyncDocument, SyncPreview } from '../../shared/sync-contract'
 import { MetadataSyncService, parseSyncDocument } from './metadata-sync-service'
 import { ShelfStore } from './shelf-store'
+import { AiProviderService } from './ai-provider-service'
+import { ManagedSkillService } from './managed-skill-service'
 
 const directories: string[] = []
 afterEach(async () => {
@@ -63,6 +65,42 @@ async function setup(skills: InstalledSkill[]) {
   }
   const service = new MetadataSyncService(store, getCatalog)
   return { directory, path, store, service, getCatalog }
+}
+
+async function setupExtended(names: string[]) {
+  const skills = names.map((name) => skill(name))
+  const fixture = await setup(skills)
+  for (const item of skills) {
+    item.path = join(fixture.directory, 'sources', item.name)
+    await mkdir(item.path, { recursive: true })
+    await writeFile(
+      join(item.path, 'SKILL.md'),
+      `---\nname: ${item.name}\ndescription: Original description\n---\nContent for ${item.name}`
+    )
+  }
+  const managed = new ManagedSkillService(
+    join(fixture.directory, 'managed'),
+    join(fixture.directory, 'managed.json')
+  )
+  await managed.initialize()
+  await managed.importSkills(
+    skills.map((item) => ({
+      description: item.description,
+      name: item.name,
+      path: item.path,
+      scope: item.scope,
+      skillId: item.id,
+    }))
+  )
+  const ai = new AiProviderService({
+    settingsPath: join(fixture.directory, 'ai.json'),
+  })
+  await ai.initialize()
+  const service = new MetadataSyncService(fixture.store, fixture.getCatalog, {
+    aiProvider: ai,
+    managedSkills: managed,
+  })
+  return { ...fixture, ai, managed, service }
 }
 const choices = (
   preview: SyncPreview,
@@ -512,5 +550,507 @@ describe('metadata sync', () => {
     const upload = vi.fn(async (_document: SyncDocument) => {})
     await b.service.apply(choices(preview), upload)
     expect(upload.mock.calls[0]![0].skills).toEqual(remote.skills)
+  })
+
+  it('syncs Packs and AI defaults across machines while preserving local members and credentials', async () => {
+    const a = await setupExtended(['shared', 'a-only'])
+    const b = await setupExtended(['shared', 'b-only'])
+    await a.managed.savePack({
+      name: 'Essentials',
+      description: 'Remote description',
+      skillIds: a.managed.snapshot().skills.map((item) => item.id),
+    })
+    await a.managed.savePack({
+      name: 'Empty Pack',
+      description: 'A reusable empty Pack',
+      skillIds: [],
+    })
+    const localMembers = b.managed.snapshot().skills
+    await b.managed.savePack({
+      name: 'Essentials',
+      description: 'Local description',
+      skillIds: [localMembers[1]!.id],
+    })
+    await a.ai.saveSettings({
+      apiKey: 'sk-a-private-secret',
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      targetLanguage: 'zh-CN',
+      contextMode: 'skill-md',
+      availableModels: [
+        { id: 'deepseek-v4-flash', displayName: 'Flash' },
+        { id: 'custom-analysis', displayName: 'Custom analysis' },
+      ],
+      models: {
+        chat: { provider: 'deepseek', model: 'deepseek-v4-flash' },
+        writing: { provider: 'deepseek', model: 'deepseek-v4-flash' },
+        analysis: { provider: 'deepseek', model: 'custom-analysis' },
+      },
+    })
+    await b.ai.saveSettings({
+      apiKey: 'sk-b-local-secret',
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      targetLanguage: 'en',
+      enabled: false,
+    })
+    await a.store.saveSkillTranslation({
+      skillId: 'global:shared',
+      language: 'zh-CN',
+      content: '已有译文',
+      sourceDescription: 'Original description',
+      method: 'ai',
+    })
+    const document = await a.service.exportDocument()
+    const contents = JSON.stringify(document)
+    expect(document.version).toBe(2)
+    expect(contents).not.toContain('sk-a-private-secret')
+    expect(contents).not.toContain(a.directory)
+    expect(contents).not.toContain(a.managed.snapshot().skills[0]!.id)
+    expect(document.aiPreferences?.targetLanguage).toBe('zh-CN')
+    const preview = await b.service.preview(contents)
+    expect(preview.packs).toMatchObject({
+      total: 2,
+      changed: 2,
+      matchedMembers: 1,
+      skippedMembers: [
+        { packName: 'Essentials', skillName: 'a-only', reason: 'not-found' },
+      ],
+    })
+    expect(preview.conflicts).toContainEqual(
+      expect.objectContaining({
+        field: 'pack-description',
+        local: 'Local description',
+        incoming: 'Remote description',
+      })
+    )
+    const result = await b.service.apply({
+      ...choices(preview),
+      includeAiPreferences: true,
+    })
+    const pack = b.managed
+      .snapshot()
+      .packs.find((item) => item.name === 'Essentials')!
+    expect(pack.description).toBe('Remote description')
+    expect(pack.skillIds).toEqual([localMembers[1]!.id, localMembers[0]!.id])
+    expect(b.managed.snapshot().skills).toEqual(localMembers)
+    expect(
+      b.managed.snapshot().packs.find((item) => item.name === 'Empty Pack')!
+        .skillIds
+    ).toEqual([])
+    expect(result.aiSettings).toMatchObject({
+      targetLanguage: 'zh-CN',
+      contextMode: 'skill-md',
+      hasApiKey: true,
+      enabled: false,
+      models: { analysis: { model: 'custom-analysis' } },
+    })
+    const aiContents = await readFile(join(b.directory, 'ai.json'), 'utf8')
+    expect(aiContents).toContain('sk-b-local-secret')
+    expect(aiContents).not.toContain('sk-a-private-secret')
+    expect(result.catalog.skills[0]!.translations['zh-CN']!.content).toBe(
+      '已有译文'
+    )
+    expect(
+      await readFile(join(b.directory, 'managed.json.sync-backup'), 'utf8')
+    ).toContain('Local description')
+    expect(
+      await readFile(join(b.directory, 'ai.json.sync-backup'), 'utf8')
+    ).toContain('sk-b-local-secret')
+    const repeat = await b.service.preview(contents)
+    expect(repeat.packs?.changed).toBe(0)
+    expect(repeat.changed).toBe(0)
+    expect(repeat.conflicts).toEqual([])
+  })
+
+  it('preserves cloud-only Packs and members on upload and only uploads AI defaults when selected', async () => {
+    const a = await setupExtended(['shared', 'a-only'])
+    const b = await setupExtended(['shared', 'b-only'])
+    await a.managed.savePack({
+      name: 'Essentials',
+      description: 'Shared helpers',
+      skillIds: a.managed.snapshot().skills.map((item) => item.id),
+    })
+    await a.managed.savePack({
+      name: 'Cloud only',
+      description: '',
+      skillIds: [a.managed.snapshot().skills[1]!.id],
+    })
+    await b.managed.savePack({
+      name: 'Essentials',
+      description: 'Shared helpers',
+      skillIds: b.managed.snapshot().skills.map((item) => item.id),
+    })
+    await b.managed.savePack({
+      name: 'Local only',
+      description: '',
+      skillIds: [],
+    })
+    await a.ai.saveSettings({
+      apiKey: 'sk-a-private-value',
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      targetLanguage: 'zh-CN',
+    })
+    await b.ai.saveSettings({
+      apiKey: 'sk-b-private-value',
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      targetLanguage: 'ja',
+    })
+    const remote = await a.service.exportDocument()
+    const before = JSON.stringify({
+      shelf: await b.store.getState(),
+      managed: b.managed.snapshot(),
+      ai: b.ai.getSettingsStatus(),
+    })
+    const upload = vi.fn(async (_value: SyncDocument) => {})
+    const preview = await b.service.preview(JSON.stringify(remote), 'upload')
+    await b.service.apply(
+      { ...choices(preview), includeAiPreferences: false },
+      upload
+    )
+    const uploaded = upload.mock.calls[0]![0]
+    expect(uploaded.packs?.map((pack) => pack.name)).toEqual([
+      'Cloud only',
+      'Essentials',
+      'Local only',
+    ])
+    expect(uploaded.packs?.find((pack) => pack.name === 'Cloud only')).toEqual(
+      remote.packs?.find((pack) => pack.name === 'Cloud only')
+    )
+    expect(
+      uploaded.packs
+        ?.find((pack) => pack.name === 'Essentials')!
+        .skills.map((item) => item.name)
+    ).toEqual(['shared', 'a-only', 'b-only'])
+    expect(uploaded.aiPreferences?.targetLanguage).toBe('zh-CN')
+    expect(JSON.stringify(uploaded)).not.toContain('sk-')
+    expect(
+      JSON.stringify({
+        shelf: await b.store.getState(),
+        managed: b.managed.snapshot(),
+        ai: b.ai.getSettingsStatus(),
+      })
+    ).toBe(before)
+    const second = await b.service.preview(JSON.stringify(remote), 'upload')
+    await b.service.apply(
+      { ...choices(second), includeAiPreferences: true },
+      upload
+    )
+    expect(upload.mock.calls[1]![0].aiPreferences?.targetLanguage).toBe('ja')
+  })
+
+  it('matches Pack members by content when their original installed sources are gone', async () => {
+    const a = await setupExtended(['shared'])
+    const b = await setupExtended(['shared'])
+    await a.managed.savePack({
+      name: 'Essentials',
+      description: '',
+      skillIds: [a.managed.snapshot().skills[0]!.id],
+    })
+    await a.ai.saveSettings({
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      targetLanguage: 'ja',
+    })
+    const getCatalog = async () => ({ ...(await b.getCatalog()), skills: [] })
+    const service = new MetadataSyncService(b.store, getCatalog, {
+      aiProvider: b.ai,
+      managedSkills: b.managed,
+    })
+    const preview = await service.preview(
+      JSON.stringify(await a.service.exportDocument())
+    )
+    expect(preview.matched).toBe(0)
+    expect(preview.packs).toMatchObject({
+      changed: 1,
+      matchedMembers: 1,
+      skippedMembers: [],
+    })
+    await service.apply({ ...choices(preview), includeAiPreferences: false })
+    expect(b.managed.snapshot().packs[0]!.skillIds).toEqual([
+      b.managed.snapshot().skills[0]!.id,
+    ])
+    expect(b.ai.getSettingsStatus().targetLanguage).toBe('en')
+  })
+
+  it('marks description-only Pack conflicts as changes and applies the selected description', async () => {
+    const a = await setupExtended(['shared'])
+    const b = await setupExtended(['shared'])
+    await a.managed.savePack({
+      name: 'Essentials',
+      description: 'Remote',
+      skillIds: [a.managed.snapshot().skills[0]!.id],
+    })
+    await b.managed.savePack({
+      name: 'Essentials',
+      description: 'Local',
+      skillIds: [b.managed.snapshot().skills[0]!.id],
+    })
+    const preview = await b.service.preview(
+      JSON.stringify(await a.service.exportDocument())
+    )
+    expect(preview.packs?.changed).toBe(1)
+    expect(preview.conflicts).toContainEqual(
+      expect.objectContaining({ field: 'pack-description' })
+    )
+    await b.service.apply({ ...choices(preview), includeAiPreferences: false })
+    expect(b.managed.snapshot().packs[0]!.description).toBe('Remote')
+  })
+
+  it.each(['packs', 'ai', 'content'] as const)(
+    'rejects a preview when %s change locally',
+    async (kind) => {
+      const a = await setupExtended(['shared'])
+      const b = await setupExtended(['shared'])
+      await a.managed.savePack({
+        name: 'Essentials',
+        description: '',
+        skillIds: [a.managed.snapshot().skills[0]!.id],
+      })
+      const preview = await b.service.preview(
+        JSON.stringify(await a.service.exportDocument())
+      )
+      if (kind === 'packs')
+        await b.managed.savePack({
+          name: 'New local Pack',
+          description: '',
+          skillIds: [],
+        })
+      if (kind === 'ai')
+        await b.ai.saveSettings({
+          provider: 'deepseek',
+          model: 'deepseek-v4-flash',
+          targetLanguage: 'ja',
+        })
+      if (kind === 'content')
+        await writeFile(
+          join(b.managed.snapshot().skills[0]!.managedPath, 'SKILL.md'),
+          'Changed local content'
+        )
+      const before = JSON.stringify(await b.store.getState())
+      await expect(
+        b.service.apply({ ...choices(preview), includeAiPreferences: true })
+      ).rejects.toThrow('outdated')
+      expect(JSON.stringify(await b.store.getState())).toBe(before)
+    }
+  )
+
+  it('rolls back Pack and AI changes if committing the Skill metadata fails, and allows retry', async () => {
+    const a = await setupExtended(['shared'])
+    const b = await setupExtended(['shared'])
+    await a.managed.savePack({
+      name: 'Essentials',
+      description: 'Remote',
+      skillIds: [a.managed.snapshot().skills[0]!.id],
+    })
+    await a.ai.saveSettings({
+      apiKey: 'sk-a-private-value',
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      targetLanguage: 'zh-CN',
+    })
+    await b.ai.saveSettings({
+      apiKey: 'sk-b-private-value',
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      targetLanguage: 'ja',
+    })
+    const preview = await b.service.preview(
+      JSON.stringify(await a.service.exportDocument())
+    )
+    const before = JSON.stringify({
+      managed: b.managed.snapshot(),
+      ai: b.ai.getSettingsStatus(),
+      shelf: await b.store.getState(),
+    })
+    const write = vi
+      .spyOn(b.store, 'applySyncPatch')
+      .mockRejectedValueOnce(new Error('Disk full'))
+    await expect(
+      b.service.apply({ ...choices(preview), includeAiPreferences: true })
+    ).rejects.toThrow('Disk full')
+    expect(
+      JSON.stringify({
+        managed: b.managed.snapshot(),
+        ai: b.ai.getSettingsStatus(),
+        shelf: await b.store.getState(),
+      })
+    ).toBe(before)
+    await b.service.apply({ ...choices(preview), includeAiPreferences: true })
+    expect(write).toHaveBeenCalledTimes(2)
+    expect(b.managed.snapshot().packs[0]!.name).toBe('Essentials')
+    expect(b.ai.getSettingsStatus().targetLanguage).toBe('zh-CN')
+  })
+
+  it('accepts old exports and validates new Packs and AI settings without accepting credentials', async () => {
+    const fixture = await setupExtended(['shared'])
+    const exported = await fixture.service.exportDocument()
+    const old = {
+      format: exported.format,
+      version: 1,
+      exportedAt: exported.exportedAt,
+      skills: exported.skills,
+      preferences: exported.preferences,
+    }
+    expect(parseSyncDocument(JSON.stringify(old))).not.toHaveProperty('packs')
+    expect(parseSyncDocument(JSON.stringify(old))).not.toHaveProperty(
+      'aiPreferences'
+    )
+    const parsed = parseSyncDocument(
+      JSON.stringify({
+        ...exported,
+        aiPreferences: {
+          ...exported.aiPreferences,
+          apiKey: 'remote-secret',
+          connections: { deepseek: { apiKey: 'remote-secret' } },
+        },
+      })
+    )
+    expect(JSON.stringify(parsed)).not.toContain('remote-secret')
+    expect(() =>
+      parseSyncDocument(
+        JSON.stringify({
+          ...exported,
+          packs: [
+            {
+              name: 'Bad',
+              description: '',
+              skills: [
+                { name: 'shared', identity: null, fingerprint: '/local/path' },
+              ],
+            },
+          ],
+        })
+      )
+    ).toThrow('Invalid sync document')
+    expect(() =>
+      parseSyncDocument(
+        JSON.stringify({
+          ...exported,
+          aiPreferences: {
+            ...exported.aiPreferences,
+            models: { chat: { provider: 'unknown', model: 'model' } },
+          },
+        })
+      )
+    ).toThrow('Invalid sync document')
+  })
+
+  it('keeps later local Pack edits if an import fails before its final metadata write', async () => {
+    const a = await setupExtended(['shared'])
+    const b = await setupExtended(['shared'])
+    await a.managed.savePack({
+      name: 'Essentials',
+      description: '',
+      skillIds: [a.managed.snapshot().skills[0]!.id],
+    })
+    const preview = await b.service.preview(
+      JSON.stringify(await a.service.exportDocument())
+    )
+    vi.spyOn(b.store, 'applySyncPatch').mockImplementationOnce(async () => {
+      await b.managed.savePack({
+        name: 'Later local edit',
+        description: '',
+        skillIds: [],
+      })
+      throw new Error('Disk full')
+    })
+    await expect(
+      b.service.apply({ ...choices(preview), includeAiPreferences: true })
+    ).rejects.toThrow('Sync rollback failed')
+    expect(b.managed.snapshot().packs.map((pack) => pack.name)).toContain(
+      'Later local edit'
+    )
+    expect(
+      await readFile(join(b.directory, 'managed.json.sync-backup'), 'utf8')
+    ).toBeTruthy()
+  })
+
+  it('imports AI defaults on an unconfigured computer without importing the provider API key', async () => {
+    const a = await setupExtended([])
+    const b = await setupExtended([])
+    await a.ai.saveSettings({
+      apiKey: 'sk-only-on-machine-a',
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      targetLanguage: 'zh-CN',
+    })
+    const preview = await b.service.preview(
+      JSON.stringify(await a.service.exportDocument())
+    )
+    expect(preview.matched).toBe(0)
+    const result = await b.service.apply({
+      ...choices(preview),
+      includeAiPreferences: true,
+    })
+    expect(result.aiSettings).toMatchObject({
+      targetLanguage: 'zh-CN',
+      configured: false,
+      enabled: false,
+      hasApiKey: false,
+    })
+    const saved = await readFile(join(b.directory, 'ai.json'), 'utf8')
+    expect(saved).not.toContain('sk-only-on-machine-a')
+    expect(
+      (await b.service.exportDocument()).aiPreferences?.targetLanguage
+    ).toBe('zh-CN')
+  })
+
+  it('skips ambiguous managed Pack members instead of attaching a similarly named Skill', async () => {
+    const a = await setupExtended(['shared'])
+    const b = await setupExtended(['shared'])
+    await a.managed.savePack({
+      name: 'Essentials',
+      description: '',
+      skillIds: [a.managed.snapshot().skills[0]!.id],
+    })
+    const duplicatePath = join(b.directory, 'duplicate-source')
+    await mkdir(duplicatePath)
+    await writeFile(
+      join(duplicatePath, 'SKILL.md'),
+      await readFile(
+        join(b.managed.snapshot().skills[0]!.managedPath, 'SKILL.md'),
+        'utf8'
+      )
+    )
+    await b.managed.importSkills([
+      {
+        name: 'shared',
+        description: '',
+        path: duplicatePath,
+        scope: 'global',
+        skillId: 'global:duplicate',
+      },
+    ])
+    const getCatalog = async () => {
+      const catalog = await b.getCatalog()
+      return {
+        ...catalog,
+        skills: [
+          ...catalog.skills,
+          {
+            ...catalog.skills[0]!,
+            id: 'global:duplicate',
+            path: duplicatePath,
+          },
+        ],
+      }
+    }
+    const service = new MetadataSyncService(b.store, getCatalog, {
+      aiProvider: b.ai,
+      managedSkills: b.managed,
+    })
+    const preview = await service.preview(
+      JSON.stringify(await a.service.exportDocument())
+    )
+    expect(preview.packs?.skippedMembers).toEqual([
+      { packName: 'Essentials', skillName: 'shared', reason: 'ambiguous' },
+    ])
+    expect(preview.packs?.matchedMembers).toBe(0)
+    await service.apply(choices(preview))
+    expect(b.managed.snapshot().packs[0]!.skillIds).toEqual([])
+    expect(b.managed.snapshot().skills).toHaveLength(2)
   })
 })

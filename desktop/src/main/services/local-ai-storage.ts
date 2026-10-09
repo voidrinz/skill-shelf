@@ -117,9 +117,14 @@ export class LocalAiStorage<T> {
     await this.writeAtomic(value)
   }
 
-  private async writeAtomic(value: unknown): Promise<void> {
-    const temporaryPath = `${this.path}.${randomUUID()}.tmp`
-    await mkdir(dirname(this.path), { recursive: true })
+  async backupForSync(value: unknown): Promise<void> {
+    this.assertWritable()
+    await this.writeAtomic(value, `${this.path}.sync-backup`)
+  }
+
+  private async writeAtomic(value: unknown, path = this.path): Promise<void> {
+    const temporaryPath = `${path}.${randomUUID()}.tmp`
+    await mkdir(dirname(path), { recursive: true })
     try {
       await writeFile(temporaryPath, `${JSON.stringify(value, null, 2)}\n`, {
         encoding: 'utf8',
@@ -127,7 +132,7 @@ export class LocalAiStorage<T> {
         mode: 0o600,
       })
       await chmod(temporaryPath, 0o600)
-      await rename(temporaryPath, this.path)
+      await rename(temporaryPath, path)
     } finally {
       await unlink(temporaryPath).catch(() => undefined)
     }

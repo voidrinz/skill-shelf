@@ -1,6 +1,7 @@
 import type { AppLink } from './app-links'
 import type {
   ApplySyncInput,
+  SyncApplyResult,
   SyncPreview,
   WebDavInput,
   WebDavStatus,
@@ -921,9 +922,7 @@ export interface TerminalExitEvent {
 export interface SkillShelfDesktopApi {
   exportSyncData(): Promise<boolean>
   importSyncData(): Promise<SyncPreview | null>
-  applySyncData(
-    input: ApplySyncInput
-  ): Promise<{ catalog: CatalogSnapshot; settings: DesktopSettings }>
+  applySyncData(input: ApplySyncInput): Promise<SyncApplyResult>
   discardSyncPreview(previewId: string): Promise<void>
   getWebDavSettings(): Promise<WebDavStatus>
   saveWebDavSettings(input: WebDavInput): Promise<WebDavStatus>

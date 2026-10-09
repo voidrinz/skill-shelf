@@ -20,16 +20,14 @@ import {
 } from '@skill-shelf/ui'
 import { useI18n } from '@skill-shelf/i18n/react'
 import type {
-  CatalogSnapshot,
-  DesktopSettings,
-} from '../../shared/desktop-contract'
-import type {
+  SyncApplyResult,
   SyncConflict,
   SyncPreview,
   WebDavStatus,
 } from '../../shared/sync-contract'
+import { AI_LANGUAGE_OPTIONS } from './ai-language-options'
 
-type SyncResult = { catalog: CatalogSnapshot; settings: DesktopSettings }
+type SyncResult = SyncApplyResult
 const emptyWebDav: WebDavStatus = {
   url: '',
   username: '',
@@ -50,12 +48,14 @@ export function SyncSettings({
   const [rememberPassword, setRememberPassword] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [connectionError, setConnectionError] = useState<string | null>(null)
   const [status, setStatus] = useState<string | null>(null)
   const [preview, setPreview] = useState<SyncPreview | null>(null)
   const [resolutions, setResolutions] = useState<
     Record<string, 'local' | 'incoming'>
   >({})
   const [includePreferences, setIncludePreferences] = useState(false)
+  const [includeAiPreferences, setIncludeAiPreferences] = useState(false)
   const previewRef = useRef<SyncPreview | null>(null)
   const mounted = useRef(true)
   previewRef.current = preview
@@ -67,6 +67,7 @@ export function SyncSettings({
   const ready = Boolean(saved.url) && !dirty && !busy
 
   function applySettings(next: WebDavStatus) {
+    setConnectionError(null)
     setSaved(next)
     setUrl(next.url)
     setUsername(next.username)
@@ -79,10 +80,15 @@ export function SyncSettings({
     setBusy(action)
     setError(null)
     setStatus(null)
+    if (action === 'load') setConnectionError(null)
     try {
       await operation()
     } catch (caught) {
-      if (mounted.current) setError(syncError(caught, t))
+      if (mounted.current) {
+        if (action === 'load')
+          setConnectionError(t('desktop.sync.error.loadConnection'))
+        else setError(syncError(caught, t))
+      }
     } finally {
       if (mounted.current) setBusy(null)
     }
@@ -98,8 +104,8 @@ export function SyncSettings({
         (next) => {
           if (active) applySettings(next)
         },
-        (caught) => {
-          if (active) setError(syncError(caught, t))
+        () => {
+          if (active) setConnectionError(t('desktop.sync.error.loadConnection'))
         }
       )
       .finally(() => {
@@ -124,6 +130,7 @@ export function SyncSettings({
     setPreview(next)
     setResolutions({})
     setIncludePreferences(false)
+    setIncludeAiPreferences(Boolean(next.aiPreferences))
   }
 
   async function closePreview() {
@@ -143,6 +150,11 @@ export function SyncSettings({
   const unresolved =
     preview?.conflicts.filter((conflict) => !resolutions[conflict.id]).length ??
     0
+  const aiLanguage = preview?.aiPreferences?.targetLanguage ?? ''
+  const aiLanguageOption = AI_LANGUAGE_OPTIONS.find(
+    (option) => option.id === aiLanguage
+  )
+  const aiLanguageName = aiLanguageOption ? t(aiLanguageOption.key) : aiLanguage
 
   return (
     <div className="settings-page sync-settings">
@@ -214,6 +226,11 @@ export function SyncSettings({
               <p>{t('desktop.sync.webdavDescription')}</p>
             </div>
           </div>
+          {connectionError ? (
+            <p className="sync-feedback is-error" role="alert">
+              {connectionError}
+            </p>
+          ) : null}
           <form
             className="sync-webdav-form"
             onSubmit={(event) => {
@@ -406,6 +423,37 @@ export function SyncSettings({
                     {t('desktop.sync.conflicts')}
                   </span>
                 </div>
+                {preview.packs && preview.packs.total > 0 ? (
+                  <p className="sync-warning">
+                    {t('desktop.sync.packsSummary', {
+                      count: preview.packs.total,
+                      changed: preview.packs.changed,
+                      matched: preview.packs.matchedMembers,
+                    })}
+                  </p>
+                ) : null}
+                {preview.packs?.skippedMembers.length ? (
+                  <details className="sync-skipped-list">
+                    <summary>
+                      {t(
+                        preview.mode === 'upload'
+                          ? 'desktop.sync.packMembersRetained'
+                          : 'desktop.sync.packMembersSkipped',
+                        { count: preview.packs.skippedMembers.length }
+                      )}
+                    </summary>
+                    <ul>
+                      {preview.packs.skippedMembers.map((member, index) => (
+                        <li key={index}>
+                          <strong>
+                            {member.packName} · {member.skillName}
+                          </strong>
+                          <span>{t(`desktop.sync.skip.${member.reason}`)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
                 {preview.staleTranslations ? (
                   <p className="sync-warning">
                     {t('desktop.sync.staleTranslations', {
@@ -542,6 +590,38 @@ export function SyncSettings({
                     <p>{t('desktop.sync.preferencesDescription')}</p>
                   </div>
                 </label>
+                {preview.aiPreferences ? (
+                  <label className="sync-preferences">
+                    <Switch
+                      aria-label={t(
+                        preview.mode === 'upload'
+                          ? 'desktop.sync.uploadAiPreferences'
+                          : 'desktop.sync.importAiPreferences'
+                      )}
+                      checked={includeAiPreferences}
+                      disabled={Boolean(busy)}
+                      onCheckedChange={setIncludeAiPreferences}
+                    />
+                    <div>
+                      <strong>
+                        {t(
+                          preview.mode === 'upload'
+                            ? 'desktop.sync.uploadAiPreferences'
+                            : 'desktop.sync.importAiPreferences'
+                        )}
+                      </strong>
+                      <p>{t('desktop.sync.aiPreferencesDescription')}</p>
+                      <p>
+                        {t('desktop.sync.aiDefaults', {
+                          language: aiLanguageName,
+                          chat: preview.aiPreferences.models.chat.model,
+                          writing: preview.aiPreferences.models.writing.model,
+                          analysis: preview.aiPreferences.models.analysis.model,
+                        })}
+                      </p>
+                    </div>
+                  </label>
+                ) : null}
                 {preview.mode === 'import' && !preview.matched ? (
                   <p className="sync-warning">{t('desktop.sync.noMatches')}</p>
                 ) : null}
@@ -565,7 +645,9 @@ export function SyncSettings({
                     unresolved > 0 ||
                     (preview.mode === 'import' &&
                       preview.changed === 0 &&
-                      !includePreferences)
+                      !preview.packs?.changed &&
+                      !includePreferences &&
+                      !includeAiPreferences)
                   }
                   onClick={() =>
                     void run('apply', async () => {
@@ -573,6 +655,7 @@ export function SyncSettings({
                         previewId: preview.id,
                         resolutions,
                         includePreferences,
+                        includeAiPreferences,
                       })
                       onApplied(result)
                       setPreview(null)
@@ -607,6 +690,8 @@ export function SyncSettings({
 
 type Translate = ReturnType<typeof useI18n>['t']
 function fieldLabel(conflict: SyncConflict, t: Translate) {
+  if (conflict.field === 'pack-description')
+    return t('desktop.sync.fieldPackDescription')
   if (conflict.field.startsWith('description:'))
     return t('desktop.sync.fieldDescription', {
       language: conflict.field.slice(12),
@@ -625,6 +710,8 @@ function fieldLabel(conflict: SyncConflict, t: Translate) {
 }
 function syncError(error: unknown, t: Translate) {
   const message = error instanceof Error ? error.message : String(error)
+  if (message.includes('rollback failed'))
+    return t('desktop.sync.error.rollback')
   if (message.includes('Invalid sync document'))
     return t('desktop.sync.error.document')
   if (message.includes('preview is outdated'))

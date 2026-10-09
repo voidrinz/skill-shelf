@@ -1354,11 +1354,13 @@ export function App() {
                   onSyncApplied={({
                     catalog: nextCatalog,
                     settings: nextSettings,
+                    aiSettings: nextAiSettings,
                   }) => {
                     applyCatalog(nextCatalog)
                     applySettingsSnapshot(nextSettings)
                     setLocalePreference(nextSettings.language)
                     setSidebarCollapsed(nextSettings.sidebarCollapsed)
+                    if (nextAiSettings) setAiSettings(nextAiSettings)
                   }}
                   onWorkbenchSnapshotChange={setWorkbenchSnapshot}
                   runtime={runtime}
@@ -7213,6 +7215,7 @@ function SettingsWorkspace({
   onSyncApplied: (result: {
     catalog: CatalogSnapshot
     settings: DesktopSettings
+    aiSettings?: AiProviderSettingsStatus
   }) => void
   onWorkbenchSnapshotChange: (snapshot: WorkbenchSnapshot) => void
   runtime: DesktopRuntimeInfo | null

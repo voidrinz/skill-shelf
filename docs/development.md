@@ -101,6 +101,31 @@ the panel releases its renderer and recreates it when opened again. Right-click
 the icon for the native menu. Use Quit in the panel/menu or the application's
 Quit command to exit completely.
 
+## Metadata Sync
+
+Settings > Sync supports file export/import and manual WebDAV upload/pull.
+Both methods use the same version 2 metadata document; version 1 exports remain
+importable. Skill files, deployment paths, provider credentials and WebDAV
+credentials are excluded.
+
+Skill organization and cached translations merge only into matching installed
+Skills. Translations with a different source description are skipped and counted
+in the preview. Packs merge by name, preserving local-only members; members are
+matched against existing managed Skills by source identity or content fingerprint.
+Missing or ambiguous members are listed in the preview. Uploads preserve cloud-only
+Packs and member references.
+
+The preview has separate switches for app preferences and AI preferences. AI
+preferences include the translation language, model lists, default role models
+and context mode, and are selected by default when available. Import keeps each
+computer's API keys and connection enabled state. Imported defaults update the
+open application's AI settings immediately.
+
+Preview revisions cover Skill organization, Packs, member identities and AI
+preferences. Local imports back up all affected metadata stores and roll back
+Pack/AI writes if a later metadata write fails. Uploads do not apply changes to
+the local stores.
+
 ## Desktop Releases And Updates
 
 Desktop release builds use a separate public `skill-shelf-releases` repository.

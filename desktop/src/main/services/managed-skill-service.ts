@@ -243,6 +243,57 @@ export class ManagedSkillService {
     return this.snapshot()
   }
 
+  prepareSyncPacks(packs: SkillPack[], revision: string) {
+    const previous = structuredClone(this.getState())
+    if (JSON.stringify(this.snapshot()) !== revision)
+      throw new Error('Sync preview is outdated')
+    const knownIds = new Set(previous.skills.map((skill) => skill.id))
+    if (
+      packs.some(
+        (pack) =>
+          !isSkillPack(pack) || pack.skillIds.some((id) => !knownIds.has(id))
+      )
+    )
+      throw new Error('Invalid sync Packs')
+    const next = { ...previous, packs: packs.map(clonePack) }
+    const committedRevision = JSON.stringify({
+      packs: next.packs,
+      skills: next.skills,
+    })
+    let committed = false
+    return {
+      commit: async () => {
+        if (JSON.stringify(this.snapshot()) !== revision)
+          throw new Error('Sync preview is outdated')
+        await mkdir(dirname(this.statePath), { recursive: true })
+        const backup = `${this.statePath}.sync-backup`
+        const temporary = `${backup}.${randomUUID()}.tmp`
+        try {
+          await writeFile(temporary, `${JSON.stringify(previous, null, 2)}\n`, {
+            mode: 0o600,
+            flag: 'wx',
+          })
+          await rename(temporary, backup)
+        } finally {
+          await rm(temporary, { force: true })
+        }
+        if (JSON.stringify(this.snapshot()) !== revision)
+          throw new Error('Sync preview is outdated')
+        await this.persist(next)
+        this.state = next
+        committed = true
+      },
+      rollback: async () => {
+        if (!committed) return
+        if (JSON.stringify(this.snapshot()) !== committedRevision)
+          throw new Error('Sync preview is outdated')
+        await this.persist(previous)
+        this.state = previous
+        committed = false
+      },
+    }
+  }
+
   async deploy(
     input: DeployManagedSkillInput,
     destinations: ManagedSkillDeploymentDestination[]
@@ -395,8 +446,8 @@ export class ManagedSkillService {
     return this.state
   }
 
-  private persist(): Promise<void> {
-    const snapshot = structuredClone(this.getState())
+  private persist(state = this.getState()): Promise<void> {
+    const snapshot = structuredClone(state)
     const write = this.writeQueue.then(async () => {
       await mkdir(dirname(this.statePath), { recursive: true })
       const temporaryPath = `${this.statePath}.${randomUUID()}.tmp`

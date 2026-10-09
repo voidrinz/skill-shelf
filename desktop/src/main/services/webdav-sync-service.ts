@@ -158,7 +158,13 @@ export class WebDavSyncService {
           throw new Error('Sync credentials unavailable')
         }
       })()
-    await this.initializing
+    const initializing = this.initializing
+    try {
+      await initializing
+    } catch (error) {
+      if (this.initializing === initializing) this.initializing = null
+      throw error
+    }
   }
 
   private async send(file: string, options: RequestInit, allowMissing = false) {

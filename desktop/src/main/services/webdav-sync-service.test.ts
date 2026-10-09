@@ -263,4 +263,24 @@ describe('WebDAV sync', () => {
     expect(result).toMatchObject({ username: 'new-user', hasPassword: true })
     expect(await readFile(path, 'utf8')).not.toContain('new-password')
   })
+
+  it('retries reading the saved connection after a temporary read failure', async () => {
+    const { path, service } = await setup()
+    await writeFile(path, '{invalid data')
+    await expect(service.getStatus()).rejects.toThrow('credentials unavailable')
+    await writeFile(
+      path,
+      JSON.stringify({
+        url: 'https://dav.example.com/',
+        username: 'user',
+        rememberPassword: false,
+      })
+    )
+    await expect(service.getStatus()).resolves.toEqual({
+      url: 'https://dav.example.com/',
+      username: 'user',
+      rememberPassword: false,
+      hasPassword: false,
+    })
+  })
 })

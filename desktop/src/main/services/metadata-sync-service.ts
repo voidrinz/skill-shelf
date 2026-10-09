@@ -23,6 +23,12 @@ import {
   normalizeShelfState,
   ShelfStore,
 } from './shelf-store'
+import {
+  AiProviderService,
+  normalizePortableAiPreferences,
+} from './ai-provider-service'
+import { ManagedSkillService } from './managed-skill-service'
+import { exportSyncPacks, parseSyncPacks, planSyncPacks } from './pack-sync'
 
 export const MAX_SYNC_BYTES = 10 * 1024 * 1024
 const MAX_SKILLS = 10_000
@@ -42,10 +48,17 @@ export class MetadataSyncService {
     revision: string
     catalog: CatalogSnapshot
     identities: Map<string, string | null>
+    managedRevision?: string
+    memberRevision?: string
+    aiRevision?: string
   } | null = null
   constructor(
     private readonly store: ShelfStore,
-    private readonly getCatalog: () => Promise<CatalogSnapshot>
+    private readonly getCatalog: () => Promise<CatalogSnapshot>,
+    private readonly extensions: {
+      aiProvider?: AiProviderService
+      managedSkills?: ManagedSkillService
+    } = {}
   ) {}
 
   async exportDocument(): Promise<SyncDocument> {
@@ -60,7 +73,7 @@ export class MetadataSyncService {
   ): Promise<SyncDocument> {
     return {
       format: 'skill-shelf-metadata',
-      version: 1,
+      version: 2,
       exportedAt: new Date().toISOString(),
       skills: await Promise.all(
         catalog.skills.map(async (skill) => {
@@ -88,6 +101,18 @@ export class MetadataSyncService {
       preferences: Object.fromEntries(
         portableSettingKeys.map((key) => [key, state.settings[key]])
       ),
+      ...(this.extensions.managedSkills
+        ? {
+            packs: await exportSyncPacks(
+              this.extensions.managedSkills.snapshot(),
+              catalog,
+              getSkillIdentity
+            ),
+          }
+        : {}),
+      ...(this.extensions.aiProvider
+        ? { aiPreferences: this.extensions.aiProvider.getPortablePreferences() }
+        : {}),
     }
   }
 
@@ -174,6 +199,24 @@ export class MetadataSyncService {
         !matchedIds.has(skill.id) &&
         matchKey({ ...skill, identity: identities[index]! })
     ).length
+    const managed = this.extensions.managedSkills?.snapshot()
+    const packPlan =
+      managed && (document.packs || mode === 'upload')
+        ? await planSyncPacks({
+            incoming: document.packs ?? [],
+            snapshot: managed,
+            catalog,
+            identify: getSkillIdentity,
+            mode,
+            conflicts: preview.conflicts,
+          })
+        : null
+    if (packPlan) preview.packs = packPlan.preview
+    const aiPreferences =
+      mode === 'upload'
+        ? this.extensions.aiProvider?.getPortablePreferences()
+        : document.aiPreferences
+    if (aiPreferences) preview.aiPreferences = aiPreferences
     this.pending = {
       document,
       preview,
@@ -182,6 +225,19 @@ export class MetadataSyncService {
       identities: new Map(
         catalog.skills.map((skill, index) => [skill.id, identities[index]!])
       ),
+      ...(managed && packPlan
+        ? {
+            managedRevision: JSON.stringify(managed),
+            memberRevision: packPlan.memberRevision,
+          }
+        : {}),
+      ...(aiPreferences && this.extensions.aiProvider
+        ? {
+            aiRevision: JSON.stringify(
+              this.extensions.aiProvider.getPortablePreferences()
+            ),
+          }
+        : {}),
     }
     return preview
   }
@@ -201,6 +257,8 @@ export class MetadataSyncService {
       throw new Error('Sync preview is outdated')
     if (
       typeof input.includePreferences !== 'boolean' ||
+      (input.includeAiPreferences !== undefined &&
+        typeof input.includeAiPreferences !== 'boolean') ||
       !input.resolutions ||
       typeof input.resolutions !== 'object'
     )
@@ -238,6 +296,32 @@ export class MetadataSyncService {
         []
       )
     }
+    const managed = this.extensions.managedSkills?.snapshot()
+    if (
+      pending.managedRevision &&
+      JSON.stringify(managed) !== pending.managedRevision
+    )
+      throw new Error('Sync preview is outdated')
+    const packPlan =
+      managed && pending.memberRevision
+        ? await planSyncPacks({
+            incoming: pending.document.packs ?? [],
+            snapshot: managed,
+            catalog: currentCatalog,
+            identify: getSkillIdentity,
+            mode: pending.preview.mode,
+            resolutions: input.resolutions,
+          })
+        : null
+    if (packPlan && packPlan.memberRevision !== pending.memberRevision)
+      throw new Error('Sync preview is outdated')
+    if (
+      input.includeAiPreferences &&
+      pending.aiRevision &&
+      JSON.stringify(this.extensions.aiProvider?.getPortablePreferences()) !==
+        pending.aiRevision
+    )
+      throw new Error('Sync preview is outdated')
     if (upload) {
       const localDocument = await this.documentFromState(currentCatalog, state)
       const unmatched = pending.document.skills.filter(
@@ -266,12 +350,29 @@ export class MetadataSyncService {
       }
       if (getSyncRevision(await this.store.getState()) !== pending.revision)
         throw new Error('Sync preview is outdated')
+      if (
+        pending.managedRevision &&
+        JSON.stringify(this.extensions.managedSkills?.snapshot()) !==
+          pending.managedRevision
+      )
+        throw new Error('Sync preview is outdated')
+      if (
+        input.includeAiPreferences &&
+        pending.aiRevision &&
+        JSON.stringify(this.extensions.aiProvider?.getPortablePreferences()) !==
+          pending.aiRevision
+      )
+        throw new Error('Sync preview is outdated')
       await upload({
         ...localDocument,
         skills: [...merged.values(), ...unmatched],
         preferences: input.includePreferences
           ? localDocument.preferences
           : pending.document.preferences,
+        packs: packPlan?.uploadedPacks ?? localDocument.packs,
+        aiPreferences: input.includeAiPreferences
+          ? localDocument.aiPreferences
+          : pending.document.aiPreferences,
       })
     } else {
       if (input.includePreferences)
@@ -279,17 +380,59 @@ export class MetadataSyncService {
           ...state.settings,
           ...pending.document.preferences,
         })
-      await this.store.applySyncPatch({
-        revision: pending.revision,
-        groups: state.groups,
-        organizations: state.organizations,
-        settings: state.settings,
-      })
+      const patches = []
+      if (
+        packPlan &&
+        pending.managedRevision &&
+        this.extensions.managedSkills &&
+        JSON.stringify(packPlan.localPacks) !== JSON.stringify(managed?.packs)
+      )
+        patches.push(
+          this.extensions.managedSkills.prepareSyncPacks(
+            packPlan.localPacks,
+            pending.managedRevision
+          )
+        )
+      if (
+        input.includeAiPreferences &&
+        pending.document.aiPreferences &&
+        pending.aiRevision &&
+        this.extensions.aiProvider
+      )
+        patches.push(
+          this.extensions.aiProvider.prepareSyncPreferences(
+            pending.document.aiPreferences,
+            pending.aiRevision
+          )
+        )
+      try {
+        for (const patch of patches) await patch.commit()
+        await this.store.applySyncPatch({
+          revision: pending.revision,
+          groups: state.groups,
+          organizations: state.organizations,
+          settings: state.settings,
+        })
+      } catch (error) {
+        const failures = []
+        for (const patch of patches.reverse()) {
+          try {
+            await patch.rollback()
+          } catch {
+            failures.push(true)
+          }
+        }
+        if (failures.length) throw new Error('Sync rollback failed')
+        throw error
+      }
     }
     this.pending = null
     return {
       catalog: await this.getCatalog(),
       settings: await this.store.getSettings(),
+      ...(this.extensions.aiProvider
+        ? { aiSettings: this.extensions.aiProvider.getSettingsStatus() }
+        : {}),
     }
   }
 }
@@ -500,7 +643,7 @@ export function parseSyncDocument(contents: string): SyncDocument {
     const document = record(JSON.parse(contents))
     if (
       document.format !== 'skill-shelf-metadata' ||
-      document.version !== 1 ||
+      (document.version !== 1 && document.version !== 2) ||
       typeof document.exportedAt !== 'string' ||
       !Number.isFinite(Date.parse(document.exportedAt)) ||
       !Array.isArray(document.skills) ||
@@ -589,7 +732,7 @@ export function parseSyncDocument(contents: string): SyncDocument {
     const normalized = normalizeDesktopSettings(preferences)
     return {
       format: 'skill-shelf-metadata',
-      version: 1,
+      version: document.version,
       exportedAt: document.exportedAt,
       skills,
       preferences: Object.fromEntries(
@@ -597,6 +740,16 @@ export function parseSyncDocument(contents: string): SyncDocument {
           .filter((key) => Object.hasOwn(preferences, key))
           .map((key) => [key, normalized[key]])
       ),
+      ...(document.packs !== undefined
+        ? { packs: parseSyncPacks(document.packs) }
+        : {}),
+      ...(document.aiPreferences !== undefined
+        ? {
+            aiPreferences: normalizePortableAiPreferences(
+              document.aiPreferences
+            ),
+          }
+        : {}),
     }
   } catch {
     throw new Error('Invalid sync document')

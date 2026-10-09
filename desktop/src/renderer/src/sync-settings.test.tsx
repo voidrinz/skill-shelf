@@ -1,4 +1,5 @@
 // @vitest-environment jsdom
+import { StrictMode } from 'react'
 import {
   cleanup,
   fireEvent,
@@ -48,7 +49,17 @@ const preview: SyncPreview = {
   skippedSkills: [{ name: 'remote-only', reason: 'not-found' }],
   preferences: { theme: 'dark' },
 }
-function setup() {
+function setup({
+  strict = false,
+  unconfigured = false,
+  loadError,
+  importPreview,
+}: {
+  strict?: boolean
+  unconfigured?: boolean
+  loadError?: Error
+  importPreview?: SyncPreview
+} = {}) {
   const api = {
     getWebDavSettings: vi.fn(async () => ({
       url: 'https://dav.example.com/shelf/',
@@ -77,15 +88,68 @@ function setup() {
       settings: { theme: 'dark' },
     })),
   }
+  if (unconfigured)
+    api.getWebDavSettings.mockResolvedValue({
+      url: '',
+      username: '',
+      hasPassword: false,
+      rememberPassword: false,
+    })
+  if (loadError) api.getWebDavSettings.mockRejectedValueOnce(loadError)
+  if (importPreview) api.importSyncData.mockResolvedValue(importPreview)
   window.skillShelf = api as unknown as SkillShelfDesktopApi
   const onApplied = vi.fn()
-  render(
+  const content = (
     <I18nProvider defaultPreference="en">
       <SyncSettings onApplied={onApplied} />
     </I18nProvider>
   )
+  render(strict ? <StrictMode>{content}</StrictMode> : content)
   return { api, onApplied }
 }
+
+it('opens an unconfigured sync page in StrictMode without alerts or automatic sync requests', async () => {
+  const { api } = setup({ strict: true, unconfigured: true })
+  const exporting = screen.getByRole('button', {
+    name: 'Export management data',
+  })
+  await waitFor(() =>
+    expect((exporting as HTMLButtonElement).disabled).toBe(false)
+  )
+  expect(api.getWebDavSettings).toHaveBeenCalledTimes(2)
+  expect(screen.queryByRole('alert')).toBeNull()
+  expect(
+    (screen.getByLabelText(/WebDAV folder URL/) as HTMLInputElement).value
+  ).toBe('')
+  expect(api.testWebDavConnection).not.toHaveBeenCalled()
+  expect(api.pullWebDavSync).not.toHaveBeenCalled()
+  expect(api.pushWebDavSync).not.toHaveBeenCalled()
+})
+
+it('places configuration read failures within WebDAV and clears them after reloading', async () => {
+  const { api } = setup({
+    loadError: new Error('Sync credentials unavailable'),
+  })
+  const alert = await screen.findByRole('alert')
+  expect(alert.textContent).toBe(
+    'Could not read the saved WebDAV connection. Reload it or enter and save a connection.'
+  )
+  expect(alert.closest('.sync-webdav')).toBeTruthy()
+  const exporting = screen.getByRole('button', {
+    name: 'Export management data',
+  })
+  expect((exporting as HTMLButtonElement).disabled).toBe(false)
+  fireEvent.click(exporting)
+  await screen.findByText('Management data exported.')
+  expect(api.exportSyncData).toHaveBeenCalledOnce()
+  fireEvent.click(screen.getByRole('button', { name: 'Reload connection' }))
+  await waitFor(() => expect(screen.queryByRole('alert')).toBeNull())
+  await waitFor(() =>
+    expect(
+      (screen.getByLabelText(/WebDAV folder URL/) as HTMLInputElement).value
+    ).toBe('https://dav.example.com/shelf/')
+  )
+})
 
 it('previews an import and requires conflict choices before applying it', async () => {
   const { api, onApplied } = setup()
@@ -111,6 +175,7 @@ it('previews an import and requires conflict choices before applying it', async 
     previewId: 'preview-1',
     resolutions: { '0:description:en': 'incoming' },
     includePreferences: false,
+    includeAiPreferences: false,
   })
   expect(screen.queryByRole('dialog')).toBeNull()
 })
@@ -199,6 +264,117 @@ it('previews WebDAV uploads and allows app preferences to be included explicitly
       previewId: 'preview-1',
       resolutions: {},
       includePreferences: true,
+      includeAiPreferences: false,
+    })
+  )
+})
+
+it('previews Pack-only changes and imports AI defaults by default, with a separate opt-out', async () => {
+  const value: SyncPreview = {
+    ...preview,
+    matched: 0,
+    changed: 0,
+    conflicts: [],
+    packs: {
+      total: 1,
+      changed: 1,
+      matchedMembers: 1,
+      skippedMembers: [
+        {
+          packName: 'Essentials',
+          skillName: 'remote-only',
+          reason: 'not-found',
+        },
+      ],
+    },
+    aiPreferences: {
+      availableModels: {
+        deepseek: [{ id: 'deepseek-v4-flash', displayName: 'Flash' }],
+      },
+      contextMode: 'skill-md',
+      targetLanguage: 'ja',
+      models: {
+        chat: { provider: 'deepseek', model: 'deepseek-v4-flash' },
+        writing: { provider: 'deepseek', model: 'deepseek-v4-flash' },
+        analysis: { provider: 'deepseek', model: 'deepseek-v4-flash' },
+      },
+    },
+  }
+  const { api } = setup({ importPreview: value })
+  const importing = screen.getByRole('button', {
+    name: 'Import management data',
+  })
+  await waitFor(() =>
+    expect((importing as HTMLButtonElement).disabled).toBe(false)
+  )
+  fireEvent.click(importing)
+  await screen.findByRole('dialog')
+  const option = screen.getByRole('switch', {
+    name: 'Also import AI preferences',
+  })
+  expect(option.getAttribute('aria-checked')).toBe('true')
+  expect(screen.getByText(/Translation: Japanese/)).toBeTruthy()
+  expect(screen.getByText(/1 Packs, 1 with changes/)).toBeTruthy()
+  expect(screen.getByText(/1 Pack members were not matched/)).toBeTruthy()
+  const confirm = screen.getByRole('button', { name: 'Confirm merge' })
+  expect((confirm as HTMLButtonElement).disabled).toBe(false)
+  fireEvent.click(option)
+  expect(option.getAttribute('aria-checked')).toBe('false')
+  expect((confirm as HTMLButtonElement).disabled).toBe(false)
+  fireEvent.click(confirm)
+  await waitFor(() =>
+    expect(api.applySyncData).toHaveBeenCalledWith({
+      previewId: value.id,
+      resolutions: {},
+      includePreferences: false,
+      includeAiPreferences: false,
+    })
+  )
+})
+
+it('allows an AI-preferences-only import without matching Skills or Pack changes', async () => {
+  const value: SyncPreview = {
+    ...preview,
+    matched: 0,
+    changed: 0,
+    conflicts: [],
+    aiPreferences: {
+      availableModels: {
+        deepseek: [{ id: 'deepseek-v4-flash', displayName: 'Flash' }],
+      },
+      contextMode: 'relevant-text',
+      targetLanguage: 'zh-CN',
+      models: {
+        chat: { provider: 'deepseek', model: 'deepseek-v4-flash' },
+        writing: { provider: 'deepseek', model: 'deepseek-v4-flash' },
+        analysis: { provider: 'deepseek', model: 'deepseek-v4-flash' },
+      },
+    },
+  }
+  const { api } = setup({ importPreview: value })
+  const importing = screen.getByRole('button', {
+    name: 'Import management data',
+  })
+  await waitFor(() =>
+    expect((importing as HTMLButtonElement).disabled).toBe(false)
+  )
+  fireEvent.click(importing)
+  await screen.findByRole('dialog')
+  const confirm = screen.getByRole('button', { name: 'Confirm merge' })
+  expect((confirm as HTMLButtonElement).disabled).toBe(false)
+  const option = screen.getByRole('switch', {
+    name: 'Also import AI preferences',
+  })
+  fireEvent.click(option)
+  expect((confirm as HTMLButtonElement).disabled).toBe(true)
+  fireEvent.click(option)
+  fireEvent.click(confirm)
+  await waitFor(() =>
+    expect(api.applySyncData).toHaveBeenCalledWith({
+      previewId: value.id,
+      resolutions: {},
+      includePreferences: false,
+      includeAiPreferences: true,
     })
   )
 })

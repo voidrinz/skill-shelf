@@ -2,10 +2,9 @@ export const messages = {
   'desktop.sync.title': 'Sync',
   'desktop.sync.description':
     'Bring your Skill organization to another computer.',
-  'desktop.sync.scopeTitle':
-    'Sync the management data for Skills you already have',
+  'desktop.sync.scopeTitle': 'Sync organization and app preferences',
   'desktop.sync.scopeDescription':
-    'Includes folder hierarchy, tags, canvas positions, custom descriptions and translations. Skill files, installations, local paths and account keys stay on each computer.',
+    'Includes Packs, folder hierarchy, tags, canvas positions, custom descriptions and translations, with optional app and AI preferences. Skill files, installations, local paths and account keys stay on each computer.',
   'desktop.sync.matchingDescription':
     'Matches by source and Skill name; local Skills use content fingerprints. Project Skills also match the project name. Missing or ambiguous Skills are skipped.',
   'desktop.sync.files': 'Export / import',
@@ -69,8 +68,20 @@ export const messages = {
   'desktop.sync.uploadPreferences': 'Also upload app preferences',
   'desktop.sync.preferencesDescription':
     'Language, theme, list density, default view and Agent preferences. Machine paths and login settings are excluded.',
+  'desktop.sync.importAiPreferences': 'Also import AI preferences',
+  'desktop.sync.uploadAiPreferences': 'Also upload AI preferences',
+  'desktop.sync.aiPreferencesDescription':
+    'Default translation language, default models, model lists and context preferences. Local API keys and connection enabled states are preserved.',
+  'desktop.sync.aiDefaults':
+    'Translation: {language}; chat: {chat}; writing: {writing}; analysis: {analysis}.',
+  'desktop.sync.packsSummary':
+    '{count} Packs, {changed} with changes, matching {matched} local managed Skill members.',
+  'desktop.sync.packMembersSkipped':
+    '{count} Pack members were not matched locally. Show details',
+  'desktop.sync.packMembersRetained':
+    '{count} cloud Pack members were not matched locally and will be retained on upload. Show details',
   'desktop.sync.noMatches':
-    'No matching Skills were found. You can still choose to import app preferences.',
+    'No matching Skills were found. Packs and selected preferences can still be merged.',
   'desktop.sync.confirmImport': 'Confirm merge',
   'desktop.sync.confirmUpload': 'Confirm upload',
   'desktop.sync.imported':
@@ -82,6 +93,7 @@ export const messages = {
   'desktop.sync.fieldFolder': 'Folder hierarchy',
   'desktop.sync.fieldPosition': 'Canvas position',
   'desktop.sync.fieldTags': 'Tags',
+  'desktop.sync.fieldPackDescription': 'Pack description',
   'desktop.sync.error.document':
     'This is not a supported Skill Shelf sync file, or its data exceeds the allowed size.',
   'desktop.sync.error.outdated':
@@ -109,8 +121,12 @@ export const messages = {
   'desktop.sync.error.network':
     'Could not connect to WebDAV. Check the address and network, then retry.',
   'desktop.sync.error.notConfigured': 'Save a WebDAV connection first.',
+  'desktop.sync.error.loadConnection':
+    'Could not read the saved WebDAV connection. Reload it or enter and save a connection.',
   'desktop.sync.error.default':
     'The sync operation failed. Your draft is preserved; please retry.',
+  'desktop.sync.error.rollback':
+    'Sync did not finish and some data could not be restored. A local backup of the previous data is available; review it before retrying.',
   'common.cancel': 'Cancel',
   'common.close': 'Close',
   'common.filter': 'Filter',

@@ -1,4 +1,10 @@
 import type {
+  AiContextMode,
+  AiModelRoleSettings,
+  AiProviderId,
+  AiProviderModelInput,
+  AiProviderSettingsStatus,
+  CatalogSnapshot,
   CanvasPosition,
   DesktopSettings,
   FinderViewOptions,
@@ -40,10 +46,42 @@ export interface SyncSkill {
 
 export interface SyncDocument {
   format: 'skill-shelf-metadata'
-  version: 1
+  version: 1 | 2
   exportedAt: string
   skills: SyncSkill[]
   preferences: Partial<PortableSettings>
+  packs?: SyncPack[]
+  aiPreferences?: PortableAiPreferences
+}
+
+export interface PortableAiPreferences {
+  availableModels: Partial<Record<AiProviderId, AiProviderModelInput[]>>
+  contextMode: AiContextMode
+  models: AiModelRoleSettings
+  targetLanguage: string
+}
+
+export interface SyncPackMember {
+  name: string
+  identity: string | null
+  fingerprint: string | null
+}
+
+export interface SyncPack {
+  name: string
+  description: string
+  skills: SyncPackMember[]
+}
+
+export interface SyncPackPreview {
+  total: number
+  changed: number
+  matchedMembers: number
+  skippedMembers: Array<{
+    packName: string
+    skillName: string
+    reason: 'not-found' | 'ambiguous' | 'no-identity'
+  }>
 }
 
 export interface SyncConflict {
@@ -70,12 +108,21 @@ export interface SyncPreview {
     reason: 'not-found' | 'ambiguous' | 'no-identity'
   }>
   preferences: Partial<PortableSettings>
+  packs?: SyncPackPreview
+  aiPreferences?: PortableAiPreferences
 }
 
 export interface ApplySyncInput {
   previewId: string
   resolutions: Record<string, 'local' | 'incoming'>
   includePreferences: boolean
+  includeAiPreferences?: boolean
+}
+
+export interface SyncApplyResult {
+  catalog: CatalogSnapshot
+  settings: DesktopSettings
+  aiSettings?: AiProviderSettingsStatus
 }
 
 export interface WebDavInput {
