@@ -1,6 +1,6 @@
 {
   "name": "@skill-shelf/desktop",
-  "version": "0.1.5",
+  "version": "0.1.6",
   "private": true,
   "description": "A local-first desktop GUI for skills.sh",
   "type": "module",
