@@ -2,8 +2,9 @@
 
 Skill Shelf builds Mac downloads without an Apple Developer membership,
 Developer ID certificate, or notarization credentials. Applications use ad-hoc
-signing. The release repository builds Apple Silicon (`arm64`) and Intel (`x64`)
-separately and publishes both only after verification succeeds.
+signing. Starting with v0.1.8, the release repository builds Apple Silicon
+(`arm64`) only and publishes after verification succeeds. Intel (`x64`)
+downloads remain available in historical releases through v0.1.6.
 
 ## Two Repositories
 
@@ -53,11 +54,10 @@ ad hoc; the workflow verifies the resulting application with `codesign`.
 Each public release includes:
 
 - `skill-shelf-<version>-mac-arm64.dmg` and the corresponding `.zip`.
-- `skill-shelf-<version>-mac-x64.dmg` and the corresponding `.zip`.
 
-Each release also includes `skill-shelf-update.json`: a signed manifest containing the stable version and both ZIP files' exact URLs, sizes, and SHA-256 digests. `desktop/scripts/sign-update.mjs` generates it after both architectures finish building. A release is published only after signing succeeds. Electron updater YAML and blockmaps are not required. GitHub adds its own asset digests and source archives.
+Each release also includes `skill-shelf-update.json`: a signed manifest containing the stable version and the Apple Silicon ZIP's exact URL, size, and SHA-256 digest. `desktop/scripts/sign-update.mjs` generates it after the build finishes. A release is published only after signing succeeds. Electron updater YAML and blockmaps are not required. GitHub adds its own asset digests and source archives.
 
-The release workflow verifies that both architectures' installers
+The release workflow verifies that the Apple Silicon DMG and ZIP
 exist before publishing. macOS may block the first launch because these builds
 do not have a Developer ID or Apple notarization. Follow Apple's
 [instructions for opening an app from an unidentified developer](https://support.apple.com/en-us/102445)
@@ -79,7 +79,7 @@ desktop build in GitHub Actions. Accumulate changes until a release is requested
 2. Add user-facing release notes in `docs/release-notes/<version>.md`.
 3. Commit and push the source, including the lockfile and release configuration.
 4. Push a matching tag, for example `v0.1.1`.
-5. Follow Actions in `skill-shelf-releases`. Both Mac builds must pass before
+5. Follow Actions in `skill-shelf-releases`. The Apple Silicon build must pass before
    the GitHub Release becomes public.
 
 For a manual run, enter an existing source tag or the full 40-character commit
@@ -94,7 +94,9 @@ stable source tag matching the desktop version; it needs no Apple credentials.
 pnpm --filter @skill-shelf/desktop run dist --mac --arm64
 ```
 
-On an Intel Mac, use `--x64`. Local builds never publish automatically.
+Release packaging targets Apple Silicon even when no architecture flag is
+provided. `SKILL_SHELF_RELEASE_ARCH=x64` is rejected. Local builds never publish
+automatically.
 
 `pnpm pack:desktop` remains a development packaging command, separate from the
 release configuration and its ad-hoc signing policy.
@@ -114,4 +116,4 @@ After downloading, **Restart and update** asks for confirmation because open ter
 
 Automatic installation requires a writable application directory. Apps launched directly from a DMG, a translocated directory, or a protected non-writable folder do not offer installation; copy the app into a writable Applications folder first. Network, verification, permission, installation, and rollback failures are distinguished in About. A failed download or pre-quit installation can be retried.
 
-The original release checker opens the browser and cannot install this updater into itself. Install the first release containing this mechanism manually once; later signed releases can update in-app. Development builds remain offline. Do not change the application ID or remove previously published assets.
+The original release checker opens the browser and cannot install this updater into itself. Clients on v0.1.6 and v0.1.7 require two ZIP assets in a signed manifest, so they cannot install the first Apple Silicon-only release in-app. On an Apple Silicon Mac, install v0.1.8 or later manually once; subsequent signed releases can update in-app. New clients accept both the current one-architecture manifests and historical two-architecture manifests. Intel Macs can continue using v0.1.6, but receive no new builds. Development builds remain offline. Do not change the application ID or remove previously published assets.

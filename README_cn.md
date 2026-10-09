@@ -9,7 +9,7 @@
 一款 Mac 桌面应用，帮你整理、发现、更新 Skills，并在不同 AI 编程助手和项目之间复用。
 
 [![最新版本](https://img.shields.io/github/v/release/voidrinz/skill-shelf-releases?label=download&color=ed7153)](https://voidrinz.github.io/skill-shelf/#download)
-![平台](https://img.shields.io/badge/macOS-Apple%20Silicon%20%26%20Intel-555)
+![平台](https://img.shields.io/badge/macOS-Apple%20Silicon-555)
 
 [官网](https://voidrinz.github.io/skill-shelf/) · [下载 Mac 版](https://voidrinz.github.io/skill-shelf/#download) · [更新说明](https://github.com/voidrinz/skill-shelf-releases/releases) · [English](README.md)
 
@@ -36,7 +36,7 @@ Skills 越积越多，找起来也越来越麻烦。Skill Shelf 为它们提供�
 
 **[下载 Skill Shelf Mac 版 →](https://voidrinz.github.io/skill-shelf/#download)**
 
-M 系列芯片的 Mac 选择 **Apple Silicon**，Intel 芯片的 Mac 选择 **Intel**。点击官网上的下载按钮即可直接下载安装包。
+M 系列芯片的 Mac 选择 **Apple Silicon**。点击官网上的下载按钮即可直接下载安装包。
 
 1. 打开下载的 `.dmg` 文件。
 2. 将 **Skill Shelf** 拖入 **Applications（应用程序）**。
@@ -44,7 +44,7 @@ M 系列芯片的 Mac 选择 **Apple Silicon**，Intel 芯片的 Mac 选择 **In
 
 当前 Mac 安装包未经 Apple 公证，首次打开时 macOS 可能会提示警告。如果你决定继续打开，可以按照 [Apple 官方的应用打开说明](https://support.apple.com/zh-cn/102445)操作。
 
-所有已发布的安装包和更新说明都放在 [skill-shelf-releases](https://github.com/voidrinz/skill-shelf-releases/releases)。目前提供 Apple Silicon 和 Intel 两种 Mac 下载。
+所有已发布的安装包和更新说明都放在 [skill-shelf-releases](https://github.com/voidrinz/skill-shelf-releases/releases)。从 v0.1.8 起，新版本仅支持 Apple Silicon。Intel Mac 可继续使用历史版本 v0.1.6 的安装包。
 
 ## 开始使用
 

@@ -4,7 +4,7 @@
 
 # Explain the problem and resulting behavior. Add context when it helps.
 
-# Validation: describe the relevant checks and their result.
+# Include a description in every commit; omit validation results.
 
 # Optional: Closes #123
 # Optional: BREAKING CHANGE: describe an incompatible change and migration.

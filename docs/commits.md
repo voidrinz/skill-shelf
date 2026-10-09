@@ -9,14 +9,12 @@ release notes later. Commit titles and descriptions use English.
 Explain what changes and why. Include a concrete before/after example when
 useful. Keep the description proportional to the change.
 
-Validation: relevant checks and their result.
-
 Closes #123
 ```
 
-The scope, body, and issue footer are optional. A meaningful description is
-recommended for behavior changes, releases, and larger changes. Titles should
-usually stay within 72 characters. Use one commit for each coherent change.
+The scope and issue footer are optional. Every commit must include a meaningful
+description explaining what changes and why, without validation results. Titles
+should usually stay within 72 characters. Use one commit for each coherent change.
 
 ## Types And Scopes
 
@@ -42,8 +40,6 @@ feat(desktop): add menu bar actions
 
 Keep Skill Shelf available after the main window closes. Add a compact panel
 for scanning the local environment and opening the main application.
-
-Validation: tray lifecycle tests and a macOS UI check pass.
 ```
 
 ```text
@@ -51,8 +47,6 @@ ci(release): build Mac installers without Apple credentials
 
 Publish separate Apple Silicon and Intel downloads using ad-hoc signatures.
 Remove the Developer ID and notarization requirements from the workflow.
-
-Validation: workflow lint and an Apple Silicon installer build pass.
 ```
 
 For incompatible changes, add `!` after the type/scope and a `BREAKING CHANGE:`

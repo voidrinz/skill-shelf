@@ -20,12 +20,13 @@ than 20 minutes, rerun that job or run `Deploy Website` after publication.
 ## Direct Downloads
 
 During deployment, GitHub's latest stable release is read with the workflow's
-temporary `GITHUB_TOKEN`. The two published DMG assets are validated and their
-URLs are written to the ignored `website/.env.production.local` file. The token
+temporary `GITHUB_TOKEN`. The published Apple Silicon DMG is validated and its
+URL is written to the ignored `website/.env.production.local` file. Intel
+assets in historical releases are ignored. The token
 never enters the website bundle. Visitors click regular attachment links;
 there is no GitHub release-page redirect or browser-side API request.
 
-Local development defaults to the existing v0.1.1 installers. To preview with
+Local development defaults to the existing v0.1.1 Apple Silicon installer. To preview with
 current downloads, run:
 
 ```sh

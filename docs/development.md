@@ -84,7 +84,7 @@ For commit titles and descriptions, see [the commit convention](commits.md).
 ## Website
 
 Visit <https://voidrinz.github.io/skill-shelf/> for the product overview and
-direct Apple Silicon/Intel Mac downloads. The website deploys through GitHub
+direct Apple Silicon Mac downloads. The website deploys through GitHub
 Pages independently from desktop packaging. See [the website deployment
 guide](website.md) for deployment triggers and download-link updates.
 

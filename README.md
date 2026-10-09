@@ -9,7 +9,7 @@
 A Mac desktop app to organize, discover, update, and reuse skills across your AI coding agents.
 
 [![Latest release](https://img.shields.io/github/v/release/voidrinz/skill-shelf-releases?label=download&color=ed7153)](https://voidrinz.github.io/skill-shelf/#download)
-![Platform](https://img.shields.io/badge/macOS-Apple%20Silicon%20%26%20Intel-555)
+![Platform](https://img.shields.io/badge/macOS-Apple%20Silicon-555)
 
 [Website](https://voidrinz.github.io/skill-shelf/) · [Download for Mac](https://voidrinz.github.io/skill-shelf/#download) · [Release notes](https://github.com/voidrinz/skill-shelf-releases/releases) · [简体中文](README_cn.md)
 
@@ -36,7 +36,7 @@ Skill Shelf also supports English and Simplified Chinese, light and dark appeara
 
 **[Download Skill Shelf for Mac →](https://voidrinz.github.io/skill-shelf/#download)**
 
-Choose **Apple Silicon** for M-series Macs or **Intel** for Intel Macs. The website's download buttons start the installer download directly.
+Download **Apple Silicon** for M-series Macs. The website's download buttons start the installer download directly.
 
 1. Open the downloaded `.dmg` file.
 2. Drag **Skill Shelf** into **Applications**.
@@ -44,7 +44,7 @@ Choose **Apple Silicon** for M-series Macs or **Intel** for Intel Macs. The webs
 
 The current Mac builds are not notarized by Apple, so macOS may show a warning on first launch. Follow [Apple's instructions for opening an app](https://support.apple.com/en-us/102445) if you choose to proceed.
 
-All published installers and release notes are available in [skill-shelf-releases](https://github.com/voidrinz/skill-shelf-releases/releases). Mac downloads are currently available for Apple Silicon and Intel.
+All published installers and release notes are available in [skill-shelf-releases](https://github.com/voidrinz/skill-shelf-releases/releases). New releases starting with v0.1.8 support Apple Silicon only. Intel Macs can use the historical v0.1.6 downloads.
 
 ## Get Started
 
