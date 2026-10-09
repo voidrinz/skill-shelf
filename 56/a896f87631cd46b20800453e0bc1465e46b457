@@ -1,0 +1,37 @@
+desktop/src/main/index.ts
+  s_195416a04c53e0::t_226a2db81ff753 81,1498-1501
+desktop/src/main/services/github-release-checker.test.ts
+  s_837399686389a9::t_cbefbbf23376a1 2,6,69-106
+desktop/src/main/services/github-release-checker.ts
+  s_195416a04c53e0::t_5e844f202f5b90 12-52
+desktop/src/renderer/src/app.tsx
+  s_195416a04c53e0::t_0cf010371af166 8991-9003
+packages/i18n/src/locales/en.ts
+  s_195416a04c53e0::t_d23adff0538599 944-945,953,963,967
+packages/i18n/src/locales/zh-CN.ts
+  s_195416a04c53e0::t_a6b6f545afdbc8 876-877,885,895,899
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "56a896f87631cd46b20800453e0bc1465e46b457",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    },
+    "s_837399686389a9": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11980-c5f1-7441-9c9f-6788f911657d",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
