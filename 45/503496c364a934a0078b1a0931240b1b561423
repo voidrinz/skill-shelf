@@ -1,0 +1,25 @@
+desktop/scripts/configure-update-secret.mjs
+  s_195416a04c53e0::t_f902d19fff330d 1-43
+desktop/scripts/sign-update.mjs
+  s_195416a04c53e0::t_3d593b8d74b701 1-78
+release-repository/.github/workflows/release.yml
+  s_195416a04c53e0::t_21bb4a5616b8b8 163-170,182
+release-repository/README.md
+  s_195416a04c53e0::t_3dc6f3a85baf75 14-16,19-20,36-40,42-43
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "45503496c364a934a0078b1a0931240b1b561423",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
