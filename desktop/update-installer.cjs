@@ -1,4 +1,7 @@
-const fs = require('node:fs/promises')
+// Bundle backups contain app.asar files, which Electron's patched fs virtualizes.
+const fs = process.versions.electron
+  ? require('original-fs').promises
+  : require('node:fs/promises')
 const path = require('node:path')
 const { execFile } = require('node:child_process')
 const { promisify } = require('node:util')

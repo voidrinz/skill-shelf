@@ -1,8 +1,27 @@
 import { EventEmitter } from 'node:events'
 import { createHash, randomUUID } from 'node:crypto'
 import { spawn, execFile } from 'node:child_process'
-import { constants, accessSync, realpathSync, createReadStream } from 'node:fs'
+import * as fs from 'node:fs'
+import { createRequire } from 'node:module'
+import { dirname, isAbsolute, join, relative } from 'node:path'
+import { promisify } from 'node:util'
+import type { AppUpdater } from './app-update-service'
 import {
+  compareUpdateVersions,
+  MAX_MANIFEST_SIZE,
+  UPDATE_MANIFEST_NAME,
+  UPDATE_REPOSITORY,
+  verifyUpdateManifest,
+  type MacUpdateAsset,
+  type MacUpdateManifest,
+} from './update-manifest'
+
+// Electron treats app.asar as a directory; application bundles need physical files.
+const nativeFs: typeof fs = process.versions.electron
+  ? createRequire(import.meta.url)('original-fs')
+  : fs
+const { constants, accessSync, realpathSync, createReadStream } = nativeFs
+const {
   access,
   cp,
   lstat,
@@ -16,19 +35,7 @@ import {
   rename,
   rm,
   writeFile,
-} from 'node:fs/promises'
-import { dirname, isAbsolute, join, relative } from 'node:path'
-import { promisify } from 'node:util'
-import type { AppUpdater } from './app-update-service'
-import {
-  compareUpdateVersions,
-  MAX_MANIFEST_SIZE,
-  UPDATE_MANIFEST_NAME,
-  UPDATE_REPOSITORY,
-  verifyUpdateManifest,
-  type MacUpdateAsset,
-  type MacUpdateManifest,
-} from './update-manifest'
+} = nativeFs.promises
 
 const exec = promisify(execFile)
 
@@ -439,6 +446,7 @@ export class MacAppUpdater extends EventEmitter implements AppUpdater {
       if (!handedOff) {
         await rm(staged, { recursive: true, force: true })
         await rm(join(cache, 'pending.json'), { force: true })
+        await rm(planDirectory, { recursive: true, force: true })
       }
       if (error instanceof MacUpdateError) throw error
       throw new MacUpdateError(
@@ -446,7 +454,8 @@ export class MacAppUpdater extends EventEmitter implements AppUpdater {
         'Could not start update installation'
       )
     } finally {
-      if (prepared) await rm(prepared, { recursive: true, force: true })
+      if (prepared)
+        await rm(prepared, { recursive: true, force: true }).catch(() => {})
     }
   }
 }
