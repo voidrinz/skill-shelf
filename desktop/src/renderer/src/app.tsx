@@ -305,6 +305,7 @@ type TaskQueueJob =
   | { kind: 'scan-updates'; notify: boolean; taskId: string }
   | {
       kind: 'translate-descriptions'
+      force?: boolean
       language: string
       skillIds: string[]
       taskId: string
@@ -524,6 +525,7 @@ export function App() {
       }
       const stored = getStoredSkillTranslation(skill, job.language)
       if (
+        !job.force &&
         stored?.sourceDescription === sourceDescription &&
         !isLikelyIncompleteTranslation(sourceDescription, stored.content)
       ) {
@@ -644,7 +646,11 @@ export function App() {
     enqueueTask(task, { kind: 'scan-updates', notify, taskId })
   }
 
-  function translateSkills(skillIds: string[], language?: string) {
+  function translateSkills(
+    skillIds: string[],
+    language?: string,
+    force = false
+  ) {
     const uniqueSkillIds = [...new Set(skillIds)].filter((skillId) =>
       catalogSnapshotRef.current?.skills.some((skill) => skill.id === skillId)
     )
@@ -691,6 +697,7 @@ export function App() {
     }
     enqueueTask(task, {
       kind: 'translate-descriptions',
+      force,
       language: targetLanguage,
       skillIds: uniqueSkillIds,
       taskId,
@@ -2074,7 +2081,11 @@ export function FinderLibraryWorkspace({
   onSelect: (skillId: string) => void
   onUpdate: (skillId: string) => void
   onUpdateAvailable: () => void
-  onTranslateSkills: (skillIds: string[], language?: string) => boolean
+  onTranslateSkills: (
+    skillIds: string[],
+    language?: string,
+    force?: boolean
+  ) => boolean
   selectedId: string | null
   selectedSkill: InstalledSkill | null
   refreshing: boolean
@@ -6318,7 +6329,11 @@ function Inspector({
   onDrawerWidthChange: (width: number) => void
   onOpenAiSettings: () => void
   onRemove: (skillId: string) => void
-  onTranslateSkills?: (skillIds: string[], language?: string) => boolean
+  onTranslateSkills?: (
+    skillIds: string[],
+    language?: string,
+    force?: boolean
+  ) => boolean
   onUpdate: (skillId: string) => void
   skill: InstalledSkill | null
   translating?: boolean
@@ -6547,12 +6562,7 @@ function Inspector({
         >
           <span aria-hidden="true" />
         </div>
-        <div
-          className={cn(
-            'inspector-header',
-            activeTab === 'files' && 'is-compact'
-          )}
-        >
+        <div className="inspector-header">
           <div className="inspector-kicker">
             <span>
               <BookOpen />
@@ -6603,8 +6613,8 @@ function Inspector({
             <SkillDescriptionPanel
               key={`${skill.id}:${aiSettings?.targetLanguage ?? locale}`}
               onOpenAiSettings={onOpenAiSettings}
-              onTranslate={(language) =>
-                onTranslateSkills?.([skill.id], language) ?? false
+              onTranslate={(language, force) =>
+                onTranslateSkills?.([skill.id], language, force) ?? false
               }
               settings={aiSettings}
               skill={skill}

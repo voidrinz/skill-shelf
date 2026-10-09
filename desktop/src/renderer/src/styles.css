@@ -3084,26 +3084,6 @@ html[data-density='compact'] .finder-list-view[data-view='columns'] {
   border-bottom: 1px solid var(--border);
   padding: 14px 56px 14px 16px;
 }
-.inspector-header.is-compact {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-rows: auto auto;
-  column-gap: 18px;
-  padding-block: 14px;
-}
-.inspector-header.is-compact [data-slot='sheet-title'] {
-  margin-top: 5px;
-  font-size: 16px;
-}
-.inspector-header.is-compact .inspector-description {
-  display: none;
-}
-.inspector-header.is-compact .inspector-actions {
-  grid-column: 2;
-  grid-row: 1 / 3;
-  align-self: center;
-  margin-top: 0;
-}
 .inspector-kicker {
   display: flex;
   align-items: center;
@@ -3193,171 +3173,105 @@ html[data-density='compact'] .finder-list-view[data-view='columns'] {
   height: 13px;
 }
 .skill-description-card {
-  position: relative;
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--ss-radius-panel);
-  background: color-mix(in srgb, var(--card) 94%, var(--ss-accent-soft));
-  box-shadow:
-    inset 3px 0 0 color-mix(in srgb, var(--primary) 72%, transparent),
-    0 1px 2px rgb(25 31 27 / 4%);
+  display: grid;
+  gap: 8px;
+  min-width: 0;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 14px;
 }
 .skill-description-toolbar {
   display: flex;
+  flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 14px;
-  border-bottom: 1px solid var(--border);
-  padding: 11px 12px 11px 14px;
+  gap: 4px 12px;
+  min-height: 28px;
 }
 .skill-description-heading {
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 9px;
-}
-.skill-description-heading > span {
-  display: grid;
-  width: 28px;
-  height: 28px;
-  flex: 0 0 auto;
-  place-items: center;
-  border-radius: var(--ss-radius-control);
-  color: var(--primary);
-  background: var(--ss-accent-soft);
-}
-.skill-description-heading svg {
-  width: 13px;
-  height: 13px;
+  gap: 8px;
 }
 .skill-description-heading h3 {
   margin: 0;
-  color: var(--foreground);
-  font-size: 0.74rem;
-  font-weight: 660;
-}
-.skill-description-heading small {
-  display: block;
-  margin-top: 2px;
   color: var(--muted-foreground);
-  font-size: 0.64rem;
-  line-height: 1.35;
+  font-size: 0.7rem;
+  font-weight: 650;
 }
-.description-mode-switch {
-  display: flex;
-  flex: 0 0 auto;
-  gap: 2px;
-  border-radius: 7px;
+.skill-description-source {
+  border-radius: 4px;
+  color: var(--ss-ink-faint);
   background: var(--secondary);
-  padding: 3px;
+  padding: 2px 5px;
+  font-size: 0.63rem;
+  line-height: 1.3;
 }
-.description-mode-switch button {
+.skill-description-actions {
   display: flex;
-  height: 24px;
+  flex-shrink: 0;
   align-items: center;
-  gap: 4px;
-  border: 0;
-  border-radius: 5px;
-  color: var(--muted-foreground);
-  background: transparent;
-  padding: 0 7px;
-  font-size: 0.68rem;
-  font-weight: 610;
+  gap: 1px;
+  margin-left: auto;
 }
-.description-mode-switch button:hover {
-  color: var(--foreground);
+.skill-description-actions > button:first-child {
+  color: var(--primary);
+  font-weight: 550;
 }
-.description-mode-switch button.is-active {
-  color: var(--foreground);
-  background: var(--background);
-  box-shadow: 0 1px 2px rgb(25 31 27 / 8%);
+.skill-description-options {
+  width: 26px;
+  padding-inline: 0;
 }
-.description-mode-switch svg {
-  width: 11px;
-  height: 11px;
+.skill-description-options.has-language {
+  width: auto;
+  padding-inline: 6px;
 }
 .skill-description-body {
-  padding: 15px 16px 12px;
+  min-width: 0;
 }
-.skill-description-body > p:not(.skill-description-error) {
+.skill-description-body > p {
   margin: 0;
+  overflow-wrap: anywhere;
   color: var(--foreground);
   font-size: 0.78rem;
   line-height: 1.65;
   user-select: text;
   white-space: pre-wrap;
 }
+.skill-description-body > p.is-collapsed {
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 4;
+  overflow: hidden;
+}
 .skill-description-body > p.is-empty {
   color: var(--muted-foreground);
-  font-style: italic;
 }
-.skill-description-provenance {
-  display: flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 12px;
-  color: var(--ss-ink-faint);
-  font-size: 0.63rem;
-}
-.skill-description-provenance svg {
-  width: 11px;
-  height: 11px;
-}
-.skill-translation-controls {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: 8px;
-  margin-bottom: 13px;
-}
-.skill-translation-controls [data-slot='select-trigger'] {
-  width: 136px;
-  height: 28px;
-}
-.skill-translation-empty {
-  display: grid;
-  min-height: 92px;
-  place-items: center;
-  align-content: center;
-  border: 1px dashed color-mix(in srgb, var(--border) 86%, var(--primary));
-  border-radius: var(--ss-radius-control);
-  color: var(--muted-foreground);
-  background: color-mix(in srgb, var(--background) 78%, transparent);
-  padding: 14px;
-  text-align: center;
-}
-.skill-translation-empty > svg {
-  width: 16px;
-  height: 16px;
-  margin-bottom: 7px;
-  color: var(--primary);
-}
-.skill-translation-empty strong {
-  color: var(--foreground);
-  font-size: 0.72rem;
-  font-weight: 640;
-}
-.skill-translation-empty span {
-  max-width: 340px;
+.skill-description-expand {
+  height: 24px;
   margin-top: 4px;
+  padding-inline: 0;
+  font-weight: 500;
+}
+.skill-translation-menu [role^='menuitem'] {
+  min-height: 30px;
+  padding-block: 6px;
+  font-size: 0.75rem;
+}
+.skill-translation-menu-note {
+  max-width: 220px;
+  margin: 4px 0 0;
+  border-top: 1px solid var(--border);
+  color: var(--muted-foreground);
+  padding: 8px 10px 4px;
   font-size: 0.65rem;
-  line-height: 1.45;
+  line-height: 1.5;
 }
 .skill-translation-stale {
-  margin-bottom: 10px;
-  border: 1px solid color-mix(in srgb, var(--ss-amber) 42%, var(--border));
-  border-radius: 7px;
+  margin: 0;
   color: var(--ss-amber);
-  background: var(--ss-amber-soft);
-  padding: 7px 9px;
   font-size: 0.66rem;
   line-height: 1.4;
-}
-.skill-description-error {
-  margin: 10px 0 0;
-  color: var(--destructive);
-  font-size: 0.68rem;
-  line-height: 1.45;
 }
 .tag-editor {
   display: flex;
@@ -9965,13 +9879,6 @@ html[data-density='compact']
     bottom: 6px;
     width: calc(100% - 12px) !important;
     max-width: calc(100% - 12px);
-  }
-  .skill-description-toolbar {
-    align-items: stretch;
-    flex-direction: column;
-  }
-  .description-mode-switch {
-    align-self: flex-start;
   }
 }
 

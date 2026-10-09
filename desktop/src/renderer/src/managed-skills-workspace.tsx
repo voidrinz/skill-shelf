@@ -1029,12 +1029,7 @@ function ManagedSkillInspector({
         >
           <span aria-hidden="true" />
         </div>
-        <div
-          className={cn(
-            'inspector-header',
-            activeTab === 'files' && 'is-compact'
-          )}
-        >
+        <div className="inspector-header">
           <div className="inspector-kicker">
             <span>
               <Boxes />
