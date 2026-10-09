@@ -78,6 +78,32 @@ const initial: AppUpdateState = {
 }
 
 describe('application update controls', () => {
+  it('shows verification and installation states and retries a download without checking again', async () => {
+    const { api, update } = setup(initial)
+    await screen.findByText('Checks for new versions in the background.')
+    update({ ...initial, status: 'verifying', version: '0.2.0', percent: 100 })
+    expect(
+      (screen.getByRole('button', { name: 'Verifying…' }) as HTMLButtonElement)
+        .disabled
+    ).toBe(true)
+    update({ ...initial, status: 'installing', version: '0.2.0' })
+    expect(
+      (screen.getByRole('button', { name: 'Installing…' }) as HTMLButtonElement)
+        .disabled
+    ).toBe(true)
+    update({
+      ...initial,
+      status: 'error',
+      version: '0.2.0',
+      errorCode: 'verification',
+      retryAction: 'download',
+    })
+    expect(screen.getByText(/could not be verified/)).toBeTruthy()
+    fireEvent.click(screen.getByRole('button', { name: 'Retry download' }))
+    await waitFor(() => expect(api.downloadAppUpdate).toHaveBeenCalledOnce())
+    expect(api.checkAppUpdate).not.toHaveBeenCalled()
+  })
+
   it('opens downloads for manual releases without offering restart installation', async () => {
     const { api } = setup({ ...initial, installMode: 'manual' })
     api.downloadAppUpdate.mockResolvedValue({

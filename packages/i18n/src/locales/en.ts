@@ -148,6 +148,24 @@ export const messages = {
   'desktop.appUpdate.updateTo': 'Update to v{version}',
   'desktop.appUpdate.updating': 'Updating…',
   'desktop.appUpdate.downloading': 'Downloading {version} · {percent}%',
+  'desktop.appUpdate.verifying': 'Verifying the download for {version}…',
+  'desktop.appUpdate.installing':
+    'Installing {version}. Skill Shelf will restart…',
+  'desktop.appUpdate.verifyingAction': 'Verifying…',
+  'desktop.appUpdate.installingAction': 'Installing…',
+  'desktop.appUpdate.retry.check': 'Check again',
+  'desktop.appUpdate.retry.download': 'Retry download',
+  'desktop.appUpdate.retry.install': 'Retry installation',
+  'desktop.appUpdate.error.network':
+    'The update request failed. Check your connection and try again.',
+  'desktop.appUpdate.error.verification':
+    'The update could not be verified. It has not been installed. Download it again.',
+  'desktop.appUpdate.error.permission':
+    'Skill Shelf cannot write to its application folder. Move it to a writable Applications folder and try again.',
+  'desktop.appUpdate.error.installation':
+    'Installation failed. Your current application is preserved. Try again.',
+  'desktop.appUpdate.error.rollback':
+    'The new version did not start correctly. The previous version has been restored.',
   'desktop.appUpdate.downloaded': 'Version {version} is ready to install.',
   'desktop.appUpdate.error': 'Could not check for updates. Please try again.',
   'desktop.appUpdate.development':

@@ -139,6 +139,22 @@ export const messages = {
   'desktop.appUpdate.updateTo': '更新到 v{version}',
   'desktop.appUpdate.updating': '正在更新…',
   'desktop.appUpdate.downloading': '正在下载 {version} · {percent}%',
+  'desktop.appUpdate.verifying': '正在验证版本 {version} 的更新包…',
+  'desktop.appUpdate.installing':
+    '正在安装版本 {version}，Skill Shelf 即将重启…',
+  'desktop.appUpdate.verifyingAction': '正在验证…',
+  'desktop.appUpdate.installingAction': '正在安装…',
+  'desktop.appUpdate.retry.check': '重新检查',
+  'desktop.appUpdate.retry.download': '重新下载',
+  'desktop.appUpdate.retry.install': '重试安装',
+  'desktop.appUpdate.error.network': '更新请求失败，请检查网络连接后重试。',
+  'desktop.appUpdate.error.verification':
+    '更新包未通过验证，未进行安装，请重新下载。',
+  'desktop.appUpdate.error.permission':
+    '无法写入应用所在目录，请将 Skill Shelf 移到可写入的应用程序目录后重试。',
+  'desktop.appUpdate.error.installation':
+    '安装失败，当前应用已保留，可以重试。',
+  'desktop.appUpdate.error.rollback': '新版本未能正常启动，已恢复旧版本。',
   'desktop.appUpdate.downloaded': '版本 {version} 已下载，可以安装。',
   'desktop.appUpdate.error': '无法检查更新，请稍后重试。',
   'desktop.appUpdate.development': '此版本暂不支持检查更新。',

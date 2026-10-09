@@ -10,7 +10,9 @@ export function AppUpdateStatus() {
   const status =
     state?.status === 'disabled'
       ? (state.reason ?? 'unconfigured')
-      : (state?.status ?? 'loading')
+      : state?.status === 'error' && state.errorCode
+        ? (`error.${state.errorCode}` as const)
+        : (state?.status ?? 'loading')
 
   return (
     <div
@@ -23,7 +25,7 @@ export function AppUpdateStatus() {
           percent: number(Math.round(state?.percent ?? 0)),
         })}
       </span>
-      {state?.status === 'downloading' ? (
+      {state?.status === 'downloading' || state?.status === 'verifying' ? (
         <progress
           aria-label={t('desktop.appUpdate.progress')}
           max={100}
@@ -43,11 +45,15 @@ export function AppUpdateControls() {
     pending ||
     !state ||
     state.status === 'checking' ||
-    state.status === 'downloading'
+    state.status === 'downloading' ||
+    state.status === 'verifying' ||
+    state.status === 'installing'
   const action =
-    state?.status === 'downloaded'
+    state?.status === 'downloaded' ||
+    (state?.status === 'error' && state.retryAction === 'install')
       ? 'restart'
-      : state?.status === 'available'
+      : state?.status === 'available' ||
+          (state?.status === 'error' && state.retryAction === 'download')
         ? state.installMode === 'manual'
           ? 'openDownload'
           : 'download'
@@ -70,6 +76,13 @@ export function AppUpdateControls() {
         version: state?.version ?? null,
         percent: null,
         checkedAt: null,
+        errorCode: action === 'restart' ? 'installation' : 'network',
+        retryAction:
+          action === 'restart'
+            ? 'install'
+            : action === 'download'
+              ? 'download'
+              : 'check',
       })
     } finally {
       setPending(false)
@@ -96,11 +109,15 @@ export function AppUpdateControls() {
       ) : (
         <RefreshCw />
       )}
-      {action === 'download' || action === 'openDownload'
-        ? t('desktop.appUpdate.updateTo', { version: state?.version ?? '' })
-        : busy && state?.status === 'downloading'
-          ? t('desktop.appUpdate.updating')
-          : t(`desktop.appUpdate.${action}`)}
+      {state?.status === 'verifying' || state?.status === 'installing'
+        ? t(`desktop.appUpdate.${state.status}Action`)
+        : state?.status === 'error' && state.retryAction
+          ? t(`desktop.appUpdate.retry.${state.retryAction}`)
+          : action === 'download' || action === 'openDownload'
+            ? t('desktop.appUpdate.updateTo', { version: state?.version ?? '' })
+            : busy && state?.status === 'downloading'
+              ? t('desktop.appUpdate.updating')
+              : t(`desktop.appUpdate.${action}`)}
     </Button>
   )
 }
