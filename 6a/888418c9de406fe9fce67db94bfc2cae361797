@@ -1,0 +1,43 @@
+desktop/build/update-signing-public-key.json
+  s_195416a04c53e0::t_87608befa85af5 1-4
+desktop/electron-builder.yml
+  s_195416a04c53e0::t_567f3da1423511 13-16
+desktop/release-config.test.mjs
+  s_195416a04c53e0::t_9bf348ed9681b8 22-35
+desktop/src/main/index.ts
+  s_195416a04c53e0::t_f11271c72040ca 93,96-102,120-131,381,402,416-423,1667-1674,1710-1717,1719-1748,1758-1761,1764-1771,1775-1776
+desktop/src/main/services/app-update-service.test.ts
+  s_195416a04c53e0::t_5fdbab5638f3c4 100,102,140,143,150-191
+desktop/src/main/services/app-update-service.ts
+  s_195416a04c53e0::t_bb825adf63b6bb 13-16,26,36,41-48,78-80,91,93,120-126,129-136,142-148,150,153-158,163,167-170,174-185,210-211,219-242
+desktop/src/main/services/github-release-checker.ts
+  s_195416a04c53e0::t_beeded65201d5d 62-72,94
+desktop/src/main/services/mac-app-updater.test.ts
+  s_195416a04c53e0::t_e3a6312c5397bb 1-355
+desktop/src/main/services/mac-app-updater.ts
+  s_195416a04c53e0::t_c01924b10c2bba 1-488
+desktop/src/main/services/mac-update-installer.test.ts
+  s_195416a04c53e0::t_aac80c6b1616c8 1-125
+desktop/src/main/services/update-manifest.ts
+  s_195416a04c53e0::t_0643e010df0d03 1-85
+desktop/src/shared/desktop-contract.ts
+  s_195416a04c53e0::t_82000a4dae7ab9 872,874,876-878
+desktop/update-installer.cjs
+  s_195416a04c53e0::t_ce7d9973d98d66 1-226
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.4",
+  "base_commit_sha": "6a888418c9de406fe9fce67db94bfc2cae361797",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
