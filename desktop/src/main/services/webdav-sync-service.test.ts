@@ -1,3 +1,4 @@
+import { createHash } from 'node:crypto'
 import { createServer, type Server } from 'node:http'
 import {
   mkdir,
@@ -22,6 +23,7 @@ import {
   aiProviderRegistry,
 } from '../../shared/desktop-contract'
 import { decryptAiConnections, encryptAiConnections } from './sync-encryption'
+import { managedFilesHash } from './managed-skill-sync'
 
 const directories: string[] = []
 const servers: Server[] = []
@@ -196,6 +198,66 @@ async function startWebDav({
 }
 
 describe('WebDAV sync', () => {
+  it('transfers unassigned managed files and preserves their shared and historical counts in the backup index', async () => {
+    const { service, files } = await startWebDav()
+    const portableSkill = (name: string) => {
+      const content = `---\nname: ${name}\n---\nPortable instructions`
+      const fingerprint = `sha256:${createHash('sha256').update(content).digest('hex')}`
+      const skillFiles = [
+        {
+          path: 'SKILL.md',
+          content: Buffer.from(content).toString('base64'),
+          executable: false,
+        },
+      ]
+      return {
+        name,
+        description: '',
+        sourceScope: 'global' as const,
+        identity: fingerprint,
+        fingerprint,
+        contentHash: managedFilesHash(skillFiles),
+        files: skillFiles,
+      }
+    }
+    const original: SyncDocument = {
+      ...document,
+      version: 5,
+      source: sourceA,
+      packs: [],
+      managedSkills: [portableSkill('unassigned')],
+    }
+    const shared: SyncDocument = {
+      ...original,
+      managedSkills: [...original.managedSkills!, portableSkill('cloud-only')],
+    }
+    await service.upload(JSON.stringify(shared), await service.read(), original)
+    const snapshots = await service.listSnapshots()
+    expect(snapshots).toHaveLength(2)
+    expect(snapshots[0]).toMatchObject({
+      kind: 'shared',
+      skills: 0,
+      packs: 0,
+      managedSkills: 2,
+    })
+    expect(snapshots[1]).toMatchObject({
+      kind: 'device',
+      skills: 0,
+      packs: 0,
+      managedSkills: 1,
+    })
+    expect(JSON.parse(await service.readSnapshot('shared'))).toEqual(shared)
+    expect(JSON.parse(await service.readSnapshot(snapshots[1]!.id))).toEqual(
+      original
+    )
+    const index = JSON.parse(
+      files.get('/dav/SkillShelf/backups/index.json')!.contents
+    )
+    expect(index.entries[0].managedSkills).toBe(1)
+    files.delete('/dav/SkillShelf/backups/index.json')
+    expect((await service.listSnapshots())[1]?.managedSkills).toBe(1)
+  })
+
   it('keeps one immutable backup per upload, including repeated uploads from the same computer', async () => {
     const { service, files } = await startWebDav()
     const a = deviceDocument()

@@ -1,4 +1,7 @@
 export const messages = {
+  'desktop.managed.exportPack': 'Export Pack',
+  'desktop.managed.packExported':
+    'Pack exported with its Skills, groups, tags and order.',
   'desktop.sync.cloudTitle': 'Choose cloud data',
   'desktop.sync.cloudDescription':
     'Choose which data to download, then decide how to apply it to your local organization.',

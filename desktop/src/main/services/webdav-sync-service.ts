@@ -475,6 +475,9 @@ function snapshotInfo(
     exportedAt: document.exportedAt,
     skills: document.skills.length,
     packs: document.packs?.length ?? 0,
+    ...(document.managedSkills
+      ? { managedSkills: document.managedSkills.length }
+      : {}),
     ...(document.source ? { source: document.source } : {}),
   }
 }
@@ -544,6 +547,10 @@ function parseBackupIndex(contents: string) {
           !Number.isInteger(entry.packs) ||
           entry.packs < 0 ||
           entry.packs > 1000 ||
+          (entry.managedSkills !== undefined &&
+            (!Number.isInteger(entry.managedSkills) ||
+              entry.managedSkills < 0 ||
+              entry.managedSkills > 10000)) ||
           ids.has(entry.id)
         )
           throw new Error()
@@ -555,6 +562,9 @@ function parseBackupIndex(contents: string) {
           exportedAt: entry.exportedAt,
           skills: entry.skills,
           packs: entry.packs,
+          ...(entry.managedSkills !== undefined
+            ? { managedSkills: entry.managedSkills }
+            : {}),
           source,
         }
       }

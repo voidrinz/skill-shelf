@@ -67,6 +67,7 @@ export const desktopIpcChannels = {
   managedSkillsGet: 'managed:skills-get',
   managedSkillPackDelete: 'managed:pack-delete',
   managedSkillPackSave: 'managed:pack-save',
+  managedSkillPackExport: 'managed:pack-export',
   projectAdd: 'project:add',
   projectRemove: 'project:remove',
   projectInstructionsGet: 'project:instructions-get',
@@ -609,6 +610,8 @@ export interface ManagedDeploymentFolderSelection {
 export type ManagedDeploymentFolderPurpose = 'project-root' | 'skill-parent'
 
 export interface ManagedSkill {
+  syncCopyId?: string
+  syncIdentity?: string | null
   deployments: ManagedSkillDeployment[]
   description: string
   id: string
@@ -627,7 +630,27 @@ export interface SkillPack {
   id: string
   name: string
   skillIds: string[]
+  groups?: SkillPackGroup[]
+  organization?: Record<string, PackSkillOrganization>
+  sort?: SkillPackSort
+  viewOptions?: Record<string, FinderViewOptions>
   updatedAt: string
+}
+
+export type SkillPackSort = 'manual' | 'name-asc' | 'name-desc'
+
+export interface SkillPackGroup {
+  id: string
+  name: string
+  parentId?: string | null
+  position?: CanvasPosition | null
+  color?: string
+}
+
+export interface PackSkillOrganization {
+  groupId: string | null
+  tags: string[]
+  position?: CanvasPosition | null
 }
 
 export interface ManagedSkillsSnapshot {
@@ -640,6 +663,10 @@ export interface SaveSkillPackInput {
   id?: string
   name: string
   skillIds: string[]
+  groups?: SkillPackGroup[]
+  organization?: Record<string, PackSkillOrganization>
+  sort?: SkillPackSort
+  viewOptions?: Record<string, FinderViewOptions>
 }
 
 export interface DeployManagedSkillInput {
@@ -958,6 +985,7 @@ export interface TerminalExitEvent {
 
 export interface SkillShelfDesktopApi {
   exportSyncData(): Promise<boolean>
+  exportSkillPack(packId: string): Promise<boolean>
   importSyncData(
     password?: string,
     retry?: boolean
@@ -1063,7 +1091,11 @@ export interface SkillShelfDesktopApi {
   deployManagedSkill(
     input: DeployManagedSkillInput
   ): Promise<ManagedSkillsSnapshot>
-  importManagedSkills(skillIds: string[]): Promise<ManagedSkillsSnapshot>
+  importManagedSkills(
+    skillIds: string[],
+    packId?: string,
+    folderId?: string
+  ): Promise<ManagedSkillsSnapshot>
   removeSkill(skillId: string): Promise<OperationResult>
   deleteAiConversation(id: string): Promise<DeleteAiConversationResult>
   runAiChat(input: AiChatRequest): Promise<AiChatResult>

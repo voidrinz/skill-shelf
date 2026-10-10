@@ -70,6 +70,7 @@ import { ShelfStore } from './services/shelf-store'
 import {
   MAX_SYNC_BYTES,
   MetadataSyncService,
+  getSkillIdentity,
 } from './services/metadata-sync-service'
 import { WebDavSyncService } from './services/webdav-sync-service'
 import type { ApplySyncInput } from '../shared/sync-contract'
@@ -277,6 +278,26 @@ function registerIpc(
     await writeFile(
       result.filePath,
       `${JSON.stringify(await metadataSync.exportDocument(), null, 2)}\n`,
+      { mode: 0o600 }
+    )
+    return true
+  })
+  syncHandler(desktopIpcChannels.managedSkillPackExport, async (input) => {
+    const packId = assertIdentifier(input, 'pack')
+    const messages = await syncMessages()
+    const pack = managedSkills
+      .snapshot()
+      .packs.find((pack) => pack.id === packId)
+    if (!pack) throw new Error('Pack is no longer available')
+    const result = await dialog.showSaveDialog(mainWindow!, {
+      title: translate(messages, 'desktop.managed.exportPack'),
+      defaultPath: `${pack.name.replace(/[\\/:*?"<>|]/g, '_')}.skill-pack.json`,
+      filters: [{ name: 'Skill Shelf Pack', extensions: ['json'] }],
+    })
+    if (result.canceled || !result.filePath) return false
+    await writeFile(
+      result.filePath,
+      `${JSON.stringify(await metadataSync.exportPackDocument(packId), null, 2)}\n`,
       { mode: 0o600 }
     )
     return true
@@ -840,22 +861,31 @@ function registerIpc(
   )
   ipcMain.handle(
     desktopIpcChannels.managedSkillImport,
-    async (_event, skillIds: unknown) => {
+    async (_event, skillIds: unknown, packId: unknown, folderId: unknown) => {
       const ids = assertSkillIds(skillIds)
+      const targetPackId =
+        packId === undefined ? undefined : assertIdentifier(packId, 'pack')
       const installed = await catalog.getInstalledSkillsForImport()
-      const skills = ids.map((skillId) => {
-        const skill = installed.find((candidate) => candidate.id === skillId)
-        if (!skill)
-          throw new Error('One or more Skills are no longer installed')
-        return {
-          description: skill.description,
-          name: skill.name,
-          path: skill.path,
-          scope: skill.scope,
-          skillId: skill.id,
-        }
-      })
-      return managedSkills.importSkills(skills)
+      const skills = await Promise.all(
+        ids.map(async (skillId) => {
+          const skill = installed.find((candidate) => candidate.id === skillId)
+          if (!skill)
+            throw new Error('One or more Skills are no longer installed')
+          return {
+            description: skill.description,
+            identity: await getSkillIdentity(skill),
+            name: skill.name,
+            path: skill.path,
+            scope: skill.scope,
+            skillId: skill.id,
+          }
+        })
+      )
+      return managedSkills.importSkills(
+        skills,
+        targetPackId,
+        folderId === undefined ? undefined : assertIdentifier(folderId, 'pack')
+      )
     }
   )
   ipcMain.handle(
@@ -1452,7 +1482,10 @@ function isShelfScopeKey(
   )
 }
 
-function assertIdentifier(value: unknown, kind: 'project' | 'skill'): string {
+function assertIdentifier(
+  value: unknown,
+  kind: 'project' | 'skill' | 'pack'
+): string {
   if (typeof value !== 'string' || !value || value.length > 512) {
     throw new Error(`Invalid ${kind} identifier`)
   }

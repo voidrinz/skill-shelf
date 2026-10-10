@@ -1,6 +1,9 @@
 import type { Messages } from '../index'
 
 export const messages = {
+  'desktop.managed.exportPack': '导出 Pack',
+  'desktop.managed.packExported':
+    'Pack 已导出，包含 Skill 文件、分组、标签与顺序。',
   'desktop.sync.cloudTitle': '选择云端数据',
   'desktop.sync.cloudDescription':
     '先选择下载哪份数据，再决定如何处理本机的整理信息。',

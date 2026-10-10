@@ -1,4 +1,15 @@
-import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises'
+import {
+  chmod,
+  lstat,
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rm,
+  symlink,
+  truncate,
+  writeFile,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -9,7 +20,11 @@ import type {
   SkillOrganization,
 } from '../../shared/desktop-contract'
 import type { SyncDocument, SyncPreview } from '../../shared/sync-contract'
-import { MetadataSyncService, parseSyncDocument } from './metadata-sync-service'
+import {
+  getSkillIdentity,
+  MetadataSyncService,
+  parseSyncDocument,
+} from './metadata-sync-service'
 import { ShelfStore } from './shelf-store'
 import {
   AiProviderService,
@@ -17,6 +32,7 @@ import {
 } from './ai-provider-service'
 import { encryptAiConnections } from './sync-encryption'
 import { ManagedSkillService } from './managed-skill-service'
+import { managedFilesHash } from './managed-skill-sync'
 
 const directories: string[] = []
 afterEach(async () => {
@@ -110,6 +126,13 @@ async function setupExtended(
   })
   return { ...fixture, ai, managed, service }
 }
+function packMembers(service: ManagedSkillService, name: string) {
+  const snapshot = service.snapshot()
+  const pack = snapshot.packs.find((item) => item.name === name)!
+  return pack.skillIds.map((id) =>
+    snapshot.skills.find((skill) => skill.id === id)!
+  )
+}
 const choices = (
   preview: SyncPreview,
   choice: 'local' | 'incoming' = 'incoming'
@@ -189,7 +212,7 @@ describe('metadata sync', () => {
       'local-only',
     ])
     for (const document of [shared, backup]) {
-      expect(document.version).toBe(4)
+      expect(document.version).toBe(5)
       expect(document.preferences.theme).toBe('dark')
       expect(document.aiPreferences?.targetLanguage).toBe('ja')
       expect(document.aiConnections).toEqual(b.ai.getPortableConnections())
@@ -341,6 +364,9 @@ describe('metadata sync', () => {
       description: 'Keep',
       skillIds: [b.managed.snapshot().skills[1]!.id],
     })
+    const ownedShared = packMembers(b.managed, 'Essentials').find(
+      (item) => item.name === 'shared'
+    )!
     const before = structuredClone(b.managed.snapshot().skills)
     const preview = await b.service.preview(
       JSON.stringify(await a.service.exportDocument()),
@@ -352,7 +378,7 @@ describe('metadata sync', () => {
     await b.service.apply(choices(preview))
     expect(
       b.managed.snapshot().packs.find((pack) => pack.name === 'Essentials')
-    ).toMatchObject({ description: '', skillIds: [before[0]!.id] })
+    ).toMatchObject({ description: '', skillIds: [ownedShared.id] })
     expect(
       b.managed.snapshot().packs.find((pack) => pack.name === 'Local pack')!
         .description
@@ -904,11 +930,12 @@ describe('metadata sync', () => {
     expect(document.aiPreferences?.targetLanguage).toBe('zh-CN')
     const preview = await b.service.preview(contents)
     expect(preview.packs).toMatchObject({
-      total: 2,
+      total: 3,
       changed: 2,
-      matchedMembers: 1,
+      matchedMembers: 2,
       skippedMembers: [
         { packName: 'Essentials', skillName: 'a-only', reason: 'not-found' },
+        { packName: 'Default', skillName: 'a-only', reason: 'not-found' },
       ],
     })
     expect(preview.conflicts).toContainEqual(
@@ -926,8 +953,13 @@ describe('metadata sync', () => {
       .snapshot()
       .packs.find((item) => item.name === 'Essentials')!
     expect(pack.description).toBe('Remote description')
-    expect(pack.skillIds).toEqual([localMembers[1]!.id, localMembers[0]!.id])
-    expect(b.managed.snapshot().skills).toEqual(localMembers)
+    expect(
+      packMembers(b.managed, 'Essentials').map((item) => item.name)
+    ).toEqual(['b-only', 'shared'])
+    expect(b.managed.snapshot().skills).toEqual(
+      expect.arrayContaining(localMembers)
+    )
+    expect(b.managed.snapshot().skills).toHaveLength(4)
     expect(
       b.managed.snapshot().packs.find((item) => item.name === 'Empty Pack')!
         .skillIds
@@ -1008,6 +1040,7 @@ describe('metadata sync', () => {
     expect(uploaded.packs?.map((pack) => pack.name)).toEqual([
       'Cloud only',
       'Essentials',
+      'Default',
       'Local only',
     ])
     expect(uploaded.packs?.find((pack) => pack.name === 'Cloud only')).toEqual(
@@ -1060,13 +1093,16 @@ describe('metadata sync', () => {
     expect(preview.matched).toBe(0)
     expect(preview.packs).toMatchObject({
       changed: 1,
-      matchedMembers: 1,
+      matchedMembers: 2,
       skippedMembers: [],
     })
     await service.apply({ ...choices(preview), includeAiPreferences: false })
-    expect(b.managed.snapshot().packs[0]!.skillIds).toEqual([
-      b.managed.snapshot().skills[0]!.id,
-    ])
+    expect(
+      packMembers(b.managed, 'Essentials').map((item) => item.name)
+    ).toEqual(['shared'])
+    expect(packMembers(b.managed, 'Essentials')[0]!.id).not.toBe(
+      b.managed.snapshot().skills[0]!.id
+    )
     expect(b.ai.getSettingsStatus().targetLanguage).toBe('en')
   })
 
@@ -1175,7 +1211,9 @@ describe('metadata sync', () => {
     ).toBe(before)
     await b.service.apply({ ...choices(preview), includeAiPreferences: true })
     expect(write).toHaveBeenCalledTimes(2)
-    expect(b.managed.snapshot().packs[0]!.name).toBe('Essentials')
+    expect(
+      b.managed.snapshot().packs.some((pack) => pack.name === 'Essentials')
+    ).toBe(true)
     expect(b.ai.getSettingsStatus().targetLanguage).toBe('zh-CN')
   })
 
@@ -1345,12 +1383,914 @@ describe('metadata sync', () => {
       JSON.stringify(await a.service.exportDocument())
     )
     expect(preview.packs?.skippedMembers).toEqual([
-      { packName: 'Essentials', skillName: 'shared', reason: 'ambiguous' },
+      { packName: 'Default', skillName: 'shared', reason: 'ambiguous' },
     ])
-    expect(preview.packs?.matchedMembers).toBe(0)
+    expect(preview.packs?.matchedMembers).toBe(1)
     await service.apply(choices(preview))
-    expect(b.managed.snapshot().packs[0]!.skillIds).toEqual([])
-    expect(b.managed.snapshot().skills).toHaveLength(2)
+    expect(
+      packMembers(b.managed, 'Essentials').map((item) => item.name)
+    ).toEqual(['shared'])
+    expect(b.managed.snapshot().skills).toHaveLength(3)
+  })
+})
+
+describe('Pack organization and sharing', () => {
+  it('shares and restores nested folders, duplicate names in different parents, and canvas positions', async () => {
+    const a = await setupExtended(['alpha', 'beta'])
+    const b = await setupExtended([])
+    const [alpha, beta] = a.managed.snapshot().skills
+    const pack = (
+      await a.managed.savePack({
+        name: 'Toolkit',
+        description: '',
+        skillIds: [alpha!.id, beta!.id],
+        groups: [
+          {
+            id: 'design',
+            name: 'Design',
+            parentId: null,
+            position: { x: 28, y: 24 },
+          },
+          {
+            id: 'review',
+            name: 'Review',
+            parentId: null,
+            position: { x: 152, y: 24 },
+          },
+          {
+            id: 'design-tools',
+            name: 'Tools',
+            parentId: 'design',
+            position: { x: 80, y: 60 },
+          },
+          { id: 'review-tools', name: 'Tools', parentId: 'review' },
+        ],
+        organization: {
+          [alpha!.id]: {
+            groupId: 'design-tools',
+            tags: ['layout'],
+            position: { x: 276, y: 146 },
+          },
+          [beta!.id]: { groupId: 'review-tools', tags: ['audit'] },
+        },
+        sort: 'manual',
+      })
+    ).packs[0]!
+    const document = await a.service.exportPackDocument(pack.id)
+    expect(document.packs![0]!.groups).toBeUndefined()
+    expect(document.packs![0]!.folders).toContainEqual({
+      path: ['Design', 'Tools'],
+      position: { x: 80, y: 60 },
+    })
+    expect(document.packs![0]!.skills[0]).toMatchObject({
+      folderPath: ['Design', 'Tools'],
+      position: { x: 276, y: 146 },
+    })
+    const contents = JSON.stringify(document)
+    expect(contents).not.toContain('design-tools')
+    const preview = await b.service.preview(contents)
+    await b.service.apply(choices(preview))
+    expect(
+      (await b.service.exportDocument()).packs?.filter(
+        (pack) => pack.name !== 'Default'
+      )
+    ).toEqual(document.packs)
+    expect((await b.service.preview(contents)).conflicts).toEqual([])
+    const restored = new ManagedSkillService(
+      join(b.directory, 'managed'),
+      join(b.directory, 'managed.json')
+    )
+    expect((await restored.initialize()).packs).toEqual(
+      b.managed.snapshot().packs
+    )
+    for (const folders of [
+      [{ path: ['Missing', 'Child'] }],
+      [{ path: ['Design'] }, { path: ['design'] }],
+      [{ path: ['Design'], position: { x: -1, y: 2 } }],
+    ])
+      expect(() =>
+        parseSyncDocument(
+          JSON.stringify({
+            ...document,
+            packs: [{ ...document.packs![0], folders }],
+          })
+        )
+      ).toThrow('Invalid sync document')
+  })
+
+  it('merges flat cloud folders with nested local folders on upload while retaining cloud-only members', async () => {
+    const a = await setupExtended(['shared', 'cloud-only'])
+    const b = await setupExtended(['shared'])
+    const [aShared, aCloud] = a.managed.snapshot().skills
+    const [bShared] = b.managed.snapshot().skills
+    await a.managed.savePack({
+      name: 'Toolkit',
+      description: '',
+      skillIds: [aShared!.id, aCloud!.id],
+      groups: [{ id: 'cloud', name: 'design' }],
+      organization: { [aCloud!.id]: { groupId: 'cloud', tags: ['cloud'] } },
+    })
+    await b.managed.savePack({
+      name: 'Toolkit',
+      description: '',
+      skillIds: [bShared!.id],
+      groups: [
+        { id: 'local', name: 'Design', parentId: null },
+        {
+          id: 'child',
+          name: 'Tools',
+          parentId: 'local',
+          position: { x: 28, y: 24 },
+        },
+      ],
+      organization: {
+        [bShared!.id]: {
+          groupId: 'child',
+          tags: ['local'],
+          position: { x: 152, y: 24 },
+        },
+      },
+    })
+    const upload = vi.fn(
+      async (_document: SyncDocument, _backup: SyncDocument) => {}
+    )
+    await b.service.uploadDocument(
+      JSON.stringify(await a.service.exportDocument()),
+      upload
+    )
+    const document = upload.mock.calls[0]![0]
+    expect(parseSyncDocument(JSON.stringify(document)).packs).toEqual(
+      document.packs
+    )
+    expect(document.packs![0]!.folders).toEqual([
+      { path: ['Design'] },
+      { path: ['Design', 'Tools'], position: { x: 28, y: 24 } },
+    ])
+    expect(document.packs![0]!.skills).toContainEqual(
+      expect.objectContaining({
+        name: 'cloud-only',
+        folderPath: ['Design'],
+        tags: ['cloud'],
+      })
+    )
+    expect(document.packs![0]!.skills).toContainEqual(
+      expect.objectContaining({
+        name: 'shared',
+        folderPath: ['Design', 'Tools'],
+        position: { x: 152, y: 24 },
+      })
+    )
+  })
+
+  it('creates an isolated copy after syncing when importing its installed source into another Pack', async () => {
+    const a = await setupExtended(['alpha'])
+    const b = await setupExtended([])
+    const preview = await b.service.preview(
+      JSON.stringify(await a.service.exportDocument())
+    )
+    await b.service.apply(choices(preview))
+    const restored = b.managed.snapshot().skills[0]!
+    const pack = (
+      await b.managed.savePack({
+        name: 'Toolkit',
+        description: '',
+        skillIds: [],
+      })
+    ).packs[0]!
+    const installed = (await a.getCatalog()).skills[0]!
+    const result = await b.managed.importSkills(
+      [
+        {
+          description: installed.description,
+          identity: await getSkillIdentity(installed),
+          name: installed.name,
+          path: installed.path,
+          scope: installed.scope,
+          skillId: installed.id,
+        },
+      ],
+      pack.id
+    )
+    expect(result.skills).toHaveLength(2)
+    expect(result.skills[0]).toEqual(restored)
+    expect(result.packs.find((item) => item.id === pack.id)!.skillIds).toEqual([
+      result.skills[1]!.id,
+    ])
+    expect(result.skills[1]!.managedPath).not.toBe(restored.managedPath)
+    expect(await readdir(join(b.directory, 'managed'))).toHaveLength(2)
+  })
+
+  it('keeps local group spelling while adding incoming members to a case-insensitive matching group', async () => {
+    const a = await setupExtended(['alpha', 'beta'])
+    const b = await setupExtended(['alpha', 'beta'])
+    const [aAlpha, aBeta] = a.managed.snapshot().skills
+    const [bAlpha, bBeta] = b.managed.snapshot().skills
+    await a.managed.savePack({
+      name: 'Toolkit',
+      description: '',
+      skillIds: [aAlpha!.id, aBeta!.id],
+      groups: [{ id: 'remote', name: 'design' }],
+      organization: {
+        [aAlpha!.id]: { groupId: 'remote', tags: ['cloud'] },
+        [aBeta!.id]: { groupId: 'remote', tags: ['new'] },
+      },
+    })
+    await b.managed.savePack({
+      name: 'Toolkit',
+      description: '',
+      skillIds: [bAlpha!.id],
+      groups: [{ id: 'local', name: 'Design' }],
+      organization: { [bAlpha!.id]: { groupId: 'local', tags: ['local'] } },
+    })
+    const preview = await b.service.preview(
+      JSON.stringify(await a.service.exportDocument())
+    )
+    expect(preview.conflicts).toContainEqual(
+      expect.objectContaining({ field: 'pack-organization' })
+    )
+    await b.service.apply(choices(preview, 'local'))
+    const [ownedAlpha, ownedBeta] = packMembers(b.managed, 'Toolkit')
+    expect(b.managed.snapshot().packs[0]).toMatchObject({
+      skillIds: [ownedAlpha!.id, ownedBeta!.id],
+      groups: [{ id: 'local', name: 'Design' }],
+      organization: {
+        [ownedAlpha!.id]: { groupId: 'local', tags: ['local'] },
+        [ownedBeta!.id]: { groupId: 'local', tags: ['new'] },
+      },
+    })
+  })
+
+  it('restores multiple Packs with independent group membership, tags and manual order on new local Skill IDs', async () => {
+    const a = await setupExtended(['alpha', 'beta', 'unassigned'])
+    const b = await setupExtended([])
+    const [alpha, beta] = a.managed.snapshot().skills
+    await a.managed.savePack({
+      name: 'Design',
+      description: '',
+      skillIds: [beta!.id, alpha!.id],
+      groups: [{ id: 'design-group', name: 'Interface' }],
+      organization: {
+        [alpha!.id]: { groupId: 'design-group', tags: ['frontend'] },
+        [beta!.id]: { groupId: null, tags: ['review'] },
+      },
+      sort: 'manual',
+    })
+    await a.managed.savePack({
+      name: 'Audit',
+      description: '',
+      skillIds: [alpha!.id],
+      groups: [{ id: 'audit-group', name: 'Checks' }],
+      organization: {
+        [alpha!.id]: { groupId: 'audit-group', tags: ['audit'] },
+      },
+      sort: 'name-desc',
+    })
+    const document = await a.service.exportDocument()
+    expect(JSON.stringify(document.packs)).not.toContain('design-group')
+    expect(JSON.stringify(document.packs)).not.toContain(alpha!.id)
+    const preview = await b.service.preview(JSON.stringify(document))
+    await b.service.apply(choices(preview))
+    expect(b.managed.snapshot().skills).toHaveLength(6)
+    const design = b.managed
+      .snapshot()
+      .packs.find((pack) => pack.name === 'Design')!
+    const names = new Map(
+      b.managed.snapshot().skills.map((skill) => [skill.id, skill.name])
+    )
+    expect(design.skillIds.map((id) => names.get(id))).toEqual([
+      'beta',
+      'alpha',
+    ])
+    expect(design.groups![0]!.id).not.toBe('design-group')
+    const audit = b.managed
+      .snapshot()
+      .packs.find((pack) => pack.name === 'Audit')!
+    expect(audit.skillIds[0]).not.toBe(design.skillIds[1])
+    const roundTrip = await b.service.exportDocument()
+    expect(roundTrip.packs).toEqual(expect.arrayContaining(document.packs!))
+    expect(roundTrip.packs).toHaveLength(document.packs!.length)
+    const repeat = await b.service.preview(JSON.stringify(document))
+    expect(repeat.conflicts).toEqual([])
+    expect(repeat.packs?.changed).toBe(0)
+  })
+
+  it('resolves Pack organization conflicts while retaining local-only members and their groups', async () => {
+    const a = await setupExtended(['alpha', 'beta'])
+    const b = await setupExtended(['alpha', 'beta', 'local-only'])
+    const [aAlpha, aBeta] = a.managed.snapshot().skills
+    const [bAlpha, bBeta, bLocal] = b.managed.snapshot().skills
+    await a.managed.savePack({
+      name: 'Toolkit',
+      description: '',
+      skillIds: [aBeta!.id, aAlpha!.id],
+      groups: [{ id: 'remote', name: 'Cloud group' }],
+      organization: { [aAlpha!.id]: { groupId: 'remote', tags: ['cloud'] } },
+      sort: 'manual',
+    })
+    await b.managed.savePack({
+      name: 'Toolkit',
+      description: '',
+      skillIds: [bAlpha!.id, bBeta!.id, bLocal!.id],
+      groups: [{ id: 'local', name: 'Local group' }],
+      organization: {
+        [bAlpha!.id]: { groupId: 'local', tags: ['local'] },
+        [bLocal!.id]: { groupId: 'local', tags: ['only-here'] },
+      },
+      sort: 'manual',
+    })
+    const [ownedAlpha, ownedBeta, ownedLocal] = packMembers(
+      b.managed,
+      'Toolkit'
+    )
+    const before = b.managed.snapshot()
+    const contents = JSON.stringify(await a.service.exportDocument())
+    const keep = await b.service.preview(contents)
+    expect(keep.conflicts).toContainEqual(
+      expect.objectContaining({
+        field: 'pack-organization',
+        skillName: 'Toolkit',
+      })
+    )
+    expect(
+      keep.conflicts.find((conflict) => conflict.field === 'pack-organization')!
+        .local
+    ).toContain('local-only')
+    await b.service.apply(choices(keep, 'local'))
+    expect(b.managed.snapshot()).toEqual(before)
+    const incoming = await b.service.preview(contents)
+    await b.service.apply(choices(incoming))
+    const pack = b.managed.snapshot().packs[0]!
+    expect(pack.skillIds).toEqual([
+      ownedBeta!.id,
+      ownedAlpha!.id,
+      ownedLocal!.id,
+    ])
+    expect(pack.groups!.map((group) => group.name)).toEqual([
+      'Cloud group',
+      'Local group',
+    ])
+    expect(pack.organization![ownedAlpha!.id]!.tags).toEqual(['cloud'])
+    expect(pack.organization![ownedLocal!.id]).toEqual({
+      groupId: 'local',
+      tags: ['only-here'],
+    })
+    expect((await b.service.preview(contents)).conflicts).toEqual([])
+    const replacement = await b.service.preview(
+      contents,
+      'import',
+      undefined,
+      'replace'
+    )
+    await b.service.apply(choices(replacement))
+    expect(b.managed.snapshot().packs[0]!.skillIds).toEqual([
+      ownedBeta!.id,
+      ownedAlpha!.id,
+    ])
+    expect(
+      b.managed.snapshot().packs[0]!.groups!.map((group) => group.name)
+    ).toEqual(['Cloud group'])
+    expect(b.managed.snapshot().skills).toHaveLength(6)
+  })
+
+  it('uploads local Pack organization and order while preserving cloud-only members and their tags', async () => {
+    const a = await setupExtended(['shared', 'cloud-only'])
+    const b = await setupExtended(['shared', 'local-only'])
+    const [aShared, aOnly] = a.managed.snapshot().skills
+    const [bShared, bOnly] = b.managed.snapshot().skills
+    await a.managed.savePack({
+      name: 'Toolkit',
+      description: '',
+      skillIds: [aOnly!.id, aShared!.id],
+      groups: [{ id: 'remote', name: 'review' }],
+      organization: {
+        [aShared!.id]: { groupId: 'remote', tags: ['cloud'] },
+        [aOnly!.id]: { groupId: 'remote', tags: ['remote-only'] },
+      },
+      sort: 'name-desc',
+    })
+    await b.managed.savePack({
+      name: 'Toolkit',
+      description: '',
+      skillIds: [bShared!.id, bOnly!.id],
+      groups: [{ id: 'local', name: 'Review' }],
+      organization: { [bShared!.id]: { groupId: 'local', tags: ['local'] } },
+      sort: 'manual',
+    })
+    const before = b.managed.snapshot()
+    const upload = vi.fn(
+      async (_document: SyncDocument, _backup: SyncDocument) => {}
+    )
+    await b.service.uploadDocument(
+      JSON.stringify(await a.service.exportDocument()),
+      upload
+    )
+    const [shared, backup] = upload.mock.calls[0]!
+    const pack = shared.packs![0]!
+    expect(pack.sort).toBe('manual')
+    expect(pack.groups).toEqual(['Review'])
+    expect(pack.skills.map((member) => member.name)).toEqual([
+      'shared',
+      'local-only',
+      'cloud-only',
+    ])
+    expect(pack.skills[0]).toMatchObject({ group: 'Review', tags: ['local'] })
+    expect(pack.skills[2]).toMatchObject({
+      group: 'Review',
+      tags: ['remote-only'],
+    })
+    expect(parseSyncDocument(JSON.stringify(shared)).packs).toEqual(
+      shared.packs
+    )
+    expect(backup.packs![0]!.skills.map((member) => member.name)).toEqual([
+      'shared',
+      'local-only',
+    ])
+    expect(b.managed.snapshot()).toEqual(before)
+  })
+
+  it('exports only one shareable Pack with its files and organization, excluding credentials, settings and unrelated Skills', async () => {
+    const a = await setupExtended(['included', 'unrelated'])
+    const b = await setupExtended([])
+    await a.ai.saveSettings({
+      provider: 'deepseek',
+      apiKey: 'sk-synthetic-private-key',
+      model: 'deepseek-v4-flash',
+      targetLanguage: 'zh-CN',
+    })
+    const [included, unrelated] = a.managed.snapshot().skills
+    const pack = (
+      await a.managed.savePack({
+        name: 'Shared toolkit',
+        description: 'For the team',
+        skillIds: [included!.id],
+        groups: [{ id: 'shared-group', name: 'Tools' }],
+        organization: {
+          [included!.id]: { groupId: 'shared-group', tags: ['useful'] },
+        },
+        sort: 'manual',
+      })
+    ).packs[0]!
+    await symlink(a.directory, join(unrelated!.managedPath, 'not-portable'))
+    const document = await a.service.exportPackDocument(pack.id)
+    expect(document.skills).toEqual([])
+    expect(document.preferences).toEqual({})
+    expect(document.managedSkills!.map((skill) => skill.name)).toEqual([
+      'included',
+    ])
+    expect(document.packs).toHaveLength(1)
+    expect(document).not.toHaveProperty('aiConnections')
+    expect(document).not.toHaveProperty('aiPreferences')
+    expect(JSON.stringify(document)).not.toContain('private-key')
+    const preview = await b.service.preview(JSON.stringify(document))
+    await b.service.apply(choices(preview))
+    expect(
+      (await b.service.exportDocument()).packs?.filter(
+        (pack) => pack.name !== 'Default'
+      )
+    ).toEqual(document.packs)
+    expect(b.managed.snapshot().skills).toHaveLength(1)
+  })
+
+  it('rejects invalid portable Pack groups, tags and sort modes before importing', async () => {
+    const a = await setupExtended(['alpha'])
+    await a.managed.savePack({
+      name: 'Toolkit',
+      description: '',
+      skillIds: [a.managed.snapshot().skills[0]!.id],
+    })
+    const document = await a.service.exportDocument()
+    for (const patch of [
+      { groups: ['Design', 'design'] },
+      { groups: [''] },
+      { sort: 'unknown' },
+      { skills: [{ ...document.packs![0]!.skills[0]!, group: 'missing' }] },
+      {
+        skills: [
+          { ...document.packs![0]!.skills[0]!, tags: Array(13).fill('tag') },
+        ],
+      },
+      {
+        skills: [{ ...document.packs![0]!.skills[0]!, tags: ['a'.repeat(33)] }],
+      },
+    ])
+      expect(() =>
+        parseSyncDocument(
+          JSON.stringify({
+            ...document,
+            packs: [{ ...document.packs![0]!, ...patch }],
+          })
+        )
+      ).toThrow('Invalid sync document')
+  })
+})
+
+describe('managed Skill file sync', () => {
+  it('transfers every Skill in Default without requiring an additional Pack or an installed source on the receiving computer', async () => {
+    const a = await setupExtended(['unassigned'])
+    const b = await setupExtended([])
+    const original = a.managed.snapshot().skills[0]!
+    await mkdir(join(original.managedPath, 'scripts'))
+    await mkdir(join(original.managedPath, 'assets'))
+    await mkdir(join(original.managedPath, '.git'))
+    await writeFile(
+      join(original.managedPath, '.git', 'config'),
+      'Private repository configuration'
+    )
+    await writeFile(
+      join(original.managedPath, 'scripts', 'run.sh'),
+      '#!/bin/sh\necho portable\n'
+    )
+    await chmod(join(original.managedPath, 'scripts', 'run.sh'), 0o755)
+    const binary = Buffer.from([0, 1, 2, 255])
+    await writeFile(join(original.managedPath, 'assets', 'example.bin'), binary)
+    await writeFile(join(original.managedPath, 'assets', 'empty.txt'), '')
+    const document = await a.service.exportDocument()
+    expect(document.packs).toEqual([
+      expect.objectContaining({ name: 'Default' }),
+    ])
+    expect(document.managedSkills).toHaveLength(1)
+    expect(document.managedSkills![0]!.files.map((file) => file.path)).toEqual([
+      'SKILL.md',
+      'assets/empty.txt',
+      'assets/example.bin',
+      'scripts/run.sh',
+    ])
+    expect(JSON.stringify(document)).not.toContain(a.directory)
+    expect(JSON.stringify(document)).not.toContain(original.id)
+    const contents = JSON.stringify(document)
+    const preview = await b.service.preview(contents)
+    expect(preview.managedSkills).toMatchObject({
+      total: 1,
+      added: 1,
+      updated: 0,
+      unchanged: 0,
+    })
+    expect(b.managed.snapshot().skills).toEqual([])
+    expect(await readdir(join(b.directory, 'managed'))).toEqual([])
+    await b.service.apply(choices(preview))
+    const imported = b.managed.snapshot().skills[0]!
+    expect(imported).toMatchObject({
+      name: 'unassigned',
+      deployments: [],
+      syncIdentity: 'github:owner/repo',
+    })
+    expect(imported.id).not.toBe(original.id)
+    expect(await readFile(join(imported.managedPath, 'SKILL.md'))).toEqual(
+      await readFile(join(original.managedPath, 'SKILL.md'))
+    )
+    expect(
+      await readFile(join(imported.managedPath, 'assets', 'example.bin'))
+    ).toEqual(binary)
+    expect(
+      await readFile(join(imported.managedPath, 'assets', 'empty.txt'), 'utf8')
+    ).toBe('')
+    expect(
+      (await lstat(join(imported.managedPath, 'scripts', 'run.sh'))).mode &
+        0o111
+    ).toBe(0o111)
+    const repeat = await b.service.preview(contents)
+    expect(repeat.managedSkills).toMatchObject({
+      added: 0,
+      updated: 0,
+      unchanged: 1,
+    })
+    await b.service.apply(choices(repeat))
+    expect(b.managed.snapshot().skills).toHaveLength(1)
+    const reloaded = new ManagedSkillService(
+      join(b.directory, 'managed'),
+      join(b.directory, 'managed.json')
+    )
+    await reloaded.initialize()
+    const reexport = new MetadataSyncService(b.store, b.getCatalog, {
+      managedSkills: reloaded,
+    })
+    const roundTrip = await reexport.exportDocument()
+    expect(roundTrip.managedSkills).toEqual(document.managedSkills)
+    const onOriginal = await a.service.preview(JSON.stringify(roundTrip))
+    expect(onOriginal.managedSkills).toMatchObject({ added: 0, unchanged: 1 })
+  })
+
+  it('restores Pack membership using newly imported local Skill IDs', async () => {
+    const a = await setupExtended(['member', 'unassigned'])
+    const b = await setupExtended([])
+    await a.managed.savePack({
+      name: 'Toolkit',
+      description: 'Shared',
+      skillIds: [a.managed.snapshot().skills[0]!.id],
+    })
+    const document = await a.service.exportDocument()
+    expect(document.packs![0]!.skills[0]).not.toHaveProperty('files')
+    const preview = await b.service.preview(JSON.stringify(document))
+    expect(preview.packs).toMatchObject({
+      matchedMembers: 3,
+      skippedMembers: [],
+    })
+    await b.service.apply(choices(preview))
+    const snapshot = b.managed.snapshot()
+    expect(snapshot.skills.map((item) => item.name)).toEqual([
+      'member',
+      'unassigned',
+      'member',
+    ])
+    expect(
+      snapshot.packs.find((pack) => pack.name === 'Toolkit')!.skillIds
+    ).toEqual([snapshot.skills[2]!.id])
+    expect(
+      snapshot.packs.find((pack) => pack.name === 'Default')!.skillIds
+    ).toEqual([snapshot.skills[0]!.id, snapshot.skills[1]!.id])
+  })
+
+  it('merges cloud-only and local-only unassigned Skills on upload, with a complete original device backup', async () => {
+    const a = await setupExtended(['cloud-only'])
+    const b = await setupExtended(['local-only'])
+    const c = await setupExtended([])
+    const remote = await a.service.exportDocument()
+    const upload = vi.fn(
+      async (_document: SyncDocument, _backup: SyncDocument) => {}
+    )
+    await b.service.uploadDocument(JSON.stringify(remote), upload)
+    const [shared, backup] = upload.mock.calls[0]!
+    expect(shared.managedSkills!.map((item) => item.name)).toEqual([
+      'cloud-only',
+      'local-only',
+    ])
+    expect(backup.managedSkills!.map((item) => item.name)).toEqual([
+      'local-only',
+    ])
+    expect(b.managed.snapshot().skills.map((item) => item.name)).toEqual([
+      'local-only',
+    ])
+    const preview = await c.service.preview(JSON.stringify(shared))
+    await c.service.apply(choices(preview))
+    expect(c.managed.snapshot().skills.map((item) => item.name)).toEqual([
+      'cloud-only',
+      'local-only',
+    ])
+  })
+
+  it('offers local and incoming choices for changed files, retains original installations, and backs up replaced files', async () => {
+    const a = await setupExtended(['shared'])
+    const b = await setupExtended(['shared'])
+    const original = b.managed.snapshot().skills[0]!
+    await writeFile(
+      join(a.managed.snapshot().skills[0]!.managedPath, 'tool.js'),
+      'remote script'
+    )
+    await writeFile(join(original.managedPath, 'tool.js'), 'local script')
+    const contents = JSON.stringify(await a.service.exportDocument())
+    const keep = await b.service.preview(contents)
+    expect(keep.conflicts).toContainEqual(
+      expect.objectContaining({ field: 'managed-files', skillName: 'shared' })
+    )
+    const fileConflict = keep.conflicts.find(
+      (conflict) => conflict.field === 'managed-files'
+    )!
+    expect(fileConflict.local).toContain('tool.js')
+    expect(fileConflict.local).toContain('local script')
+    expect(fileConflict.incoming).toContain('remote script')
+    await b.service.apply(choices(keep, 'local'))
+    expect(await readFile(join(original.managedPath, 'tool.js'), 'utf8')).toBe(
+      'local script'
+    )
+    const replace = await b.service.preview(contents)
+    await b.service.apply(choices(replace, 'incoming'))
+    expect(b.managed.snapshot().skills[0]!.id).toBe(original.id)
+    expect(await readFile(join(original.managedPath, 'tool.js'), 'utf8')).toBe(
+      'remote script'
+    )
+    expect(await readdir(join(b.directory, 'sources', 'shared'))).toEqual([
+      'SKILL.md',
+    ])
+    const [backupId] = await readdir(
+      join(b.directory, 'managed.json.sync-files-backup')
+    )
+    expect(
+      await readFile(
+        join(
+          b.directory,
+          'managed.json.sync-files-backup',
+          backupId!,
+          original.id,
+          'tool.js'
+        ),
+        'utf8'
+      )
+    ).toBe('local script')
+  })
+
+  it('uploads local managed files on conflicts without applying cloud changes to the local library', async () => {
+    const a = await setupExtended(['shared'])
+    const b = await setupExtended(['shared'])
+    await writeFile(
+      join(a.managed.snapshot().skills[0]!.managedPath, 'tool.js'),
+      'cloud'
+    )
+    const local = b.managed.snapshot().skills[0]!
+    await writeFile(join(local.managedPath, 'tool.js'), 'local')
+    const before = b.managed.snapshot()
+    const expected = (await b.service.exportDocument()).managedSkills
+    const upload = vi.fn(
+      async (_document: SyncDocument, _backup: SyncDocument) => {}
+    )
+    await b.service.uploadDocument(
+      JSON.stringify(await a.service.exportDocument()),
+      upload
+    )
+    const [shared, backup] = upload.mock.calls[0]!
+    expect(shared.managedSkills).toEqual(expected)
+    expect(backup.managedSkills).toEqual(expected)
+    expect(b.managed.snapshot()).toEqual(before)
+    expect(await readFile(join(local.managedPath, 'tool.js'), 'utf8')).toBe(
+      'local'
+    )
+  })
+
+  it('replaces managed files while preserving deployment records, copy deployments and working symlink deployments', async () => {
+    const a = await setupExtended(['shared'])
+    const b = await setupExtended(['shared'])
+    const local = b.managed.snapshot().skills[0]!
+    await writeFile(join(local.managedPath, 'tool.js'), 'local')
+    await writeFile(
+      join(a.managed.snapshot().skills[0]!.managedPath, 'tool.js'),
+      'cloud'
+    )
+    for (const mode of ['copy', 'symlink'] as const) {
+      const target = join(b.directory, `deployment-${mode}`)
+      await mkdir(target)
+      await b.managed.deploy(
+        {
+          skillId: local.id,
+          mode,
+          target: { kind: 'custom', directoryPath: target },
+        },
+        [{ kind: 'custom', directoryPath: target, name: mode }]
+      )
+    }
+    const deployments = b.managed.snapshot().skills[0]!.deployments
+    const preview = await b.service.preview(
+      JSON.stringify(await a.service.exportDocument()),
+      'import',
+      undefined,
+      'replace'
+    )
+    expect(preview.managedSkills?.updated).toBe(1)
+    expect(preview.conflicts).toEqual([])
+    await b.service.apply(choices(preview))
+    expect(b.managed.snapshot().skills[0]!.deployments).toEqual(deployments)
+    expect(await readFile(join(local.managedPath, 'tool.js'), 'utf8')).toBe(
+      'cloud'
+    )
+    for (const deployment of deployments)
+      expect(
+        await readFile(join(deployment.targetPath, 'tool.js'), 'utf8')
+      ).toBe(deployment.mode === 'symlink' ? 'cloud' : 'local')
+  })
+
+  it('rolls back new Skills, changed files, and Pack membership if the final metadata write fails, then permits retry', async () => {
+    const a = await setupExtended(['shared', 'new-skill'])
+    const b = await setupExtended(['shared'])
+    const local = b.managed.snapshot().skills[0]!
+    await writeFile(
+      join(a.managed.snapshot().skills[0]!.managedPath, 'tool.js'),
+      'remote'
+    )
+    await writeFile(join(local.managedPath, 'tool.js'), 'local')
+    await a.managed.savePack({
+      name: 'Toolkit',
+      description: '',
+      skillIds: a.managed.snapshot().skills.map((item) => item.id),
+    })
+    const preview = await b.service.preview(
+      JSON.stringify(await a.service.exportDocument())
+    )
+    const before = b.managed.snapshot()
+    const directoryBefore = await readdir(join(b.directory, 'managed'))
+    vi.spyOn(b.store, 'applySyncPatch').mockRejectedValueOnce(
+      new Error('Disk full')
+    )
+    await expect(b.service.apply(choices(preview))).rejects.toThrow('Disk full')
+    expect(b.managed.snapshot()).toEqual(before)
+    expect(await readdir(join(b.directory, 'managed'))).toEqual(directoryBefore)
+    expect(await readFile(join(local.managedPath, 'tool.js'), 'utf8')).toBe(
+      'local'
+    )
+    await b.service.apply(choices(preview))
+    expect(b.managed.snapshot().skills).toHaveLength(4)
+    expect(
+      b.managed.snapshot().packs.find((pack) => pack.name === 'Toolkit')!
+        .skillIds
+    ).toHaveLength(2)
+    expect(await readFile(join(local.managedPath, 'tool.js'), 'utf8')).toBe(
+      'remote'
+    )
+  })
+
+  it('rejects a stale preview when any owned file changes externally', async () => {
+    const a = await setupExtended(['shared'])
+    const b = await setupExtended(['shared'])
+    const local = b.managed.snapshot().skills[0]!
+    const preview = await b.service.preview(
+      JSON.stringify(await a.service.exportDocument())
+    )
+    await writeFile(join(local.managedPath, 'new.txt'), 'external edit')
+    await expect(b.service.apply(choices(preview))).rejects.toThrow('outdated')
+    expect(await readFile(join(local.managedPath, 'new.txt'), 'utf8')).toBe(
+      'external edit'
+    )
+  })
+
+  it('keeps legacy version 4 imports metadata-only', async () => {
+    const a = await setupExtended(['shared'])
+    const b = await setupExtended([])
+    await a.managed.savePack({
+      name: 'Toolkit',
+      description: '',
+      skillIds: [a.managed.snapshot().skills[0]!.id],
+    })
+    const document = {
+      ...(await a.service.exportDocument()),
+      version: 4,
+      managedSkills: undefined,
+    }
+    const preview = await b.service.preview(JSON.stringify(document))
+    expect(preview.managedSkills).toBeUndefined()
+    expect(preview.packs?.skippedMembers).toHaveLength(2)
+    await b.service.apply(choices(preview))
+    expect(b.managed.snapshot().skills).toEqual([])
+  })
+
+  it('rejects unsafe file paths, invalid bytes, and changed content hashes before importing', async () => {
+    const a = await setupExtended(['shared'])
+    const document = await a.service.exportDocument()
+    for (const path of [
+      '../escape',
+      '/absolute',
+      'C:/outside',
+      'a/../../outside',
+      'a\\outside',
+      'NUL.txt',
+      '.git/config',
+      'a:stream',
+      '"quote".txt',
+      'name.',
+    ]) {
+      const invalid = structuredClone(document)
+      invalid.managedSkills![0]!.files.push({
+        path,
+        content: 'YWJj',
+        executable: false,
+      })
+      invalid.managedSkills![0]!.contentHash = managedFilesHash(
+        invalid.managedSkills![0]!.files
+      )
+      expect(() => parseSyncDocument(JSON.stringify(invalid))).toThrow(
+        'Invalid sync document'
+      )
+    }
+    for (const files of [
+      [{ path: 'SKILL.md', content: '!!!!', executable: false }],
+      [
+        ...document.managedSkills![0]!.files,
+        { path: 'skill.md', content: '', executable: false },
+      ],
+      [
+        ...document.managedSkills![0]!.files,
+        { path: 'assets', content: '', executable: false },
+        { path: 'assets/child', content: '', executable: false },
+      ],
+      [
+        ...document.managedSkills![0]!.files,
+        { path: 'Assets/one', content: '', executable: false },
+        { path: 'assets/two', content: '', executable: false },
+      ],
+      [
+        {
+          ...document.managedSkills![0]!.files[0]!,
+          content: Buffer.from('Altered').toString('base64'),
+        },
+      ],
+    ]) {
+      const invalid = structuredClone(document)
+      invalid.managedSkills![0]!.files = files
+      invalid.managedSkills![0]!.contentHash = managedFilesHash(files)
+      expect(() => parseSyncDocument(JSON.stringify(invalid))).toThrow(
+        'Invalid sync document'
+      )
+    }
+  })
+
+  it('does not follow symbolic links in owned Skills or read oversized files into a snapshot', async () => {
+    const a = await setupExtended(['shared'])
+    const root = a.managed.snapshot().skills[0]!.managedPath
+    const outside = join(a.directory, 'outside.txt')
+    await writeFile(outside, 'Outside content')
+    await symlink(outside, join(root, 'external.txt'))
+    await expect(a.service.exportDocument()).rejects.toThrow('symbolic links')
+    await rm(join(root, 'external.txt'))
+    await writeFile(join(root, 'large.bin'), '')
+    await truncate(join(root, 'large.bin'), 20 * 1024 * 1024 + 1)
+    await expect(a.service.exportDocument()).rejects.toThrow('too large')
+    expect(await readFile(outside, 'utf8')).toBe('Outside content')
   })
 })
 
@@ -1369,19 +2309,21 @@ describe('AI configuration sync', () => {
       targetLanguage: 'zh-CN',
     })
 
-  it('accepts version 4 credentials and rejects invalid keys and mismatched formats', async () => {
+  it('accepts version 4 and 5 credentials and rejects invalid keys and mismatched formats', async () => {
     const a = await setupExtended([])
     await configure(a.ai)
     const document = await a.service.exportDocument()
-    expect(parseSyncDocument(JSON.stringify(document)).aiConnections).toEqual(
-      a.ai.getPortableConnections()
-    )
+    for (const version of [4, 5])
+      expect(
+        parseSyncDocument(JSON.stringify({ ...document, version }))
+          .aiConnections
+      ).toEqual(a.ai.getPortableConnections())
     const encrypted = await encryptAiConnections(
       a.ai.getPortableConnections(),
       encryption.password
     )
     for (const invalid of [
-      { ...document, version: 5 },
+      { ...document, version: 6 },
       { ...document, version: 3 },
       { ...document, version: 2 },
       { ...document, aiConnections: encrypted },
@@ -1431,7 +2373,7 @@ describe('AI configuration sync', () => {
     ).rejects.toThrow('password required')
     await b.service.uploadDocument(JSON.stringify(remote), upload, encryption)
     for (const document of upload.mock.calls[0]!) {
-      expect(document.version).toBe(4)
+      expect(document.version).toBe(5)
       expect(document.aiConnections).toEqual(b.ai.getPortableConnections())
       expect(JSON.stringify(document)).not.toContain(encryption.password)
       const readable = await a.service.preview(JSON.stringify(document))
@@ -1450,7 +2392,7 @@ describe('AI configuration sync', () => {
     await configure(a.ai)
     const document = await a.service.exportDocument()
     const contents = JSON.stringify(document)
-    expect(document.version).toBe(4)
+    expect(document.version).toBe(5)
     expect(document.aiConnections).toBeTruthy()
     expect(contents).toContain('sk-synthetic-remote-key')
     expect(contents).not.toContain(encryption.password)
@@ -1547,7 +2489,7 @@ describe('AI configuration sync', () => {
     )
     const uploaded = upload.mock.calls[1]![0]
     const backup = upload.mock.calls[1]![1]
-    expect(uploaded.version).toBe(4)
+    expect(uploaded.version).toBe(5)
     expect(JSON.stringify(uploaded)).toContain('sk-synthetic-local-key')
     expect(uploaded.aiConnections).toEqual([
       {
@@ -1651,4 +2593,161 @@ describe('AI configuration sync', () => {
       )
     }
   )
+})
+
+describe('isolated Pack synchronization', () => {
+  it('restores different files for the same source in different Packs and rebases folder view options', async () => {
+    const a = await setupExtended(['shared'])
+    const b = await setupExtended([])
+    const original = a.managed.snapshot().skills[0]!
+    const viewOptions = {
+      alignToGrid: true,
+      groupBy: 'tags' as const,
+      useGroups: true,
+      sortBy: 'name' as const,
+      sortDirection: 'descending' as const,
+      viewMode: 'columns' as const,
+    }
+    for (const name of ['First', 'Second']) {
+      await a.managed.savePack({
+        name,
+        description: '',
+        skillIds: [original.id],
+        groups: [
+          {
+            id: name + '-folder',
+            name: 'Tools',
+            parentId: null,
+            color: '#358b68',
+          },
+        ],
+        organization: {
+          [original.id]: { groupId: name + '-folder', tags: [name] },
+        },
+        viewOptions: {
+          root: viewOptions,
+          [name + '-folder']: { ...viewOptions, viewMode: 'list' },
+        },
+      })
+      await writeFile(
+        join(packMembers(a.managed, name)[0]!.managedPath, 'tool.js'),
+        name
+      )
+    }
+    const document = await a.service.exportDocument()
+    expect(document.managedSkills).toHaveLength(3)
+    await b.service.apply(
+      choices(await b.service.preview(JSON.stringify(document)))
+    )
+    const restored = b.managed.snapshot()
+    expect(restored.skills).toHaveLength(3)
+    expect(new Set(restored.packs.flatMap((pack) => pack.skillIds)).size).toBe(
+      3
+    )
+    for (const name of ['First', 'Second']) {
+      const member = packMembers(b.managed, name)[0]!
+      expect(await readFile(join(member.managedPath, 'tool.js'), 'utf8')).toBe(
+        name
+      )
+      const pack = restored.packs.find((pack) => pack.name === name)!
+      expect(pack.groups![0]!.id).not.toBe(name + '-folder')
+      expect(pack.groups![0]!.color).toBe('#358b68')
+      expect(pack.viewOptions!.root).toEqual(viewOptions)
+      expect(pack.viewOptions![pack.groups![0]!.id]!.viewMode).toBe('list')
+    }
+    const repeated = await b.service.preview(JSON.stringify(document))
+    expect(repeated.managedSkills?.added).toBe(0)
+    expect(repeated.packs?.changed).toBe(0)
+    expect(repeated.conflicts).toEqual([])
+    await writeFile(
+      join(packMembers(b.managed, 'First')[0]!.managedPath, 'tool.js'),
+      'Local edit'
+    )
+    const changed = await b.service.preview(JSON.stringify(document))
+    expect(
+      changed.conflicts.filter((conflict) => conflict.field === 'managed-files')
+    ).toHaveLength(1)
+    await b.service.apply(choices(changed))
+    expect(
+      await readFile(
+        join(packMembers(b.managed, 'Second')[0]!.managedPath, 'tool.js'),
+        'utf8'
+      )
+    ).toBe('Second')
+  })
+
+  it('keeps repeated imports inside the same Pack as distinct copies through upload and restore', async () => {
+    const a = await setupExtended(['shared'])
+    const b = await setupExtended([])
+    const installed = (await a.getCatalog()).skills[0]!
+    await a.managed.importSkills([
+      {
+        name: installed.name,
+        description: installed.description,
+        path: installed.path,
+        scope: 'global',
+        skillId: installed.id,
+      },
+    ])
+    await writeFile(
+      join(a.managed.snapshot().skills[1]!.managedPath, 'tool.js'),
+      'Second import'
+    )
+    const document = await a.service.exportDocument()
+    expect(
+      parseSyncDocument(JSON.stringify(document)).managedSkills
+    ).toHaveLength(2)
+    await b.service.apply(
+      choices(await b.service.preview(JSON.stringify(document)))
+    )
+    expect(packMembers(b.managed, 'Default')).toHaveLength(2)
+    expect(
+      new Set(
+        packMembers(b.managed, 'Default').map((skill) => skill.managedPath)
+      ).size
+    ).toBe(2)
+    expect(
+      (await b.service.preview(JSON.stringify(document))).conflicts
+    ).toEqual([])
+    const upload = vi.fn(
+      async (_document: SyncDocument, _backup: SyncDocument) => {}
+    )
+    await b.service.uploadDocument(JSON.stringify(document), upload)
+    expect(upload.mock.calls[0]![0].managedSkills).toHaveLength(2)
+    expect(upload.mock.calls[0]![0].packs![0]!.skills).toHaveLength(2)
+  })
+
+  it('expands an old version 5 shared file entry into independent per-Pack copies', async () => {
+    const a = await setupExtended(['shared'])
+    const b = await setupExtended([])
+    const current = await a.service.exportDocument()
+    const {
+      packName: _packName,
+      copyId: _copyId,
+      ...portable
+    } = current.managedSkills![0]!
+    const { copyId: _memberCopyId, ...reference } =
+      current.packs![0]!.skills[0]!
+    const legacy: SyncDocument = {
+      ...current,
+      managedSkills: [portable],
+      packs: ['First', 'Second'].map((name) => ({
+        name,
+        description: '',
+        skills: [reference],
+      })),
+    }
+    await b.service.apply(
+      choices(await b.service.preview(JSON.stringify(legacy)))
+    )
+    const first = packMembers(b.managed, 'First')[0]!
+    const second = packMembers(b.managed, 'Second')[0]!
+    expect(first.id).not.toBe(second.id)
+    expect(first.managedPath).not.toBe(second.managedPath)
+    expect(packMembers(b.managed, 'Default')).toEqual([])
+    await writeFile(join(first.managedPath, 'SKILL.md'), 'Only First changed')
+    expect(
+      await readFile(join(second.managedPath, 'SKILL.md'), 'utf8')
+    ).toContain('Content for shared')
+  })
 })

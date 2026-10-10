@@ -46,11 +46,12 @@ export interface SyncSkill {
 
 export interface SyncDocument {
   format: 'skill-shelf-metadata'
-  version: 1 | 2 | 3 | 4
+  version: 1 | 2 | 3 | 4 | 5
   exportedAt: string
   skills: SyncSkill[]
   preferences: Partial<PortableSettings>
   packs?: SyncPack[]
+  managedSkills?: SyncManagedSkill[]
   aiPreferences?: PortableAiPreferences
   aiConnections?: EncryptedAiConnections | PortableAiConnection[]
   source?: SyncSource
@@ -70,6 +71,7 @@ export interface SyncCloudSnapshot {
   exportedAt: string
   skills: number
   packs: number
+  managedSkills?: number
   source?: SyncSource
 }
 
@@ -108,6 +110,8 @@ export interface PortableAiPreferences {
 }
 
 export interface SyncPackMember {
+  copyId?: string
+  packName?: string
   name: string
   identity: string | null
   fingerprint: string | null
@@ -116,7 +120,45 @@ export interface SyncPackMember {
 export interface SyncPack {
   name: string
   description: string
-  skills: SyncPackMember[]
+  skills: SyncPackEntry[]
+  groups?: string[]
+  folders?: SyncPackFolder[]
+  sort?: 'manual' | 'name-asc' | 'name-desc'
+  viewOptions?: Record<string, FinderViewOptions>
+}
+
+export interface SyncPackEntry extends SyncPackMember {
+  group?: string | null
+  folderPath?: string[] | null
+  tags?: string[]
+  position?: { x: number; y: number } | null
+}
+
+export interface SyncPackFolder {
+  path: string[]
+  position?: { x: number; y: number } | null
+  color?: string
+}
+
+export interface SyncManagedFile {
+  path: string
+  content: string
+  executable: boolean
+}
+
+export interface SyncManagedSkill extends SyncPackMember {
+  description: string
+  sourceScope: 'global' | 'project'
+  contentHash: string
+  files: SyncManagedFile[]
+}
+
+export interface SyncManagedSkillsPreview {
+  total: number
+  added: number
+  updated: number
+  unchanged: number
+  skipped: string[]
 }
 
 export interface SyncPackPreview {
@@ -155,6 +197,7 @@ export interface SyncPreview {
   }>
   preferences: Partial<PortableSettings>
   packs?: SyncPackPreview
+  managedSkills?: SyncManagedSkillsPreview
   aiPreferences?: PortableAiPreferences
   aiConnections?: SyncAiConnectionPreview[]
   source?: SyncSource

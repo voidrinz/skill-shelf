@@ -6,6 +6,8 @@ import { trayApi } from './tray'
 
 const desktopApi: SkillShelfDesktopApi = {
   exportSyncData: () => ipcRenderer.invoke(desktopIpcChannels.syncExport),
+  exportSkillPack: (packId) =>
+    ipcRenderer.invoke(desktopIpcChannels.managedSkillPackExport, packId),
   importSyncData: (password, retry) =>
     ipcRenderer.invoke(desktopIpcChannels.syncImport, { password, retry }),
   cancelSyncImport: () =>
@@ -174,8 +176,13 @@ const desktopApi: SkillShelfDesktopApi = {
     ipcRenderer.invoke(desktopIpcChannels.managedSkillPackDelete, packId),
   deployManagedSkill: (input) =>
     ipcRenderer.invoke(desktopIpcChannels.managedSkillDeploy, input),
-  importManagedSkills: (skillIds) =>
-    ipcRenderer.invoke(desktopIpcChannels.managedSkillImport, skillIds),
+  importManagedSkills: (skillIds, packId, folderId) =>
+    ipcRenderer.invoke(
+      desktopIpcChannels.managedSkillImport,
+      skillIds,
+      packId,
+      folderId
+    ),
   removeSkill: (skillId) =>
     ipcRenderer.invoke(desktopIpcChannels.skillRemove, skillId),
   runAiChat: (input) => ipcRenderer.invoke(desktopIpcChannels.aiChatRun, input),
