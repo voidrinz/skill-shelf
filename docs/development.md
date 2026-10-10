@@ -111,6 +111,16 @@ using a password-derived scrypt key with a random salt and nonce. Enter the same
 sync password (at least 8 characters) on both computers. The password stays in
 memory while the Sync page is open and is never included in the document.
 
+Saving a WebDAV connection also persists its password by default. The version 1
+`webdav-sync.json` file stores the connection locally as unencrypted JSON with
+owner-only permissions (`0600`), using a temporary file and atomic rename. WebDAV
+never calls Electron `safeStorage` or the system Keychain, and status responses
+never include the password. Existing unversioned, system-encrypted connections
+retain their URL and username, with an inline prompt to enter the password again.
+Reading them leaves the original file intact; network actions stay disabled until
+the replacement password is saved. WebDAV credentials remain local and separate
+from the session-only password used to encrypt AI configuration in sync files.
+
 Skill organization and cached translations merge only into matching installed
 Skills. Translations with a different source description are skipped and counted
 in the preview. Packs merge by name, preserving local-only members; members are
@@ -131,6 +141,11 @@ Preview revisions cover Skill organization, Packs, member identities and AI
 preferences, keys and enabled states. Local imports back up all affected metadata stores and roll back
 Pack/AI writes if a later metadata write fails. Uploads do not apply changes to
 the local stores.
+
+Sync operation results use the app's floating toast notifications, including
+errors while a preview is open. Notifications do not change the page layout, and
+dismissing one leaves the preview open for a retry. Encryption password errors
+focus the password field after the operation finishes.
 
 ## Desktop Releases And Updates
 
