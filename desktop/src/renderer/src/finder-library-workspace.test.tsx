@@ -173,6 +173,40 @@ function renderedSkills(container: HTMLElement) {
 }
 
 it.each(['canvas', 'list', 'columns'] as const)(
+  'defaults to descending and keeps folders first when sorting by kind in %s view',
+  async (mode) => {
+    const { container } = mount(mode)
+    const renderedKeys = () =>
+      Array.from(
+        container.querySelectorAll<HTMLElement>('[data-finder-item-key]')
+      ).map((item) => item.dataset.finderItemKey)
+    fireEvent.keyDown(screen.getByRole('button', { name: /^Sort/ }), {
+      key: 'ArrowDown',
+    })
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Kind' }))
+    expect(renderedKeys()).toEqual([
+      'folder:b',
+      'folder:a',
+      'skill:root-current',
+    ])
+    fireEvent.keyDown(screen.getByRole('button', { name: /^Sort/ }), {
+      key: 'ArrowDown',
+    })
+    expect(
+      (
+        await screen.findByRole('menuitemradio', { name: 'Descending' })
+      ).getAttribute('aria-checked')
+    ).toBe('true')
+    fireEvent.click(screen.getByRole('menuitemradio', { name: 'Ascending' }))
+    expect(renderedKeys()).toEqual([
+      'folder:a',
+      'folder:b',
+      'skill:root-current',
+    ])
+  }
+)
+
+it.each(['canvas', 'list', 'columns'] as const)(
   'shows scope-wide status matches in %s view and restores the folder after clearing',
   (mode) => {
     const { container, data, onCatalogChange } = mount(mode)

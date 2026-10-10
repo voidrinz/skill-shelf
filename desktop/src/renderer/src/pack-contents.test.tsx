@@ -140,6 +140,52 @@ function transfer() {
   }
 }
 
+it.each([undefined, 'manual'] as const)(
+  'defaults to descending when a Pack has no view settings and legacy sort is %s',
+  async (sort) => {
+    const { container, state } = mount('icons', true, {
+      sort,
+      viewOptions: undefined,
+    })
+    fireEvent.keyDown(screen.getByRole('button', { name: /^Sort/ }), {
+      key: 'ArrowDown',
+    })
+    fireEvent.click(await screen.findByRole('menuitemradio', { name: 'Kind' }))
+    await waitFor(() =>
+      expect(state().viewOptions!.root!.sortDirection).toBe('descending')
+    )
+    expect(
+      Array.from(
+        container.querySelectorAll<HTMLElement>('[data-finder-item-key]')
+      ).map((item) => item.dataset.finderItemKey)
+    ).toEqual(['folder:design', 'skill:gamma', 'skill:beta'])
+    fireEvent.keyDown(screen.getByRole('button', { name: /^Sort/ }), {
+      key: 'ArrowDown',
+    })
+    expect(
+      (
+        await screen.findByRole('menuitemradio', { name: 'Descending' })
+      ).getAttribute('aria-checked')
+    ).toBe('true')
+  }
+)
+
+it('preserves an explicit legacy ascending Pack sort', async () => {
+  const { container, state } = mount('icons', true, {
+    sort: 'name-asc',
+    viewOptions: undefined,
+  })
+  expect(
+    Array.from(
+      container.querySelectorAll<HTMLElement>('[data-finder-item-key]')
+    ).map((item) => item.dataset.finderItemKey)
+  ).toEqual(['folder:design', 'skill:beta', 'skill:gamma'])
+  fireEvent.click(screen.getByRole('button', { name: 'List view' }))
+  await waitFor(() =>
+    expect(state().viewOptions!.root!.sortDirection).toBe('ascending')
+  )
+})
+
 it('opens nested folders and restores location through back, forward and parent navigation', async () => {
   const { location } = mount()
   expect(screen.queryByText('alpha')).toBeNull()

@@ -237,6 +237,7 @@ export function sortFinderItems<T extends FinderSortableItem>(
   })
   const directionFactor = direction === 'ascending' ? 1 : -1
   return [...items].sort((first, second) => {
+    if (first.kind !== second.kind) return first.kind === 'folder' ? -1 : 1
     const valueOrder = compareFinderSortValues(first, second, sortKey, collator)
     if (valueOrder !== 0) return valueOrder * directionFactor
     const nameOrder = collator.compare(first.name, second.name)
@@ -251,10 +252,7 @@ function compareFinderSortValues(
   sortKey: FinderSortKey,
   collator: Intl.Collator
 ) {
-  if (sortKey === 'kind') {
-    if (first.kind === second.kind) return 0
-    return first.kind === 'folder' ? -1 : 1
-  }
+  if (sortKey === 'kind') return 0
   if (sortKey === 'source') {
     return collator.compare(first.source ?? '', second.source ?? '')
   }

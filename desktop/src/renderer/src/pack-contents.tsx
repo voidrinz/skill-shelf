@@ -156,7 +156,7 @@ export function PackContents({
     groupBy: 'kind',
     useGroups: false,
     sortBy: draft.sort === 'manual' || !draft.sort ? 'none' : 'name',
-    sortDirection: draft.sort === 'name-desc' ? 'descending' : 'ascending',
+    sortDirection: draft.sort === 'name-asc' ? 'ascending' : 'descending',
     viewMode: 'canvas',
   }
   function changeOptions(patch: Partial<FinderViewOptions>) {

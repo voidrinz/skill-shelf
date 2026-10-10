@@ -261,17 +261,40 @@ describe('Finder item sorting', () => {
     { key: 'folder:a', kind: 'folder' as const, name: 'Archive' },
   ]
 
-  it('uses natural name ordering without forcing folders to the top', () => {
+  it('uses natural name ordering within each kind with folders first', () => {
     expect(
       sortFinderItemsByName(items, 'ascending', 'en').map((item) => item.key)
-    ).toEqual(['folder:a', 'skill:2', 'skill:10', 'folder:z'])
+    ).toEqual(['folder:a', 'folder:z', 'skill:2', 'skill:10'])
   })
 
-  it('reverses the complete name sequence', () => {
+  it('reverses names within each kind while keeping folders first', () => {
     expect(
       sortFinderItemsByName(items, 'descending', 'en').map((item) => item.key)
-    ).toEqual(['folder:z', 'skill:10', 'skill:2', 'folder:a'])
+    ).toEqual(['folder:z', 'folder:a', 'skill:10', 'skill:2'])
   })
+
+  it.each([
+    ['ascending', ['folder:a', 'folder:z', 'skill:2', 'skill:10']],
+    ['descending', ['folder:z', 'folder:a', 'skill:10', 'skill:2']],
+  ] as const)(
+    'keeps folders first when sorting by kind %s',
+    (direction, keys) => {
+      expect(
+        sortFinderItems(items, 'kind', direction, 'en').map((item) => item.key)
+      ).toEqual(keys)
+      expect(
+        groupFinderItems(items, 'kind', 'en', 'kind', direction).map(
+          (group) => ({
+            key: group.key,
+            items: group.items.map((item) => item.key),
+          })
+        )
+      ).toEqual([
+        { key: 'folder', items: keys.slice(0, 2) },
+        { key: 'skill', items: keys.slice(2) },
+      ])
+    }
+  )
 
   it('sorts by Skill metadata while keeping name as a stable tie-breaker', () => {
     expect(
