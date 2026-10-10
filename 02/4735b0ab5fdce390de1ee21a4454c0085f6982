@@ -1,0 +1,21 @@
+docs/release-notes/0.1.13.md
+  s_d156a057076bd4::t_5d2ef8b6aee1c8 1-29
+desktop/package.json
+  s_d156a057076bd4::t_5d2ef8b6aee1c8 3
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "024735b0ab5fdce390de1ee21a4454c0085f6982",
+  "prompts": {},
+  "sessions": {
+    "s_d156a057076bd4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11f65-e785-7730-8ba3-2f272150ac9e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
