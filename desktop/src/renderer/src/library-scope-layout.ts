@@ -1,6 +1,10 @@
 export const DEFAULT_LIBRARY_SCOPE_WIDTH = 200
 export const LIBRARY_SCOPE_WIDTH_STORAGE_KEY =
   'skill-shelf:library-scope-width:v1'
+export const MANAGED_SCOPE_WIDTH_STORAGE_KEY =
+  'skill-shelf:managed-scope-width:v1'
+export const MANAGED_SCOPE_COLLAPSED_STORAGE_KEY =
+  'skill-shelf:managed-scope-collapsed:v1'
 
 export function getLibraryScopeWidthBounds(containerWidth: number) {
   const available = Math.max(0, containerWidth)

@@ -2,6 +2,34 @@
 @import '@skill-shelf/ui/styles.css';
 @source '../../../../packages/ui/src';
 
+.workspace-load-error {
+  display: flex;
+  min-height: 280px;
+  height: 100%;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  padding: 32px;
+  text-align: center;
+}
+.workspace-load-error > svg {
+  width: 28px;
+  height: 28px;
+  color: var(--muted-foreground);
+}
+.workspace-load-error h2 {
+  color: var(--ss-ink-strong);
+  font-size: 1rem;
+  font-weight: 600;
+}
+.workspace-load-error p {
+  max-width: 420px;
+  color: var(--muted-foreground);
+  font-size: 0.8rem;
+  line-height: 1.6;
+}
+
 [data-slot='dialog-content'].project-instructions-dialog {
   display: flex;
   width: min(800px, calc(100vw - 32px));
@@ -5143,8 +5171,52 @@ html[data-density='compact'] .finder-list-view[data-view='columns'] {
 .managed-content {
   min-width: 0;
   min-height: 0;
+  grid-template-rows: auto minmax(0, 1fr);
 }
-.managed-navigation .managed-pack-actions {
+
+.pack-finder {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  min-height: 0;
+  min-width: 0;
+}
+.pack-finder-body {
+  flex: 1 1 auto;
+}
+.pack-finder > .finder-navigation,
+.pack-finder > .finder-toolbar,
+.pack-finder > .packs-skeleton-controls {
+  flex: 0 0 auto;
+}
+.pack-finder-body > .managed-state {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+}
+.pack-finder-body > .managed-state button {
+  pointer-events: auto;
+}
+.pack-field {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+}
+.pack-field small {
+  font-size: 12px;
+  color: var(--muted-foreground);
+}
+@media (max-width: 900px) {
+  .managed-content .library-page-header {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+  }
+  .managed-content .library-page-header > [data-slot='page-header-actions'] {
+    justify-self: start;
+    flex-wrap: wrap;
+  }
+}
+.managed-pack-actions {
   display: flex;
   flex: 0 0 auto;
   align-items: center;
@@ -5152,7 +5224,7 @@ html[data-density='compact'] .finder-list-view[data-view='columns'] {
   border-left: 1px solid var(--border);
   padding-left: 8px;
 }
-.managed-navigation .managed-pack-actions > button:last-child:hover {
+.managed-pack-actions > button:last-child:hover {
   color: var(--destructive);
   background: color-mix(in srgb, var(--destructive) 9%, transparent);
 }
@@ -9615,6 +9687,64 @@ html[data-density='compact'] .finder-list-view[data-view='columns'] {
   min-width: 0;
   gap: 7px;
 }
+.packs-content-skeleton {
+  display: contents;
+}
+.packs-skeleton-text {
+  position: relative;
+  display: block;
+}
+.packs-skeleton-text > span:not(.skeleton-block) {
+  visibility: hidden;
+}
+.packs-skeleton-text > .skeleton-block {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+}
+.packs-content-skeleton h1 > .packs-skeleton-text {
+  width: max-content;
+  max-width: 100%;
+}
+.packs-skeleton-sidebar-row {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 7px;
+  padding: 6px 8px;
+}
+.packs-skeleton-sidebar-row .skeleton-copy {
+  min-height: 30px;
+  align-content: center;
+}
+.packs-skeleton-controls button {
+  position: relative;
+  color: transparent;
+}
+.packs-skeleton-controls button > * {
+  visibility: hidden;
+}
+.packs-skeleton-controls button::after {
+  position: absolute;
+  inset: 2px;
+  border-radius: 4px;
+  background: color-mix(in srgb, var(--muted-foreground) 10%, var(--card));
+  content: '';
+}
+.packs-skeleton-actions {
+  display: flex;
+  flex-wrap: inherit;
+  align-items: center;
+  gap: 6px;
+}
+.packs-skeleton-actions [data-slot='button'] {
+  background: transparent;
+}
+.packs-content-skeleton .search-control [data-slot='button'] {
+  height: 32px;
+}
 .skeleton-scan-meta {
   min-height: 17px;
 }
@@ -9662,9 +9792,9 @@ html[data-density='compact'] .finder-list-view[data-view='columns'] {
   padding: 6px 12px 16px;
 }
 .skills-skeleton.is-icons {
-  grid-template-columns: repeat(auto-fill, 112px);
+  grid-template-columns: repeat(auto-fill, 108px);
   grid-auto-rows: 122px;
-  gap: 0 12px;
+  gap: 0 16px;
   padding: 24px 28px;
 }
 .skeleton-skill-icon {

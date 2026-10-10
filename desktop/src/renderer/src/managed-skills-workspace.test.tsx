@@ -1,11 +1,19 @@
 // @vitest-environment jsdom
 import type { ReactNode } from 'react'
-import { cleanup, fireEvent, render, screen } from '@testing-library/react'
+import {
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+  within,
+} from '@testing-library/react'
 import { I18nProvider } from '@skill-shelf/i18n/react'
 import { TooltipProvider } from '@skill-shelf/ui'
 import { afterEach, beforeEach, expect, it, vi } from 'vitest'
 import type {
   ManagedSkillsSnapshot,
+  CatalogSnapshot,
   SkillShelfDesktopApi,
 } from '../../shared/desktop-contract'
 import { LIBRARY_SCOPE_WIDTH_STORAGE_KEY } from './library-scope-layout'
@@ -45,14 +53,22 @@ beforeEach(() => {
         createdAt: '',
         updatedAt: '',
       },
+      {
+        id: 'default',
+        name: 'Default',
+        description: '',
+        skillIds: ['beta'],
+        createdAt: '',
+        updatedAt: '',
+      },
     ],
     skills: ['alpha', 'beta'].map((id) => ({
       id,
       name: id,
       description: '',
       deployments: [],
-      importedAt: '',
-      updatedAt: '',
+      importedAt: '2026-10-10T00:00:00Z',
+      updatedAt: '2026-10-10T00:00:00Z',
       managedPath: `/managed/${id}`,
       sourcePath: `/skills/${id}`,
       sourceScope: 'global',
@@ -72,12 +88,173 @@ afterEach(() => {
   vi.unstubAllGlobals()
 })
 
-function mount() {
+function mount(catalog: CatalogSnapshot | null = null) {
   return render(
-    <ManagedSkillsWorkspace catalog={null} onCatalogRefresh={vi.fn()} />,
+    <ManagedSkillsWorkspace catalog={catalog} onCatalogRefresh={vi.fn()} />,
     { wrapper: Providers }
   )
 }
+
+async function mockPackSaving() {
+  let state = await window.skillShelf.getManagedSkills()
+  const save = vi.fn(
+    async (input: Parameters<SkillShelfDesktopApi['saveSkillPack']>[0]) => {
+      state = {
+        ...state,
+        packs: state.packs.map((pack) =>
+          pack.id === input.id ? { ...pack, ...input } : pack
+        ),
+      }
+      return state
+    }
+  )
+  window.skillShelf.saveSkillPack = save
+  return { state, save }
+}
+
+it('starts in Default, lists Packs in the sidebar and creates empty independent Packs', async () => {
+  const state = await window.skillShelf.getManagedSkills()
+  const save = vi.fn(async (input) => ({
+    ...state,
+    packs: [
+      ...state.packs,
+      { ...input, id: 'new', createdAt: '', updatedAt: '' },
+    ],
+  }))
+  window.skillShelf.saveSkillPack = save
+  const { container } = mount()
+  await screen.findByRole('heading', { name: 'Default' })
+  expect(screen.queryByRole('button', { name: /^All Skills/ })).toBeNull()
+  expect(
+    screen.queryByRole('button', { name: 'Add from All Skills' })
+  ).toBeNull()
+  expect(
+    within(container.querySelector('.managed-content')!).queryByRole('button', {
+      name: 'New Pack',
+    })
+  ).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: 'New Pack' }))
+  const dialog = screen.getByRole('dialog')
+  expect(within(dialog).queryByRole('button', { name: /alpha/ })).toBeNull()
+  fireEvent.change(within(dialog).getByRole('textbox', { name: 'Pack name' }), {
+    target: { value: 'New toolkit' },
+  })
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Save Pack' }))
+  await waitFor(() =>
+    expect(save).toHaveBeenCalledWith({
+      name: 'New toolkit',
+      description: '',
+      skillIds: [],
+    })
+  )
+  await screen.findByRole('heading', { name: 'New toolkit' })
+})
+
+it('imports installed Skills into the selected Pack even if the source has already been copied', async () => {
+  const state = await window.skillShelf.getManagedSkills()
+  const importing = vi.fn().mockResolvedValue(state)
+  window.skillShelf.importManagedSkills = importing
+  mount({
+    skills: [{ id: 'alpha', name: 'alpha', description: '', scope: 'global' }],
+  } as CatalogSnapshot)
+  fireEvent.click(await screen.findByRole('button', { name: /Design toolkit/ }))
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Import installed Skills' })
+  )
+  const dialog = screen.getByRole('dialog')
+  fireEvent.click(within(dialog).getByRole('button', { name: /alpha/ }))
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Import 1' }))
+  await waitFor(() =>
+    expect(importing).toHaveBeenCalledExactlyOnceWith(
+      ['alpha'],
+      'pack',
+      undefined
+    )
+  )
+})
+
+it('imports installed Skills into the folder currently being viewed', async () => {
+  const state = await window.skillShelf.getManagedSkills()
+  state.packs[0]!.groups = [{ id: 'design', name: 'Design', parentId: null }]
+  window.skillShelf.importManagedSkills = vi.fn().mockResolvedValue(state)
+  mount({
+    skills: [{ id: 'beta', name: 'beta', description: '', scope: 'global' }],
+  } as CatalogSnapshot)
+  fireEvent.click(await screen.findByRole('button', { name: /Design toolkit/ }))
+  const folder = document.querySelector(
+    '[data-finder-item-key="folder:design"]'
+  )!
+  fireEvent.doubleClick(folder)
+  fireEvent.click(
+    screen.getByRole('button', { name: 'Import installed Skills' })
+  )
+  const dialog = screen.getByRole('dialog')
+  fireEvent.click(within(dialog).getByRole('button', { name: /beta/ }))
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Import 1' }))
+  await waitFor(() =>
+    expect(
+      window.skillShelf.importManagedSkills
+    ).toHaveBeenCalledExactlyOnceWith(['beta'], 'pack', 'design')
+  )
+})
+
+it('uses Skills view controls and blank-area menus with Pack-specific deployment and deletion actions', async () => {
+  const { save } = await mockPackSaving()
+  const state = await window.skillShelf.getManagedSkills()
+  window.skillShelf.deleteManagedSkill = vi.fn().mockResolvedValue(state)
+  const { container } = mount()
+  fireEvent.click(await screen.findByRole('button', { name: /Design toolkit/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Column view' }))
+  await waitFor(() =>
+    expect(save).toHaveBeenCalledWith(
+      expect.objectContaining({
+        id: 'pack',
+        viewOptions: { root: expect.objectContaining({ viewMode: 'columns' }) },
+      })
+    )
+  )
+  expect(container.querySelector('.finder-column-panel')).toBeTruthy()
+  fireEvent.contextMenu(
+    container.querySelector('[data-finder-item-key="skill:alpha"]')!
+  )
+  expect(
+    await screen.findByRole('menuitem', { name: 'Add Skill' })
+  ).toBeTruthy()
+  expect(screen.queryByRole('menuitem', { name: 'Update Skill' })).toBeNull()
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Delete' }))
+  fireEvent.click(
+    within(screen.getByRole('dialog')).getByRole('button', { name: 'Delete' })
+  )
+  await waitFor(() =>
+    expect(window.skillShelf.deleteManagedSkill).toHaveBeenCalledWith('alpha')
+  )
+})
+
+it('protects Default and confirms deletion of a Pack and its copies', async () => {
+  const state = await window.skillShelf.getManagedSkills()
+  window.skillShelf.deleteSkillPack = vi
+    .fn()
+    .mockResolvedValue({
+      ...state,
+      packs: state.packs.filter((pack) => pack.id === 'default'),
+    })
+  mount()
+  await screen.findByRole('heading', { name: 'Default' })
+  expect(
+    (screen.getByRole('button', { name: 'Delete' }) as HTMLButtonElement)
+      .disabled
+  ).toBe(true)
+  fireEvent.click(screen.getByRole('button', { name: /Design toolkit/ }))
+  fireEvent.click(screen.getByRole('button', { name: 'Delete' }))
+  expect(window.skillShelf.deleteSkillPack).not.toHaveBeenCalled()
+  const dialog = screen.getByRole('dialog')
+  expect(within(dialog).getByText(/independent Skill copies/)).toBeTruthy()
+  fireEvent.click(within(dialog).getByRole('button', { name: 'Delete' }))
+  await waitFor(() =>
+    expect(window.skillShelf.deleteSkillPack).toHaveBeenCalledWith('pack')
+  )
+  await screen.findByRole('heading', { name: 'Default' })
+})
 
 it('restores from the full-height rail while preserving the selected Pack and search', async () => {
   const { container } = mount()
@@ -110,7 +287,7 @@ it('restores from the full-height rail while preserving the selected Pack and se
   expect((input as HTMLInputElement).value).toBe('alpha')
   expect(
     Array.from(
-      container.querySelectorAll('.managed-icon-primary strong'),
+      container.querySelectorAll('.skill-row-title strong'),
       (name) => name.textContent
     )
   ).toEqual(['alpha'])

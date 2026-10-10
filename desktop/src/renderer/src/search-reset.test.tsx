@@ -103,7 +103,19 @@ function installedSkill(id: string): InstalledSkill {
 it.each(['button', 'delete', 'escape'])(
   'restores import candidates with %s while preserving selections and the dialog',
   async (action) => {
-    const managed: ManagedSkillsSnapshot = { packs: [], skills: [] }
+    const managed: ManagedSkillsSnapshot = {
+      packs: [
+        {
+          id: 'default',
+          name: 'Default',
+          description: '',
+          skillIds: [],
+          createdAt: '',
+          updatedAt: '',
+        },
+      ],
+      skills: [],
+    }
     window.skillShelf = {
       getManagedSkills: vi.fn().mockResolvedValue(managed),
       getAgentInstallRegistry: vi.fn().mockResolvedValue({ agents: [] }),

@@ -1,4 +1,73 @@
 export const messages = {
+  'desktop.managed.emptyPackDescription':
+    'Import complete copies of installed Skills into this Pack.',
+  'desktop.managed.deletePackDescription':
+    'Delete this Pack and its independent Skill copies. Deployed file copies remain in their destinations.',
+  'desktop.managed.deletePackQuestion': 'Delete {name}?',
+  'desktop.managed.folderBack': 'Back',
+  'desktop.managed.folderForward': 'Forward',
+  'desktop.managed.folderUp': 'Go to parent folder',
+  'desktop.managed.folderPath': 'Pack folder path',
+  'desktop.managed.folder': 'Folder',
+  'desktop.managed.folderItemCount': '{count} items',
+  'desktop.managed.folderEmpty': 'This folder is empty',
+  'desktop.managed.folderEmptyDescription':
+    'Add Skills here or drag them into this folder from the Pack.',
+  'desktop.managed.folderCreateDescription':
+    'Folders organize this Pack. Names must be unique within the same folder.',
+  'desktop.managed.folderDragHint':
+    'Double-click a folder to open it. Drag items into folders or onto the path above to move them. Use Command/Ctrl or Shift to select several items.',
+  'desktop.managed.folderSearchHint':
+    'Search results include every folder in this Pack. Clear the search to drag and arrange items.',
+  'desktop.managed.deleteFolder': 'Delete folder',
+  'desktop.managed.deleteFolderDescription':
+    'Delete {name} and its subfolders? Their Skills return to the parent folder and keep their tags.',
+  'desktop.managed.openPackFolder': 'Open folder',
+  'desktop.managed.saveFolder': 'Save',
+  'desktop.managed.ambiguousImport':
+    'Several library copies match this Skill. Choose a copy using Add from All Skills.',
+  'desktop.managed.addFromLibrary': 'Add from All Skills',
+  'desktop.managed.addFromLibraryDescription':
+    'Choose Skills from your library to add to {pack}. Existing copies are reused.',
+  'desktop.managed.addSelected': 'Add {count} Skills',
+  'desktop.managed.addedToPack': 'Added {count} Skills to {pack}.',
+  'desktop.managed.packWorkspaceDescription':
+    'Organize this collection with its own groups, tags and Skill order.',
+  'desktop.managed.libraryDescription':
+    'Import complete file copies into the selected Pack. Each Pack is independent.',
+  'desktop.managed.packEmptyTitle': 'This Pack is empty',
+  'desktop.managed.packEmptyDescription':
+    'Import complete copies of installed Skills into this Pack.',
+  'desktop.managed.importIntoPack': 'Import into {pack}',
+  'desktop.managed.importIntoPackDescription':
+    'Selected Skills are copied in full into {pack}, independently of copies in other Packs.',
+  'desktop.managed.manageGroups': 'Manage groups',
+  'desktop.managed.groupsDescription':
+    'Groups belong to this Pack. Deleting a group moves its Skills to Ungrouped.',
+  'desktop.managed.groupName': 'Group name',
+  'desktop.managed.newGroup': 'New group',
+  'desktop.managed.deleteGroup': 'Delete group {name}',
+  'desktop.managed.groupUp': 'Move group {name} up',
+  'desktop.managed.groupDown': 'Move group {name} down',
+  'desktop.managed.ungrouped': 'Ungrouped',
+  'desktop.managed.group': 'Group',
+  'desktop.managed.sort': 'Sort items',
+  'desktop.managed.sortManual': 'Custom order',
+  'desktop.managed.sortAscending': 'Name A–Z',
+  'desktop.managed.sortDescending': 'Name Z–A',
+  'desktop.managed.moveUp': 'Move {name} up',
+  'desktop.managed.moveDown': 'Move {name} down',
+  'desktop.managed.organizeSkill': 'Organize {name}',
+  'desktop.managed.organizeDescription':
+    'Group and tags apply only within this Pack.',
+  'desktop.managed.tags': 'Tags',
+  'desktop.managed.tagsHint':
+    'Separate tags with commas; up to 12 tags, 32 characters each.',
+  'desktop.managed.removeFromPack': 'Remove {name} from this Pack',
+  'desktop.workspace.loadErrorTitle': 'This page could not load',
+  'desktop.workspace.loadErrorDescription':
+    'Reload the app to try again, or open another page from the sidebar.',
+  'desktop.workspace.reload': 'Reload app',
   'desktop.managed.exportPack': 'Export Pack',
   'desktop.managed.packExported':
     'Pack exported with its Skills, groups, tags and order.',
@@ -433,7 +502,7 @@ export const messages = {
   'desktop.discover.sections': 'Discovery sections',
   'desktop.discover.title': 'Discover useful Skills',
   'desktop.discover.topics': 'Topics',
-  'desktop.managed.allSkills': 'All Skills',
+  'desktop.managed.allSkills': 'Default',
   'desktop.managed.collapseScope': 'Collapse Packs sidebar',
   'desktop.managed.expandScope': 'Expand Packs sidebar',
   'desktop.managed.resizeScope': 'Resize Packs sidebar',
@@ -468,7 +537,7 @@ export const messages = {
   'desktop.managed.emptyDescription':
     'Import an installed Skill to create an independent local copy in Packs.',
   'desktop.managed.emptyTitle': 'No Skills in Packs yet',
-  'desktop.managed.eyebrow': 'Reusable local Skill library',
+  'desktop.managed.eyebrow': 'Independent Skill collections',
   'desktop.managed.finalPaths': 'Final Skill paths',
   'desktop.managed.globalTargetDescription':
     'Universal installs globally to ~/.agents/skills.',
@@ -481,7 +550,7 @@ export const messages = {
   'desktop.managed.importTitle': 'Import to Packs',
   'desktop.managed.imported': 'Imported {count} Skills to Packs.',
   'desktop.managed.independentCopies':
-    'Independent copies stored in Skill Shelf app data.',
+    'The default Pack for importing and organizing Skills.',
   'desktop.managed.independentCopyCount': '{count} independent copies',
   'desktop.managed.importSourcePath': 'Original import source',
   'desktop.managed.inspectorKicker': 'Pack Skill',
@@ -514,9 +583,9 @@ export const messages = {
     'Copies do not stay connected. Add this Skill with a symbolic link to create a traceable relationship.',
   'desktop.managed.noPackMembership': 'This Skill is not assigned to a Pack.',
   'desktop.managed.notDeployed': 'Not added anywhere yet',
-  'desktop.managed.packDeleted': 'Pack deleted. Its Skills remain in Packs.',
+  'desktop.managed.packDeleted': 'Pack and its independent copies deleted.',
   'desktop.managed.packDescription':
-    'A Pack is a reusable collection. It does not duplicate or move Skill files.',
+    'Each Pack stores complete, independent Skill copies that you can organize and share.',
   'desktop.managed.packName': 'Pack name',
   'desktop.managed.packNote': 'Description',
   'desktop.managed.packSaved': 'Pack saved.',
@@ -524,7 +593,7 @@ export const messages = {
   'desktop.managed.packMembership': 'Pack membership',
   'desktop.managed.packSourcePath': 'Pack source path',
   'desktop.managed.packs': 'Packs',
-  'desktop.managed.myPacks': 'My Packs',
+  'desktop.managed.myPacks': 'Packs',
   'desktop.managed.projectCount': 'Added to {count} destinations',
   'desktop.managed.projectRootDescription':
     'Choose a project root. Universal uses .agents/skills; each additional Agent uses its own project-relative directory.',

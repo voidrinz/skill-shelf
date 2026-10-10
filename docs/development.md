@@ -116,6 +116,43 @@ links, protected files, non-text files, and files over 1 MiB cannot be edited
 through this interface. These project files remain local and are not included
 in metadata sync.
 
+## Pack Library And Organization
+
+Packs opens a built-in **Default** Pack plus user-created Packs. Default is an
+ordinary independent collection used for quick imports; it cannot be renamed or
+deleted. Creating a Pack in the sidebar creates an empty collection. Every
+installed Skill import copies the complete directory into the active Pack and
+folder, even if that source was imported elsewhere. Adding a foreign member
+through the service copies its files and remaps its organization to a new ID.
+Each managed Skill has exactly one owning Pack; there is no shared library.
+
+Skills and Packs use the same `FinderToolbar`, `FinderCanvas`, `FinderListView`
+and `FinderFolderDialog` components. Icon, list and column views, selection,
+folder navigation, pointer dragging, grouping, sorting, cleanup, grid alignment
+and blank-area context menus share their implementations. Pack item actions
+operate on owned copies: inspect, organize tags, deploy, open files and delete.
+View options are saved independently for each Pack folder. Folder names are
+unique among siblings; folders cannot move into their own descendants. Search
+spans the Pack and disables dragging while results are shown.
+
+Deleting a folder tree returns its Skills to the parent and preserves tags.
+Deleting a Pack removes its owned files after confirmation; deployed file copies
+remain at their destinations. Active symlink deployments block deletion until
+removed. File deletions are staged and restored if saving state fails.
+
+Initialization migrates version 1 state to version 2: unassigned copies enter
+Default, and shared members become complete independent copies in each Pack.
+The original copy keeps its existing deployments, and additional copies have no
+deployments. Folder hierarchy, positions, tags and order remain intact. The old
+state is backed up before the migrated state is saved atomically. A failed copy
+leaves the old state untouched. Reopening migrated state does not recopy files.
+
+**Export Pack** produces a version 5 JSON document containing only the selected
+Pack, its member files, groups, tags and order. It excludes app preferences,
+installed Skill organization, AI configuration and credentials. A recipient can
+use Settings > Sync > Import sync data to preview and import this file. Empty
+Packs and empty groups can also be shared.
+
 ## Metadata Sync
 
 Settings > Sync supports file export/import and manual WebDAV upload/pull.

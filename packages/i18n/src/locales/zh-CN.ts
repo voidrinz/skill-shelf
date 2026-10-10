@@ -1,6 +1,74 @@
 import type { Messages } from '../index'
 
 export const messages = {
+  'desktop.managed.emptyPackDescription':
+    '将已安装的 Skill 完整复制到这个 Pack。',
+  'desktop.managed.deletePackDescription':
+    '将删除这个 Pack 及其中的独立 Skill 副本，已部署的文件复制会保留。',
+  'desktop.managed.deletePackQuestion': '删除 {name}？',
+  'desktop.managed.folderBack': '后退',
+  'desktop.managed.folderForward': '前进',
+  'desktop.managed.folderUp': '返回上一级文件夹',
+  'desktop.managed.folderPath': 'Pack 文件夹路径',
+  'desktop.managed.folder': '文件夹',
+  'desktop.managed.folderItemCount': '{count} 项',
+  'desktop.managed.folderEmpty': '这个文件夹还是空的',
+  'desktop.managed.folderEmptyDescription':
+    '在这里添加 Skill，或从 Pack 中拖入已有 Skill。',
+  'desktop.managed.folderCreateDescription':
+    '文件夹用于整理当前 Pack，同一层级内不能重名。',
+  'desktop.managed.folderDragHint':
+    '双击进入文件夹，拖到文件夹或上方路径即可移动。按住 Command/Ctrl 或 Shift 可以多选。',
+  'desktop.managed.folderSearchHint':
+    '搜索覆盖当前 Pack 的所有文件夹，清除搜索后可以拖动和整理。',
+  'desktop.managed.deleteFolder': '删除文件夹',
+  'desktop.managed.deleteFolderDescription':
+    '删除 {name} 及其子文件夹？其中的 Skill 会回到上一级，标签保留。',
+  'desktop.managed.openPackFolder': '打开文件夹',
+  'desktop.managed.saveFolder': '保存',
+  'desktop.managed.ambiguousImport':
+    '库中有多个匹配副本，请使用“从全部 Skill 添加”选择需要的副本。',
+  'desktop.managed.addFromLibrary': '从全部 Skill 添加',
+  'desktop.managed.addFromLibraryDescription':
+    '选择公共库中的 Skill 加入 {pack}，直接复用已有副本。',
+  'desktop.managed.addSelected': '添加 {count} 个 Skill',
+  'desktop.managed.addedToPack': '已将 {count} 个 Skill 加入 {pack}。',
+  'desktop.managed.packWorkspaceDescription':
+    '在这个集合包内独立管理分组、标签与 Skill 顺序。',
+  'desktop.managed.libraryDescription':
+    '导入到当前 Pack，完整复制文件；不同 Pack 之间互不影响。',
+  'desktop.managed.packEmptyTitle': '这个 Pack 还没有 Skill',
+  'desktop.managed.packEmptyDescription':
+    '将已安装的 Skill 完整复制到这个 Pack。',
+  'desktop.managed.importIntoPack': '导入到 {pack}',
+  'desktop.managed.importIntoPackDescription':
+    '选中的 Skill 会完整复制到 {pack}，与其他 Pack 中的副本独立。',
+  'desktop.managed.manageGroups': '管理分组',
+  'desktop.managed.groupsDescription':
+    '分组只属于当前 Pack。删除分组后，其中的 Skill 会回到未分组。',
+  'desktop.managed.groupName': '分组名称',
+  'desktop.managed.newGroup': '新建分组',
+  'desktop.managed.deleteGroup': '删除分组 {name}',
+  'desktop.managed.groupUp': '上移分组 {name}',
+  'desktop.managed.groupDown': '下移分组 {name}',
+  'desktop.managed.ungrouped': '未分组',
+  'desktop.managed.group': '分组',
+  'desktop.managed.sort': '内容排序',
+  'desktop.managed.sortManual': '自定义顺序',
+  'desktop.managed.sortAscending': '名称 A–Z',
+  'desktop.managed.sortDescending': '名称 Z–A',
+  'desktop.managed.moveUp': '上移 {name}',
+  'desktop.managed.moveDown': '下移 {name}',
+  'desktop.managed.organizeSkill': '整理 {name}',
+  'desktop.managed.organizeDescription': '分组与标签仅在当前 Pack 内生效。',
+  'desktop.managed.tags': '标签',
+  'desktop.managed.tagsHint':
+    '用逗号分隔，最多 12 个标签，每个最多 32 个字符。',
+  'desktop.managed.removeFromPack': '从当前 Pack 移除 {name}',
+  'desktop.workspace.loadErrorTitle': '页面加载失败',
+  'desktop.workspace.loadErrorDescription':
+    '可以重新加载应用重试，或从侧栏打开其他页面。',
+  'desktop.workspace.reload': '重新加载应用',
   'desktop.managed.exportPack': '导出 Pack',
   'desktop.managed.packExported':
     'Pack 已导出，包含 Skill 文件、分组、标签与顺序。',
@@ -406,7 +474,7 @@ export const messages = {
   'desktop.discover.sections': '发现内容分类',
   'desktop.discover.title': '发现有用的 Skill',
   'desktop.discover.topics': '主题精选',
-  'desktop.managed.allSkills': '全部 Skill',
+  'desktop.managed.allSkills': 'Default',
   'desktop.managed.collapseScope': '收起 Packs 侧栏',
   'desktop.managed.expandScope': '展开 Packs 侧栏',
   'desktop.managed.resizeScope': '调整 Packs 侧栏宽度',
@@ -440,7 +508,7 @@ export const messages = {
   'desktop.managed.emptyDescription':
     '从已安装的 Skill 导入，在 Packs 中创建一份独立本地副本。',
   'desktop.managed.emptyTitle': 'Packs 中还没有 Skill',
-  'desktop.managed.eyebrow': '可复用的本地 Skill 资料库',
+  'desktop.managed.eyebrow': '独立的 Skill 集合',
   'desktop.managed.finalPaths': '最终 Skill 路径',
   'desktop.managed.globalTargetDescription':
     '全局 Universal 会添加到 ~/.agents/skills。',
@@ -452,8 +520,7 @@ export const messages = {
   'desktop.managed.importSelectedCount': '已选择 {count} 个',
   'desktop.managed.importTitle': '导入到 Packs',
   'desktop.managed.imported': '已导入 {count} 个 Skill 到 Packs。',
-  'desktop.managed.independentCopies':
-    '这些是保存在 Skill Shelf 应用数据中的独立副本。',
+  'desktop.managed.independentCopies': '默认 Pack，可用于暂存和整理 Skill。',
   'desktop.managed.independentCopyCount': '{count} 份独立复制',
   'desktop.managed.importSourcePath': '最初导入来源',
   'desktop.managed.inspectorKicker': 'Pack Skill',
@@ -485,9 +552,9 @@ export const messages = {
     '文件复制不会保持关联；使用软链接添加后，才会在这里形成可追溯关系。',
   'desktop.managed.noPackMembership': '这个 Skill 尚未加入任何 Pack。',
   'desktop.managed.notDeployed': '尚未添加到其他位置',
-  'desktop.managed.packDeleted': '已删除 Pack，其中的 Skill 仍保留在 Packs。',
+  'desktop.managed.packDeleted': '已删除 Pack 及其中的独立副本。',
   'desktop.managed.packDescription':
-    'Pack 是可复用的 Skill 集合，不会重复复制或移动 Skill 文件。',
+    '每个 Pack 独立保存完整的 Skill 副本，可以整理并分享。',
   'desktop.managed.packName': 'Pack 名称',
   'desktop.managed.packNote': '说明',
   'desktop.managed.packSaved': 'Pack 已保存。',
@@ -495,7 +562,7 @@ export const messages = {
   'desktop.managed.packMembership': '所属 Pack',
   'desktop.managed.packSourcePath': 'Packs 源路径',
   'desktop.managed.packs': 'Packs',
-  'desktop.managed.myPacks': '我的 Packs',
+  'desktop.managed.myPacks': 'Packs',
   'desktop.managed.projectCount': '已添加到 {count} 个位置',
   'desktop.managed.projectRootDescription':
     '这里选择项目根目录。Universal 使用 .agents/skills，额外 Agent 使用各自的项目相对目录。',

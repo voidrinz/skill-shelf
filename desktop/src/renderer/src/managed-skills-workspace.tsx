@@ -13,7 +13,6 @@ import {
   type PointerEvent as ReactPointerEvent,
 } from 'react'
 import {
-  Archive,
   ArrowUpRight,
   BookOpen,
   Boxes,
@@ -21,16 +20,14 @@ import {
   ChevronDown,
   ChevronRight,
   Copy,
+  Download,
   FileText,
   FolderCheck,
   FolderInput,
   FolderOpen,
   HardDrive,
-  Grid2X2,
   Link2,
-  List as ListIcon,
   LoaderCircle,
-  PackageOpen,
   PanelLeftClose,
   PencilLine,
   Plus,
@@ -80,7 +77,11 @@ import {
   toast,
 } from '@skill-shelf/ui'
 import { useI18n } from '@skill-shelf/i18n/react'
-import { FileBrowserSkeleton, SkillsSkeleton } from './loading-skeletons'
+import {
+  FileBrowserSkeleton,
+  PacksContentSkeleton,
+  PacksSidebarSkeleton,
+} from './loading-skeletons'
 
 import type {
   AgentInstallRegistrySnapshot,
@@ -92,6 +93,7 @@ import type {
   ManagedSkillInstallMode,
   ManagedSkillsSnapshot,
   SkillPack,
+  SaveSkillPackInput,
 } from '../../shared/desktop-contract'
 import {
   DEFAULT_SKILL_DRAWER_WIDTH,
@@ -105,11 +107,14 @@ import {
 } from './install-agent-selection'
 import { getLocalizedErrorMessage } from './localized-error'
 import { useLibraryScopeResize } from './use-library-scope-resize'
+import { PackContents } from './pack-contents'
+import {
+  MANAGED_SCOPE_COLLAPSED_STORAGE_KEY,
+  MANAGED_SCOPE_WIDTH_STORAGE_KEY,
+} from './library-scope-layout'
 
 const SkillFilesPanel = lazy(() => import('./skill-files-panel'))
 const MANAGED_INSPECTOR_WIDTH_KEY = 'skill-shelf:managed-inspector-width'
-const MANAGED_SCOPE_WIDTH_KEY = 'skill-shelf:managed-scope-width:v1'
-const MANAGED_SCOPE_COLLAPSED_KEY = 'skill-shelf:managed-scope-collapsed:v1'
 const DRAWER_KEYBOARD_STEP = 24
 
 export default function ManagedSkillsWorkspace({
@@ -133,14 +138,17 @@ export default function ManagedSkillsWorkspace({
   )
   const [scopeCollapsed, setScopeCollapsed] = useState(() => {
     try {
-      return window.localStorage.getItem(MANAGED_SCOPE_COLLAPSED_KEY) === 'true'
+      return (
+        window.localStorage.getItem(MANAGED_SCOPE_COLLAPSED_STORAGE_KEY) ===
+        'true'
+      )
     } catch {
       return false
     }
   })
   const scopeResize = useLibraryScopeResize(
     scopeCollapsed,
-    MANAGED_SCOPE_WIDTH_KEY
+    MANAGED_SCOPE_WIDTH_STORAGE_KEY
   )
   const scopePanelId = useId()
   const scopeToggleFocusRef = useRef(false)
@@ -166,11 +174,11 @@ export default function ManagedSkillsWorkspace({
   const [inspectorFocus, setInspectorFocus] = useState<'info' | 'relations'>(
     'info'
   )
-  const [selectedPackId, setSelectedPackId] = useState<string>('all')
-  const [viewMode, setViewMode] = useState<'icons' | 'list'>(() => {
-    const saved = window.localStorage.getItem('skill-shelf:managed-view')
-    return saved === 'list' ? 'list' : 'icons'
-  })
+  const [selectedPackId, setSelectedPackId] = useState<string>('default')
+  const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
+  useEffect(() => {
+    setSelectedFolderId(null)
+  }, [selectedPackId])
   const [queryDraft, setQueryDraft] = useState('')
   const [query, setQuery] = useState('')
   const [importOpen, setImportOpen] = useState(false)
@@ -178,6 +186,7 @@ export default function ManagedSkillsWorkspace({
   const [deployingSkill, setDeployingSkill] = useState<ManagedSkill | null>(
     null
   )
+  const [deletingPack, setDeletingPack] = useState<SkillPack | null>(null)
   const [deletingSkill, setDeletingSkill] = useState<ManagedSkill | null>(null)
 
   useEffect(() => {
@@ -210,26 +219,31 @@ export default function ManagedSkillsWorkspace({
     }
   }, [t])
 
+  const selectedPack = snapshot?.packs.find(
+    (pack) => pack.id === selectedPackId
+  )
   const packSkills = useMemo(() => {
     if (!snapshot) return []
-    if (selectedPackId === 'all') return snapshot.skills
     const pack = snapshot.packs.find((item) => item.id === selectedPackId)
-    const ids = new Set(pack?.skillIds ?? [])
-    return snapshot.skills.filter((skill) => ids.has(skill.id))
+    const byId = new Map(snapshot.skills.map((skill) => [skill.id, skill]))
+    return (pack?.skillIds ?? []).flatMap((id) =>
+      byId.has(id) ? [byId.get(id)!] : []
+    )
   }, [selectedPackId, snapshot])
   const visibleSkills = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase()
     if (!normalizedQuery) return packSkills
     return packSkills.filter((skill) =>
-      [skill.name, skill.description]
+      [
+        skill.name,
+        skill.description,
+        ...(selectedPack?.organization?.[skill.id]?.tags ?? []),
+      ]
         .join(' ')
         .toLocaleLowerCase()
         .includes(normalizedQuery)
     )
-  }, [packSkills, query])
-  const selectedPack = snapshot?.packs.find(
-    (pack) => pack.id === selectedPackId
-  )
+  }, [packSkills, query, selectedPack])
   const inspectingSkill = snapshot?.skills.find(
     (skill) => skill.id === inspectingSkillId
   )
@@ -246,9 +260,22 @@ export default function ManagedSkillsWorkspace({
     if (skillIds.length === 0 || busy) return
     setBusy(true)
     try {
-      setSnapshot(await window.skillShelf.importManagedSkills(skillIds))
+      setSnapshot(
+        await window.skillShelf.importManagedSkills(
+          skillIds,
+          selectedPack?.id,
+          selectedFolderId ?? undefined
+        )
+      )
       setImportOpen(false)
-      toast.success(t('desktop.managed.imported', { count: skillIds.length }))
+      toast.success(
+        selectedPack
+          ? t('desktop.managed.addedToPack', {
+              count: skillIds.length,
+              pack: selectedPack.name,
+            })
+          : t('desktop.managed.imported', { count: skillIds.length })
+      )
     } catch (caught) {
       toast.error(getLocalizedErrorMessage(caught, t))
     } finally {
@@ -256,19 +283,26 @@ export default function ManagedSkillsWorkspace({
     }
   }
 
-  async function savePack(input: {
-    description: string
-    id?: string
-    name: string
-    skillIds: string[]
-  }) {
+  async function savePack(
+    input: SaveSkillPackInput,
+    notify = true
+  ): Promise<boolean> {
+    if (busy && notify) return false
     setBusy(true)
     try {
-      setSnapshot(await window.skillShelf.saveSkillPack(input))
+      const next = await window.skillShelf.saveSkillPack(input)
+      setSnapshot(next)
+      if (!input.id)
+        setSelectedPackId(
+          next.packs.find((pack) => pack.name === input.name.trim())?.id ??
+            'default'
+        )
       setEditingPack(null)
-      toast.success(t('desktop.managed.packSaved'))
+      if (notify) toast.success(t('desktop.managed.packSaved'))
+      return true
     } catch (caught) {
       toast.error(getLocalizedErrorMessage(caught, t))
+      return false
     } finally {
       setBusy(false)
     }
@@ -279,7 +313,8 @@ export default function ManagedSkillsWorkspace({
     setBusy(true)
     try {
       setSnapshot(await window.skillShelf.deleteSkillPack(pack.id))
-      setSelectedPackId('all')
+      setSelectedPackId('default')
+      setDeletingPack(null)
       toast.success(t('desktop.managed.packDeleted'))
     } catch (caught) {
       toast.error(getLocalizedErrorMessage(caught, t))
@@ -358,17 +393,12 @@ export default function ManagedSkillsWorkspace({
     setQuery(queryDraft.trim())
   }
 
-  function changeViewMode(mode: 'icons' | 'list') {
-    setViewMode(mode)
-    window.localStorage.setItem('skill-shelf:managed-view', mode)
-  }
-
   function changeScopeCollapsed(collapsed: boolean, restoreFocus: boolean) {
     scopeToggleFocusRef.current = restoreFocus
     setScopeCollapsed(collapsed)
     try {
       window.localStorage.setItem(
-        MANAGED_SCOPE_COLLAPSED_KEY,
+        MANAGED_SCOPE_COLLAPSED_STORAGE_KEY,
         String(collapsed)
       )
     } catch {
@@ -376,8 +406,54 @@ export default function ManagedSkillsWorkspace({
     }
   }
 
+  const searchToolbar = (
+    <div className="library-toolbar finder-toolbar managed-toolbar">
+      <form className="search-control" onSubmit={submitSearch}>
+        <SearchField
+          appliedValue={query}
+          clearLabel={t('desktop.managed.clearSearch')}
+          label={t('desktop.managed.search')}
+          onChange={setQueryDraft}
+          onClear={() => {
+            setQuery('')
+            setQueryDraft('')
+          }}
+          placeholder={t('desktop.managed.searchPlaceholder')}
+          value={queryDraft}
+        />
+        <Button size="sm" type="submit" variant="outline">
+          <Search />
+          {t('common.filter')}
+        </Button>
+      </form>
+      <div className="library-toolbar-meta">
+        <Badge variant="outline">
+          {t('desktop.managed.skillCount', {
+            count: visibleSkills.length,
+          })}
+        </Badge>
+      </div>
+    </div>
+  )
+
+  const collapseScopeControl = (
+    <Button
+      aria-controls={scopePanelId}
+      aria-expanded="true"
+      aria-label={t('desktop.managed.collapseScope')}
+      className="scope-panel-collapse"
+      onClick={(event) => changeScopeCollapsed(true, event.detail === 0)}
+      size="xs"
+      variant="ghost"
+    >
+      <PanelLeftClose />
+      {t('desktop.library.collapseScopeAction')}
+    </Button>
+  )
+
   return (
     <div
+      aria-busy={!snapshot && !error}
       className="library-workspace finder-library-workspace managed-workspace"
       data-scope-collapsed={scopeCollapsed}
       ref={setWorkspace}
@@ -418,362 +494,232 @@ export default function ManagedSkillsWorkspace({
             <span />
           </div>
         ) : null}
-        <header className="scope-panel-header">
-          <div className="scope-panel-title">
-            <span>{t('desktop.managed.packs')}</span>
-            <Button
-              aria-controls={scopePanelId}
-              aria-expanded="true"
-              aria-label={t('desktop.managed.collapseScope')}
-              className="scope-panel-collapse"
-              onClick={(event) =>
-                changeScopeCollapsed(true, event.detail === 0)
-              }
-              size="xs"
-              variant="ghost"
-            >
-              <PanelLeftClose />
-              {t('desktop.library.collapseScopeAction')}
-            </Button>
-          </div>
-          <p>{t('desktop.managed.sidebarDescription')}</p>
-        </header>
-        <div className="scope-filter-list">
-          <button
-            className={cn(selectedPackId === 'all' && 'is-active')}
-            onClick={() => setSelectedPackId('all')}
-            type="button"
-          >
-            <span className="scope-filter-icon is-global">
-              <Archive />
-            </span>
-            <span>
-              <strong>{t('desktop.managed.allSkills')}</strong>
-              <small>{t('desktop.managed.independentCopies')}</small>
-            </span>
-            <b>{snapshot?.skills.length ?? 0}</b>
-          </button>
-        </div>
-        <section className="scope-projects managed-pack-section">
-          <header>
-            <div>
-              <strong>{t('desktop.managed.myPacks')}</strong>
-              <span>{snapshot?.packs.length ?? 0}</span>
-            </div>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  aria-label={t('desktop.managed.newPack')}
-                  onClick={() => setEditingPack('new')}
-                  size="icon-sm"
-                  variant="ghost"
-                >
-                  <Plus />
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>{t('desktop.managed.newPack')}</TooltipContent>
-            </Tooltip>
-          </header>
-          <div className="scope-filter-list managed-pack-list">
-            {(snapshot?.packs ?? []).map((pack) => (
-              <button
-                className={cn(selectedPackId === pack.id && 'is-active')}
-                key={pack.id}
-                onClick={() => setSelectedPackId(pack.id)}
-                type="button"
-              >
-                <span className="scope-filter-icon">
-                  <Boxes />
-                </span>
-                <span>
-                  <strong>{pack.name}</strong>
-                  <small>
-                    {pack.description || t('desktop.managed.packDescription')}
-                  </small>
-                </span>
-                <b>{pack.skillIds.length}</b>
-              </button>
-            ))}
-          </div>
-        </section>
-        <div className="managed-sidebar-actions">
-          <Button
-            onClick={() => setImportOpen(true)}
-            size="sm"
-            variant="outline"
-          >
-            <FolderInput />
-            {t('desktop.managed.import')}
-          </Button>
-        </div>
+        {!snapshot && !error ? (
+          <PacksSidebarSkeleton collapseControl={collapseScopeControl} />
+        ) : (
+          <>
+            <header className="scope-panel-header">
+              <div className="scope-panel-title">
+                <span>{t('desktop.managed.packs')}</span>
+                {collapseScopeControl}
+              </div>
+              <p>{t('desktop.managed.sidebarDescription')}</p>
+            </header>
+            <section className="scope-projects managed-pack-section">
+              <header>
+                <div>
+                  <strong>{t('desktop.managed.packs')}</strong>
+                  <span>{snapshot?.packs.length ?? 0}</span>
+                </div>
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      aria-label={t('desktop.managed.newPack')}
+                      onClick={() => setEditingPack('new')}
+                      size="icon-sm"
+                      variant="ghost"
+                    >
+                      <Plus />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>
+                    {t('desktop.managed.newPack')}
+                  </TooltipContent>
+                </Tooltip>
+              </header>
+              <div className="scope-filter-list managed-pack-list">
+                {[...(snapshot?.packs ?? [])]
+                  .sort(
+                    (a, b) =>
+                      Number(b.id === 'default') - Number(a.id === 'default')
+                  )
+                  .map((pack) => (
+                    <button
+                      className={cn(selectedPackId === pack.id && 'is-active')}
+                      key={pack.id}
+                      onClick={() => setSelectedPackId(pack.id)}
+                      type="button"
+                    >
+                      <span className="scope-filter-icon">
+                        <Boxes />
+                      </span>
+                      <span>
+                        <strong>{pack.name}</strong>
+                        <small>
+                          {pack.description ||
+                            t('desktop.managed.packDescription')}
+                        </small>
+                      </span>
+                      <b>{pack.skillIds.length}</b>
+                    </button>
+                  ))}
+              </div>
+            </section>
+          </>
+        )}
       </aside>
 
       <section className="library-pane finder-library-pane managed-content">
-        <PageHeader
-          actions={
-            <>
-              <Button
-                onClick={() => setEditingPack('new')}
-                size="sm"
-                variant="outline"
-              >
-                <Boxes />
-                {t('desktop.managed.newPack')}
-              </Button>
-              <Button onClick={() => setImportOpen(true)} size="sm">
-                <FolderInput />
-                {t('desktop.managed.import')}
-              </Button>
-            </>
-          }
-          className="library-page-header finder-page-header"
-          description={
-            selectedPack?.description || t('desktop.managed.description')
-          }
-          eyebrow={t('desktop.managed.eyebrow')}
-          title={selectedPack?.name ?? t('desktop.managed.title')}
-        />
-
-        <div className="finder-navigation managed-navigation">
-          <nav aria-label={t('desktop.managed.location')}>
-            <button onClick={() => setSelectedPackId('all')} type="button">
-              <Archive />
-              {t('desktop.managed.packs')}
-            </button>
-            {selectedPack ? (
-              <span>
-                <ChevronRight />
-                <button type="button">{selectedPack.name}</button>
-              </span>
-            ) : null}
-          </nav>
-          <div
-            aria-label={t('desktop.library.viewMode')}
-            className="library-view-switcher finder-view-switcher"
-            role="group"
-          >
-            {(
-              [
-                ['icons', Grid2X2, t('desktop.library.viewCanvas')],
-                ['list', ListIcon, t('desktop.library.viewList')],
-              ] as const
-            ).map(([mode, Icon, label]) => (
-              <Tooltip key={mode}>
-                <TooltipTrigger asChild>
-                  <button
-                    aria-label={label}
-                    aria-pressed={viewMode === mode}
-                    onClick={() => changeViewMode(mode)}
-                    type="button"
-                  >
-                    <Icon />
-                  </button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">{label}</TooltipContent>
-              </Tooltip>
-            ))}
-          </div>
-          {selectedPack ? (
-            <div className="managed-pack-actions">
-              <Button
-                onClick={() => setEditingPack(selectedPack)}
-                size="xs"
-                variant="ghost"
-              >
-                <PencilLine />
-                {t('desktop.managed.editPack')}
-              </Button>
-              <Tooltip>
-                <TooltipTrigger asChild>
+        {!snapshot && !error ? (
+          <PacksContentSkeleton />
+        ) : (
+          <>
+            <PageHeader
+              actions={
+                <>
+                  {selectedPack ? (
+                    <div className="managed-pack-actions">
+                      <Button
+                        disabled={busy}
+                        size="xs"
+                        variant="ghost"
+                        onClick={async () => {
+                          setBusy(true)
+                          try {
+                            if (
+                              await window.skillShelf.exportSkillPack(
+                                selectedPack.id
+                              )
+                            )
+                              toast.success(t('desktop.managed.packExported'))
+                          } catch (caught) {
+                            toast.error(getLocalizedErrorMessage(caught, t))
+                          } finally {
+                            setBusy(false)
+                          }
+                        }}
+                      >
+                        <Download />
+                        {t('desktop.managed.exportPack')}
+                      </Button>
+                      <Button
+                        onClick={() => setEditingPack(selectedPack)}
+                        size="xs"
+                        variant="ghost"
+                      >
+                        <PencilLine />
+                        {t('desktop.managed.editPack')}
+                      </Button>
+                      <Tooltip>
+                        <TooltipTrigger asChild>
+                          <Button
+                            aria-label={t('desktop.managed.delete')}
+                            disabled={busy || selectedPack.id === 'default'}
+                            onClick={() => setDeletingPack(selectedPack)}
+                            size="icon-sm"
+                            variant="ghost"
+                          >
+                            <Trash2 />
+                          </Button>
+                        </TooltipTrigger>
+                        <TooltipContent side="bottom">
+                          {t('desktop.managed.delete')}
+                        </TooltipContent>
+                      </Tooltip>
+                    </div>
+                  ) : null}
                   <Button
-                    aria-label={t('desktop.managed.delete')}
                     disabled={busy}
-                    onClick={() => void deletePack(selectedPack)}
-                    size="icon-sm"
-                    variant="ghost"
+                    onClick={() => setImportOpen(true)}
+                    size="sm"
                   >
-                    <Trash2 />
+                    <FolderInput />
+                    {t('desktop.managed.import')}
                   </Button>
-                </TooltipTrigger>
-                <TooltipContent side="bottom">
-                  {t('desktop.managed.delete')}
-                </TooltipContent>
-              </Tooltip>
-            </div>
-          ) : null}
-        </div>
-
-        <div className="library-toolbar finder-toolbar managed-toolbar">
-          <form className="search-control" onSubmit={submitSearch}>
-            <SearchField
-              appliedValue={query}
-              clearLabel={t('desktop.managed.clearSearch')}
-              label={t('desktop.managed.search')}
-              onChange={setQueryDraft}
-              onClear={() => {
-                setQuery('')
-                setQueryDraft('')
-              }}
-              placeholder={t('desktop.managed.searchPlaceholder')}
-              value={queryDraft}
+                </>
+              }
+              className="library-page-header finder-page-header"
+              description={
+                selectedPack
+                  ? selectedPack.description ||
+                    t('desktop.managed.packWorkspaceDescription')
+                  : t('desktop.managed.libraryDescription')
+              }
+              eyebrow={t('desktop.managed.eyebrow')}
+              title={selectedPack?.name ?? 'Default'}
             />
-            <Button size="sm" type="submit" variant="outline">
-              <Search />
-              {t('common.filter')}
-            </Button>
-          </form>
-          <div className="library-toolbar-meta">
-            <Badge variant="outline">
-              {t('desktop.managed.skillCount', {
-                count: visibleSkills.length,
-              })}
-            </Badge>
-          </div>
-        </div>
 
-        <div className="finder-content managed-finder-content">
-          {error ? (
-            <div className="managed-state is-error">
-              <strong>{error}</strong>
-              <Button onClick={() => window.location.reload()} size="sm">
-                {t('common.tryAgain')}
-              </Button>
-            </div>
-          ) : !snapshot ? (
-            <SkillsSkeleton layout="managed" view={viewMode} />
-          ) : visibleSkills.length === 0 ? (
-            <div className="managed-state">
-              <span>
-                <PackageOpen />
-              </span>
-              <strong>
-                {query
-                  ? t('desktop.managed.noSearchResults')
-                  : t('desktop.managed.emptyTitle')}
-              </strong>
-              <p>
-                {query
-                  ? t('desktop.managed.noSearchResultsDescription')
-                  : t('desktop.managed.emptyDescription')}
-              </p>
-              {query ? (
-                <Button
-                  onClick={() => {
+            <div className="finder-content managed-finder-content">
+              {error ? (
+                <div className="managed-state is-error">
+                  <strong>{error}</strong>
+                </div>
+              ) : selectedPack ? (
+                <PackContents
+                  key={selectedPack.id}
+                  pack={selectedPack}
+                  skills={packSkills}
+                  query={query}
+                  busy={busy}
+                  searchToolbar={searchToolbar}
+                  onSave={(input) => savePack(input, false)}
+                  onInspect={inspectSkill}
+                  onDeploy={setDeployingSkill}
+                  onDelete={setDeletingSkill}
+                  onOpenFolder={(skillId) =>
+                    void openManagedSkillFolder(skillId)
+                  }
+                  onFolderChange={setSelectedFolderId}
+                  onClearSearch={() => {
                     setQuery('')
                     setQueryDraft('')
                   }}
-                  size="sm"
-                  variant="outline"
-                >
-                  <X />
-                  {t('desktop.managed.clearSearch')}
-                </Button>
-              ) : (
-                <Button onClick={() => setImportOpen(true)} size="sm">
-                  <FolderInput />
-                  {t('desktop.managed.import')}
-                </Button>
-              )}
+                />
+              ) : null}
             </div>
-          ) : viewMode === 'icons' ? (
-            <div className="managed-icon-view">
-              {visibleSkills.map((skill) => (
-                <article className="managed-icon-item" key={skill.id}>
-                  <button
-                    className="managed-icon-primary"
-                    onClick={() => inspectSkill(skill)}
-                    onDoubleClick={() => void openManagedSkillFolder(skill.id)}
-                    type="button"
-                  >
-                    <span className="finder-skill-icon">
-                      <Boxes />
-                      <ManagedSymlinkIndicator skill={skill} />
-                    </span>
-                    <strong>{skill.name}</strong>
-                  </button>
-                  <ManagedSkillQuickActions
-                    onDelete={() => setDeletingSkill(skill)}
-                    onDeploy={() => setDeployingSkill(skill)}
-                    onOpenFolder={() => void openManagedSkillFolder(skill.id)}
-                  />
-                </article>
-              ))}
-            </div>
-          ) : (
-            <div className="managed-list-view">
-              <div className="managed-list-header" role="row">
-                <span>{t('desktop.managed.columnName')}</span>
-                <span>{t('desktop.managed.columnDescription')}</span>
-                <span>{t('desktop.managed.columnPacks')}</span>
-                <span>{t('desktop.managed.columnProjects')}</span>
-                <span aria-hidden="true" />
-              </div>
-              {visibleSkills.map((skill) => (
-                <article className="managed-list-row" key={skill.id}>
-                  <button
-                    className="managed-list-name"
-                    onClick={() => inspectSkill(skill)}
-                    onDoubleClick={() => void openManagedSkillFolder(skill.id)}
-                    type="button"
-                  >
-                    <span className="managed-list-icon">
-                      <Boxes />
-                    </span>
-                    <span>
-                      <strong>{skill.name}</strong>
-                      <small>
-                        {t(
-                          skill.sourceScope === 'global'
-                            ? 'desktop.managed.sourceGlobal'
-                            : 'desktop.managed.sourceProject'
-                        )}
-                        {' · '}
-                        {date(skill.importedAt, {
-                          day: '2-digit',
-                          month: 'short',
-                          year: 'numeric',
-                        })}
-                      </small>
-                    </span>
-                  </button>
-                  <p>
-                    {skill.description || t('desktop.managed.noDescription')}
-                  </p>
-                  <div className="managed-list-packs">
-                    {snapshot.packs
-                      .filter((pack) => pack.skillIds.includes(skill.id))
-                      .map((pack) => (
-                        <Badge key={pack.id} variant="secondary">
-                          {pack.name}
-                        </Badge>
-                      ))}
-                  </div>
-                  <ManagedSymlinkIndicator skill={skill} variant="list" />
-                  <ManagedSkillQuickActions
-                    onDelete={() => setDeletingSkill(skill)}
-                    onDeploy={() => setDeployingSkill(skill)}
-                    onOpenFolder={() => void openManagedSkillFolder(skill.id)}
-                  />
-                </article>
-              ))}
-            </div>
-          )}
-        </div>
+          </>
+        )}
       </section>
 
       {importOpen && snapshot ? (
         <ImportSkillsDialog
           busy={busy}
           candidates={catalog?.skills ?? []}
-          managed={snapshot}
+          pack={selectedPack}
           onImport={(ids) => void importSkills(ids)}
           onOpenChange={setImportOpen}
         />
       ) : null}
+      {deletingPack ? (
+        <Dialog
+          open
+          onOpenChange={(open) => {
+            if (!open && !busy) setDeletingPack(null)
+          }}
+        >
+          <DialogContent closeLabel={t('common.close')}>
+            <DialogHeader>
+              <DialogTitle>
+                {t('desktop.managed.deletePackQuestion', {
+                  name: deletingPack.name,
+                })}
+              </DialogTitle>
+              <DialogDescription>
+                {t('desktop.managed.deletePackDescription')}
+              </DialogDescription>
+            </DialogHeader>
+            <DialogFooter>
+              <Button
+                variant="outline"
+                disabled={busy}
+                onClick={() => setDeletingPack(null)}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                variant="destructive"
+                disabled={busy}
+                onClick={() => void deletePack(deletingPack)}
+              >
+                {t('desktop.managed.delete')}
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
+      ) : null}
       {editingPack && snapshot ? (
         <PackDialog
           busy={busy}
-          managed={snapshot}
           onOpenChange={(open) => {
             if (!open) setEditingPack(null)
           }}
@@ -856,100 +802,6 @@ export default function ManagedSkillsWorkspace({
         </Dialog>
       ) : null}
     </div>
-  )
-}
-
-function ManagedSkillQuickActions({
-  onDelete,
-  onDeploy,
-  onOpenFolder,
-}: {
-  onDelete: () => void
-  onDeploy: () => void
-  onOpenFolder: () => void
-}) {
-  const { t } = useI18n()
-
-  return (
-    <div className="managed-skill-actions">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            aria-label={t('desktop.managed.deploy')}
-            onClick={onDeploy}
-            type="button"
-          >
-            <Rocket />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent>{t('desktop.managed.deploy')}</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            aria-label={t('common.openFolder')}
-            onClick={onOpenFolder}
-            type="button"
-          >
-            <FolderOpen />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent>{t('common.openFolder')}</TooltipContent>
-      </Tooltip>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <button
-            aria-label={t('desktop.managed.delete')}
-            onClick={onDelete}
-            type="button"
-          >
-            <Trash2 />
-          </button>
-        </TooltipTrigger>
-        <TooltipContent>{t('desktop.managed.delete')}</TooltipContent>
-      </Tooltip>
-    </div>
-  )
-}
-
-function ManagedSymlinkIndicator({
-  skill,
-  variant = 'icon',
-}: {
-  skill: ManagedSkill
-  variant?: 'icon' | 'list'
-}) {
-  const { t } = useI18n()
-  const linkCount = skill.deployments.filter(
-    (deployment) => deployment.mode === 'symlink'
-  ).length
-  const label = linkCount
-    ? t('desktop.managed.linkedLocationCount', { count: linkCount })
-    : t('desktop.managed.noLinkedLocations')
-
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <span
-          aria-disabled={!linkCount}
-          aria-label={label}
-          className={cn(
-            'managed-symlink-indicator',
-            linkCount && 'has-links',
-            variant === 'list' && 'is-list'
-          )}
-          role="img"
-        >
-          <Link2 />
-          {linkCount && variant === 'list' ? (
-            <span aria-hidden="true" className="managed-symlink-count">
-              {linkCount}
-            </span>
-          ) : null}
-        </span>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
   )
 }
 
@@ -1327,29 +1179,22 @@ function ManagedSkillInspector({
 function ImportSkillsDialog({
   busy,
   candidates,
-  managed,
+  pack,
   onImport,
   onOpenChange,
 }: {
   busy: boolean
   candidates: InstalledSkill[]
-  managed: ManagedSkillsSnapshot
+  pack?: SkillPack
   onImport: (skillIds: string[]) => void
   onOpenChange: (open: boolean) => void
 }) {
   const { t } = useI18n()
-  const managedSourceIds = useMemo(
-    () => new Set(managed.skills.map((skill) => skill.sourceSkillId)),
-    [managed.skills]
-  )
   const [queryDraft, setQueryDraft] = useState('')
   const [query, setQuery] = useState('')
   const [scope, setScope] = useState<'all' | 'global' | 'project'>('all')
   const [selectedIds, setSelectedIds] = useState<string[]>([])
-  const availableSkills = useMemo(
-    () => candidates.filter((skill) => !managedSourceIds.has(skill.id)),
-    [candidates, managedSourceIds]
-  )
+  const availableSkills = candidates
   const filteredSkills = useMemo(() => {
     const normalizedQuery = query.trim().toLocaleLowerCase()
     return availableSkills.filter((skill) => {
@@ -1390,9 +1235,17 @@ function ImportSkillsDialog({
         onEscapeKeyDown={preserveSearchOnEscape}
       >
         <DialogHeader>
-          <DialogTitle>{t('desktop.managed.importTitle')}</DialogTitle>
+          <DialogTitle>
+            {pack
+              ? t('desktop.managed.importIntoPack', { pack: pack.name })
+              : t('desktop.managed.importTitle')}
+          </DialogTitle>
           <DialogDescription>
-            {t('desktop.managed.importDescription')}
+            {pack
+              ? t('desktop.managed.importIntoPackDescription', {
+                  pack: pack.name,
+                })
+              : t('desktop.managed.importDescription')}
           </DialogDescription>
         </DialogHeader>
         <div className="managed-import-controls">
@@ -1513,13 +1366,11 @@ function ImportSkillsDialog({
 
 function PackDialog({
   busy,
-  managed,
   onOpenChange,
   onSave,
   pack,
 }: {
   busy: boolean
-  managed: ManagedSkillsSnapshot
   onOpenChange: (open: boolean) => void
   onSave: (input: {
     description: string
@@ -1532,16 +1383,6 @@ function PackDialog({
   const { t } = useI18n()
   const [name, setName] = useState(pack?.name ?? '')
   const [description, setDescription] = useState(pack?.description ?? '')
-  const [skillIds, setSkillIds] = useState<string[]>(pack?.skillIds ?? [])
-
-  function toggle(skillId: string) {
-    setSkillIds((current) =>
-      current.includes(skillId)
-        ? current.filter((id) => id !== skillId)
-        : [...current, skillId]
-    )
-  }
-
   return (
     <Dialog onOpenChange={onOpenChange} open>
       <DialogContent className="managed-dialog" closeLabel={t('common.close')}>
@@ -1559,6 +1400,7 @@ function PackDialog({
           <label>
             <span>{t('desktop.managed.packName')}</span>
             <Input
+              disabled={pack?.id === 'default'}
               maxLength={64}
               onChange={(event) => setName(event.target.value)}
               value={name}
@@ -1573,27 +1415,6 @@ function PackDialog({
               value={description}
             />
           </label>
-          <span>{t('desktop.managed.packSkills')}</span>
-          <div className="managed-selection-list is-compact">
-            {managed.skills.map((skill) => (
-              <button
-                aria-pressed={skillIds.includes(skill.id)}
-                className={cn(
-                  'managed-selection-row',
-                  skillIds.includes(skill.id) && 'is-selected'
-                )}
-                key={skill.id}
-                onClick={() => toggle(skill.id)}
-                type="button"
-              >
-                <span>{skillIds.includes(skill.id) ? <Check /> : null}</span>
-                <div>
-                  <strong>{skill.name}</strong>
-                  <small>{skill.description}</small>
-                </div>
-              </button>
-            ))}
-          </div>
         </div>
         <DialogFooter>
           <Button onClick={() => onOpenChange(false)} variant="outline">
@@ -1606,7 +1427,7 @@ function PackDialog({
                 description,
                 ...(pack ? { id: pack.id } : {}),
                 name,
-                skillIds,
+                skillIds: pack?.skillIds ?? [],
               })
             }
           >

@@ -1,7 +1,14 @@
-import type { CSSProperties, ReactNode } from 'react'
+import { useState, type CSSProperties, type ReactNode } from 'react'
 import { useI18n } from '@skill-shelf/i18n/react'
-import { cn } from '@skill-shelf/ui'
+import { Button, cn, PageHeader } from '@skill-shelf/ui'
+import { Download, FolderInput, PencilLine, Search, Trash2 } from 'lucide-react'
 import type { DiscoverySection } from '../../shared/desktop-contract'
+import { FinderToolbar } from './finder-toolbar'
+import {
+  MANAGED_SCOPE_COLLAPSED_STORAGE_KEY,
+  MANAGED_SCOPE_WIDTH_STORAGE_KEY,
+} from './library-scope-layout'
+import { useLibraryScopeResize } from './use-library-scope-resize'
 
 function Block({
   width = '100%',
@@ -124,6 +131,184 @@ export function WorkbenchSkeleton() {
 }
 
 type SkillSkeletonView = 'canvas' | 'list' | 'columns' | 'icons'
+
+export function PacksWorkspaceSkeleton() {
+  const [collapsed] = useState(() => {
+    try {
+      return (
+        window.localStorage.getItem(MANAGED_SCOPE_COLLAPSED_STORAGE_KEY) ===
+        'true'
+      )
+    } catch {
+      return false
+    }
+  })
+  const resize = useLibraryScopeResize(
+    collapsed,
+    MANAGED_SCOPE_WIDTH_STORAGE_KEY
+  )
+  return (
+    <div
+      aria-busy="true"
+      className="library-workspace finder-library-workspace managed-workspace packs-workspace-skeleton"
+      data-scope-collapsed={collapsed}
+      ref={resize.workspaceRef}
+      style={resize.style}
+    >
+      {collapsed ? (
+        <div aria-hidden="true" className="scope-panel-rail" />
+      ) : null}
+      <aside className="library-scope-panel managed-pack-sidebar">
+        <PacksSidebarSkeleton />
+      </aside>
+      <section className="library-pane finder-library-pane managed-content">
+        <PacksContentSkeleton />
+      </section>
+    </div>
+  )
+}
+
+function SkeletonText({ children }: { children: ReactNode }) {
+  return (
+    <span className="packs-skeleton-text">
+      <span>{children}</span>
+      <Block width="80%" />
+    </span>
+  )
+}
+
+export function PacksSidebarSkeleton({
+  collapseControl,
+}: {
+  collapseControl?: ReactNode
+} = {}) {
+  const { t } = useI18n()
+  return (
+    <div
+      aria-hidden={collapseControl ? undefined : true}
+      className="skeleton-layout"
+    >
+      <header className="scope-panel-header">
+        <div className="scope-panel-title">
+          <span aria-hidden="true">
+            <SkeletonText>{t('desktop.managed.packs')}</SkeletonText>
+          </span>
+          {collapseControl ?? <Block width={46} height={21} />}
+        </div>
+        <p aria-hidden="true">
+          <SkeletonText>{t('desktop.managed.sidebarDescription')}</SkeletonText>
+        </p>
+      </header>
+      <section
+        aria-hidden="true"
+        className="scope-projects managed-pack-section"
+      >
+        <header>
+          <div>
+            <Block width={42} />
+            <Block width={14} />
+          </div>
+          <Block width={24} height={24} />
+        </header>
+        <div className="scope-filter-list managed-pack-list">
+          {Array.from({ length: 3 }, (_, index) => (
+            <div className="packs-skeleton-sidebar-row" key={index}>
+              <Block width={24} height={24} />
+              <Copy />
+              <Block width={14} />
+            </div>
+          ))}
+        </div>
+      </section>
+    </div>
+  )
+}
+
+export function PacksContentSkeleton() {
+  const { t } = useI18n()
+  const idle = () => {}
+  return (
+    <LoadingLayout
+      className="packs-content-skeleton"
+      label={t('common.loading')}
+    >
+      <PageHeader
+        className="library-page-header finder-page-header"
+        eyebrow={<SkeletonText>{t('desktop.managed.eyebrow')}</SkeletonText>}
+        title={<SkeletonText>Default</SkeletonText>}
+        description={
+          <SkeletonText>
+            {t('desktop.managed.packWorkspaceDescription')}
+          </SkeletonText>
+        }
+        actions={
+          <div className="packs-skeleton-controls packs-skeleton-actions" inert>
+            <div className="managed-pack-actions">
+              <Button size="xs" variant="ghost" tabIndex={-1}>
+                <Download />
+                {t('desktop.managed.exportPack')}
+              </Button>
+              <Button size="xs" variant="ghost" tabIndex={-1}>
+                <PencilLine />
+                {t('desktop.managed.editPack')}
+              </Button>
+              <Button size="icon-sm" variant="ghost" tabIndex={-1}>
+                <Trash2 />
+              </Button>
+            </div>
+            <Button size="sm" tabIndex={-1}>
+              <FolderInput />
+              {t('desktop.managed.import')}
+            </Button>
+          </div>
+        }
+      />
+      <div className="finder-content managed-finder-content">
+        <div className="pack-finder">
+          <div className="packs-skeleton-controls" inert>
+            <FinderToolbar
+              rootTitle="Default"
+              breadcrumbs={[]}
+              finderNavigation={{ index: 0, entries: [null] }}
+              navigateFinder={idle}
+              openFolder={idle}
+              viewMode="canvas"
+              changeCurrentFinderViewMode={idle}
+              filtering={false}
+              finderUsesGroups={false}
+              finderGroupBy="kind"
+              finderSortBy="none"
+              finderSortDirection="descending"
+              changeCurrentFinderGroup={idle}
+              changeCurrentFinderSort={idle}
+              changeCurrentFinderSortDirection={idle}
+              cleanUpCurrentFolder={idle}
+              openCreateFolder={idle}
+              itemCount={0}
+            />
+          </div>
+          <div className="library-toolbar finder-toolbar managed-toolbar">
+            <div className="search-control">
+              <Block height={36} />
+              <div className="packs-skeleton-controls" inert>
+                <Button size="sm" variant="outline" tabIndex={-1}>
+                  <Search />
+                  {t('common.filter')}
+                </Button>
+              </div>
+            </div>
+            <div className="library-toolbar-meta">
+              <Block width={52} height={22} />
+            </div>
+          </div>
+          <div className="finder-content pack-finder-body">
+            <SkillsSkeleton view="canvas" />
+          </div>
+        </div>
+      </div>
+    </LoadingLayout>
+  )
+}
 
 export function SkillsSkeleton({
   view,
