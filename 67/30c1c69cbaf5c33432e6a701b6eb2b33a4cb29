@@ -1,0 +1,23 @@
+packages/ui/src/toast.tsx
+  s_195416a04c53e0::t_c63ab4e1619258 75-76
+  s_195416a04c53e0::t_ae4af7a6deb33d 69,73-74,82
+desktop/src/renderer/src/styles.css
+  s_195416a04c53e0::t_7375a536a4baaf 83,121,190-193
+  s_195416a04c53e0::t_fd5e7d825d0fb1 194
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "6730c1c69cbaf5c33432e6a701b6eb2b33a4cb29",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
