@@ -1,17 +1,54 @@
 export const messages = {
+  'desktop.sync.cloudTitle': 'Choose cloud data',
+  'desktop.sync.cloudDescription':
+    'Choose which data to download, then decide how to apply it to your local organization.',
+  'desktop.sync.chooseSnapshot': 'Which data to download',
+  'desktop.sync.sharedSnapshot': 'Latest cloud data',
+  'desktop.sync.sharedSnapshotDescription':
+    'Contains organization uploaded from all computers. Choose how to apply it locally below.',
+  'desktop.sync.historySource': '{date} · {name}',
+  'desktop.sync.selectedCloudSource': 'Downloading from: {source}',
+  'desktop.sync.uploadHistory': 'Upload history ({count})',
+  'desktop.sync.uploadHistoryDescription':
+    'One backup per upload, newest first.',
+  'desktop.sync.uploadHistoryEmpty':
+    'No historical backups yet. Your next upload will save one automatically.',
+  'desktop.sync.deviceSnapshot': '{name} backup',
+  'desktop.sync.snapshotCounts': '{skills} Skills, {packs} Packs',
+  'desktop.sync.lastUploadFrom': 'Uploaded from {name}',
+  'desktop.sync.unknownSource': 'Older version / unknown computer',
+  'desktop.sync.cloudEmpty': 'No cloud data yet. Upload from a computer first.',
+  'desktop.sync.importStrategy': 'How to apply it to local organization',
+  'desktop.sync.mergeStrategy': 'Merge with local data (recommended)',
+  'desktop.sync.replaceStrategy': 'Use the downloaded values',
+  'desktop.sync.mergeStrategyDescription':
+    'Combine tags and keep local-only entries. Choose how to resolve differing descriptions and folders in the next step.',
+  'desktop.sync.replaceStrategyDescription':
+    'Replace organization on matching Skills and same-name Packs, including empty values. Other entries remain. Local data is backed up first.',
+  'desktop.sync.previewChanges': 'Next: Preview changes',
+  'desktop.sync.replacePreview': 'Replacement preview',
+  'desktop.sync.confirmReplace': 'Confirm replacement',
+  'desktop.sync.replaced':
+    'Matching management data replaced. Previous metadata was backed up locally.',
+  'desktop.sync.backupFailed':
+    'Shared data uploaded, but the computer backup could not be saved. Upload again to retry the backup.',
+  'desktop.sync.error.backupIndex':
+    'Could not read the cloud backup list. Check the server and try again.',
+  'desktop.sync.error.snapshotUnavailable':
+    'This backup has changed or was removed. Reopen the cloud list to choose again.',
   'desktop.sync.title': 'Sync',
   'desktop.sync.description':
     'Bring your Skill organization to another computer.',
   'desktop.sync.scopeTitle': 'Sync organization and app preferences',
   'desktop.sync.scopeDescription':
-    'Includes Packs, folder hierarchy, tags, canvas positions, custom descriptions and translations, with optional app and AI configuration. AI API keys use the encryption password below. Skill files, installations, local paths and WebDAV credentials stay on each computer.',
-  'desktop.sync.encryptionTitle': 'AI configuration sync',
-  'desktop.sync.encryptionPassword': 'AI configuration encryption password',
-  'desktop.sync.encryptionHint':
-    'Choose a password of at least 8 characters to encrypt AI API keys when exporting or uploading. Enter the same password on the other computer when importing or pulling. It is separate from your WebDAV login and is kept only while this page is open.',
-  'desktop.sync.encryptionPlaceholder': 'Set or enter at least 8 characters',
+    'Uploads include Packs, folder hierarchy, tags, canvas positions, custom descriptions, translations, app preferences and AI configuration. AI API keys are included as plain text. Skill files, installations, local paths and WebDAV credentials stay on each computer.',
+  'desktop.sync.legacyPasswordTitle': 'Read an older encrypted backup',
+  'desktop.sync.legacyPasswordDescription':
+    'This backup was encrypted by an earlier version. Enter its original password to read it. New uploads and exports do not use encryption passwords.',
+  'desktop.sync.legacyPassword': 'Old encryption password',
+  'desktop.sync.legacyPasswordPlaceholder': 'The password used for this backup',
+  'desktop.sync.legacyPasswordContinue': 'Read backup',
   'desktop.sync.importAiConfiguration': 'Also import AI configuration',
-  'desktop.sync.uploadAiConfiguration': 'Also upload AI configuration',
   'desktop.sync.aiConfigurationDescription':
     'Includes API keys, connection enabled states, models, default translation language and context preferences. Import replaces the corresponding local provider configuration. Connection checks run separately on each computer.',
   'desktop.sync.aiConnectionSummary': '{provider}: {key}, {state}.',
@@ -20,9 +57,9 @@ export const messages = {
   'desktop.sync.aiConnectionEnabled': 'enabled',
   'desktop.sync.aiConnectionDisabled': 'disabled',
   'desktop.sync.error.encryptionPassword':
-    'Enter an AI configuration encryption password of at least 8 characters. Choose your own password when exporting; use the same password when importing.',
+    'Enter the original password for this encrypted backup (at least 8 characters).',
   'desktop.sync.error.decryption':
-    'Could not decrypt the AI configuration. Check your sync password; the file may also be damaged.',
+    'Could not read the encrypted backup. Check its original password; the file may also be damaged.',
   'desktop.sync.matchingDescription':
     'Matches by source and Skill name; local Skills use content fingerprints. Project Skills also match the project name. Missing or ambiguous Skills are skipped.',
   'desktop.sync.files': 'Export / import',
@@ -34,10 +71,10 @@ export const messages = {
   'desktop.sync.exported': 'Management data exported.',
   'desktop.sync.webdavTitle': 'Use your WebDAV storage',
   'desktop.sync.webdavDescription':
-    'Manually upload or pull a shared snapshot. Uploads preserve cloud-only Skills; changes are previewed before you confirm.',
-  'desktop.sync.url': 'WebDAV folder URL',
+    'One click uploads all data and saves an original backup for this computer. Conflicting fields use local values; cloud-only entries are retained. Choose a source when pulling, then preview a merge or replacement before confirming.',
+  'desktop.sync.url': 'WebDAV service URL',
   'desktop.sync.urlHint':
-    'Use an existing HTTPS folder. Both computers should use the same folder.',
+    'Use the same service URL and account on both computers. The app creates a SkillShelf sync folder automatically. For Nutstore, use https://dav.jianguoyun.com/dav/ and an app password.',
   'desktop.sync.username': 'Username',
   'desktop.sync.password': 'Password / app password',
   'desktop.sync.passwordSaved': 'Keep the current password',
@@ -55,22 +92,16 @@ export const messages = {
   'desktop.sync.saveFirst': 'Save your connection changes first.',
   'desktop.sync.connected': 'WebDAV connection succeeded.',
   'desktop.sync.importPreview': 'Import preview',
-  'desktop.sync.uploadPreview': 'Upload preview',
   'desktop.sync.importPreviewDescription':
     'Matching Skills receive merged tags and metadata. Other local Skills stay as they are. Nothing changes until you confirm.',
-  'desktop.sync.uploadPreviewDescription':
-    'Matching entries are merged; cloud-only entries are retained. This upload does not change local management data.',
   'desktop.sync.snapshotDate': 'Snapshot from {date}',
   'desktop.sync.matched': 'Matched Skills',
   'desktop.sync.changed': 'Skills with changes',
   'desktop.sync.skipped': 'Skipped Skills',
-  'desktop.sync.uploadNew': 'Local-only Skills',
-  'desktop.sync.retained': 'Cloud entries retained',
   'desktop.sync.conflicts': 'Field conflicts',
   'desktop.sync.staleTranslations':
     '{count} translations were skipped because the original description differs from this computer.',
   'desktop.sync.skippedDetails': 'Show skipped entries',
-  'desktop.sync.retainedDetails': 'Show retained cloud entries',
   'desktop.sync.skip.not-found': 'Not found on this computer',
   'desktop.sync.skip.ambiguous': 'Multiple entries share the same identity',
   'desktop.sync.skip.no-identity': 'No reliable identity available',
@@ -85,11 +116,9 @@ export const messages = {
   'desktop.sync.keepLocal': 'Keep local value',
   'desktop.sync.useIncoming': 'Use incoming value',
   'desktop.sync.importPreferences': 'Also import app preferences',
-  'desktop.sync.uploadPreferences': 'Also upload app preferences',
   'desktop.sync.preferencesDescription':
     'Language, theme, list density, default view and Agent preferences. Machine paths and login settings are excluded.',
   'desktop.sync.importAiPreferences': 'Also import AI preferences',
-  'desktop.sync.uploadAiPreferences': 'Also upload AI preferences',
   'desktop.sync.aiPreferencesDescription':
     'Default translation language, default models, model lists and context preferences. Local API keys and connection enabled states are preserved.',
   'desktop.sync.aiDefaults':
@@ -98,12 +127,9 @@ export const messages = {
     '{count} Packs, {changed} with changes, matching {matched} local managed Skill members.',
   'desktop.sync.packMembersSkipped':
     '{count} Pack members were not matched locally. Show details',
-  'desktop.sync.packMembersRetained':
-    '{count} cloud Pack members were not matched locally and will be retained on upload. Show details',
   'desktop.sync.noMatches':
     'No matching Skills were found. Packs and selected preferences can still be merged.',
   'desktop.sync.confirmImport': 'Confirm merge',
-  'desktop.sync.confirmUpload': 'Confirm upload',
   'desktop.sync.imported':
     'Management data merged. A backup of the previous metadata was saved locally.',
   'desktop.sync.uploaded':
@@ -125,13 +151,19 @@ export const messages = {
   'desktop.sync.error.credentials':
     'Could not read or save the local WebDAV connection.',
   'desktop.sync.error.url':
-    'Enter a valid HTTPS WebDAV folder URL without credentials or query parameters.',
+    'Enter a valid HTTPS WebDAV service URL without credentials or query parameters.',
   'desktop.sync.error.auth':
     'WebDAV denied access. Check your username, password and folder permissions.',
   'desktop.sync.error.remoteChanged':
-    'The cloud file changed after your preview. Cancel and preview again.',
+    'Cloud data changed during upload. Upload again to merge the latest data.',
+  'desktop.sync.error.uploadOutdated':
+    'Local data changed during upload. Upload again to use the latest data.',
   'desktop.sync.error.folder':
-    'The WebDAV folder does not exist. Create it on your server and save its URL.',
+    'Cannot access the WebDAV sync folder. Check the service URL and account permissions. For Nutstore, use https://dav.jianguoyun.com/dav/.',
+  'desktop.sync.error.folderPermission':
+    'WebDAV denied permission to create the sync folder. Check that this account can create folders there.',
+  'desktop.sync.error.folderCreation':
+    'Could not automatically create the WebDAV sync folder. Check the address and whether the server allows folder creation.',
   'desktop.sync.error.etag':
     'This WebDAV server cannot protect uploads from concurrent changes. Use file export / import instead.',
   'desktop.sync.error.noData':

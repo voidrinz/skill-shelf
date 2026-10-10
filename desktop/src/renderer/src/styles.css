@@ -78,16 +78,14 @@
   --ss-overlay: #fff;
   --ss-muted: #f4f4f6;
   --ss-interactive: #eeeef1;
-  --ss-form-surface: #f7f7f9;
+  --ss-form-surface: #fff;
   --ss-field-surface: #fff;
   --ss-placeholder: #8a8a94;
-  --ss-control-border: #8c8c98;
-  --ss-control-border-hover: #666674;
-  --ss-segment-track: #e9e9ef;
-  --ss-segment-border: #d0d0d9;
+  --ss-control-border: #dcdce3;
+  --ss-control-border-hover: #b6b6c1;
+  --ss-segment-track: #efeff3;
   --ss-segment-selected: #fff;
-  --ss-segment-selected-border: #858592;
-  --ss-control-shadow: 0 1px 2px rgb(24 24 27 / 8%);
+  --ss-segment-selected-shadow: 0 1px 2px rgb(24 24 27 / 7%);
   --foreground: #27272a;
   --card-foreground: #27272a;
   --popover-foreground: #27272a;
@@ -119,13 +117,11 @@
   --ss-form-surface: #242427;
   --ss-field-surface: #19191d;
   --ss-placeholder: #80808d;
-  --ss-control-border: #6d6d7a;
-  --ss-control-border-hover: #9696a3;
+  --ss-control-border: #41414a;
+  --ss-control-border-hover: #60606c;
   --ss-segment-track: #1c1c20;
-  --ss-segment-border: #4b4b55;
-  --ss-segment-selected: #45454f;
-  --ss-segment-selected-border: #9999a6;
-  --ss-control-shadow: 0 1px 3px rgb(0 0 0 / 24%);
+  --ss-segment-selected: #3d3d46;
+  --ss-segment-selected-shadow: 0 1px 2px rgb(0 0 0 / 18%);
   --foreground: #e4e4e7;
   --card-foreground: #e4e4e7;
   --popover-foreground: #f4f4f5;
@@ -236,12 +232,12 @@ textarea {
   border-radius: var(--ss-radius-control);
 }
 
-/* Keep form controls distinct from their containers, including portaled dialogs. */
+/* Use quiet field boundaries; focus and validation carry the stronger emphasis. */
 :is([data-slot='input'], [data-slot='select-trigger'], [data-slot='textarea']) {
   border-color: var(--ss-control-border);
   border-radius: var(--ss-radius-control);
   background: var(--ss-field-surface);
-  box-shadow: var(--ss-control-shadow);
+  box-shadow: none;
 }
 :is(
     [data-slot='input'],
@@ -7828,10 +7824,10 @@ html[data-density='compact'] .finder-list-view[data-view='columns'] {
 }
 .theme-setting[role='radiogroup'],
 .setting-row [role='tablist'] {
-  border: 1px solid var(--ss-segment-border);
+  border: 0;
   border-radius: var(--ss-radius-control);
   background: var(--ss-segment-track);
-  padding: 3px;
+  padding: 4px;
 }
 .theme-setting [role='radio'],
 .setting-row [role='tab'] {
@@ -7848,10 +7844,9 @@ html[data-density='compact'] .finder-list-view[data-view='columns'] {
 }
 .theme-setting [role='radio'][aria-checked='true'],
 .setting-row [role='tab'][data-state='active'] {
-  border-color: var(--ss-segment-selected-border);
   color: var(--foreground);
   background: var(--ss-segment-selected);
-  box-shadow: var(--ss-control-shadow);
+  box-shadow: var(--ss-segment-selected-shadow);
   font-weight: 650;
 }
 .theme-setting [role='radio']:focus-visible,
@@ -10049,11 +10044,13 @@ html[data-density='compact']
   gap: 14px;
   margin-top: 18px;
 }
-.sync-encryption-row {
-  flex-wrap: wrap;
+.sync-legacy-password-form {
+  display: grid;
+  gap: 12px;
 }
-.sync-encryption-row > div:first-child {
-  flex-basis: 280px;
+.sync-legacy-password-form > label {
+  font-size: 0.75rem;
+  font-weight: 550;
 }
 .sync-webdav-form > label {
   display: grid;
@@ -10101,6 +10098,165 @@ html[data-density='compact']
   margin: 0;
   color: var(--muted-foreground);
   font-size: 0.72rem;
+}
+.sync-preview-source {
+  margin: 0 0 -8px;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.sync-cloud-list,
+.sync-import-strategy {
+  min-width: 0;
+  margin: 0;
+  border: 0;
+  padding: 0;
+}
+.sync-cloud-dialog .sync-preview-scroll {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+.sync-cloud-list {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+}
+.sync-cloud-list > .sync-cloud-item {
+  flex-shrink: 0;
+}
+.sync-cloud-source-heading {
+  flex-shrink: 0;
+  margin: 0 0 8px;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.sync-cloud-list-scroll {
+  min-height: 0;
+  max-height: min(260px, 32vh);
+  overflow-y: auto;
+}
+.sync-cloud-history {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  margin-top: 12px;
+}
+.sync-cloud-history h4 {
+  flex-shrink: 0;
+  margin: 0;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.sync-cloud-history > p {
+  flex-shrink: 0;
+  margin: 3px 0 6px;
+  color: var(--muted-foreground);
+  font-size: 0.71rem;
+  line-height: 1.5;
+}
+.sync-cloud-item {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border-radius: var(--ss-radius-control);
+  padding: 8px 10px;
+  cursor: pointer;
+}
+.sync-cloud-item + .sync-cloud-item {
+  margin-top: 2px;
+}
+.sync-cloud-item[data-selected='true'] {
+  background: var(--ss-muted);
+}
+.sync-cloud-item:hover {
+  background: var(--ss-interactive);
+}
+.sync-cloud-item > svg {
+  width: 17px;
+  height: 17px;
+  flex-shrink: 0;
+  color: var(--muted-foreground);
+}
+.sync-cloud-item > span {
+  flex: 1;
+  min-width: 0;
+}
+.sync-cloud-item-heading {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+}
+.sync-cloud-item-heading strong {
+  min-width: 0;
+  line-height: 1.5;
+}
+.sync-cloud-item small.sync-cloud-item-counts {
+  flex-shrink: 0;
+  margin: 0;
+  white-space: nowrap;
+}
+.sync-cloud-item small.sync-cloud-item-detail {
+  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.sync-cloud-item strong,
+.sync-import-strategy strong {
+  display: block;
+  font-size: 0.78rem;
+  overflow-wrap: anywhere;
+}
+.sync-cloud-item small,
+.sync-import-strategy small {
+  display: block;
+  margin-top: 3px;
+  color: var(--muted-foreground);
+  font-size: 0.71rem;
+  line-height: 1.5;
+}
+.sync-cloud-dialog input[type='radio'] {
+  width: 15px;
+  height: 15px;
+  flex-shrink: 0;
+  accent-color: var(--primary);
+}
+.sync-cloud-dialog input[type='radio']:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+.sync-import-strategy {
+  flex-shrink: 0;
+  margin-top: 2px;
+  padding-top: 14px;
+  border-top: 1px solid var(--settings-border);
+}
+.sync-import-strategy legend {
+  float: left;
+  width: 100%;
+  margin-bottom: 4px;
+  font-size: 0.76rem;
+  font-weight: 600;
+}
+.sync-import-source {
+  clear: both;
+  margin: 0 0 4px;
+  color: var(--muted-foreground);
+  font-size: 0.71rem;
+  line-height: 1.5;
+  overflow-wrap: anywhere;
+}
+.sync-import-strategy label {
+  display: flex;
+  clear: both;
+  align-items: flex-start;
+  gap: 10px;
+  padding-block: 7px;
+  cursor: pointer;
 }
 .sync-preview-stats {
   display: grid;

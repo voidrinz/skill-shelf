@@ -25,9 +25,11 @@ import type {
   SyncConflict,
   SyncPreview,
   WebDavStatus,
+  SyncCloudSnapshot,
 } from '../../shared/sync-contract'
 import { aiProviderRegistry } from '../../shared/desktop-contract'
 import { AI_LANGUAGE_OPTIONS } from './ai-language-options'
+import { SyncCloudBrowser } from './sync-cloud-browser'
 
 type SyncResult = SyncApplyResult
 const emptyWebDav: WebDavStatus = {
@@ -51,8 +53,15 @@ export function SyncSettings({
   const [busy, setBusy] = useState<string | null>(null)
   const [connectionUnavailable, setConnectionUnavailable] = useState(false)
   const [passwordInvalid, setPasswordInvalid] = useState(false)
+  const [legacyOperation, setLegacyOperation] = useState<{
+    action: string
+    operation: (password?: string) => Promise<void>
+  } | null>(null)
   const syncPasswordRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<SyncPreview | null>(null)
+  const [cloudSnapshots, setCloudSnapshots] = useState<
+    SyncCloudSnapshot[] | null
+  >(null)
   const [resolutions, setResolutions] = useState<
     Record<string, 'local' | 'incoming'>
   >({})
@@ -82,12 +91,20 @@ export function SyncSettings({
     setPassword('')
   }
 
-  async function run(action: string, operation: () => Promise<void>) {
+  async function run(
+    action: string,
+    operation: (password?: string) => Promise<void>,
+    legacyPassword?: string
+  ) {
     if (busy) return
     setBusy(action)
     setPasswordInvalid(false)
     try {
-      await operation()
+      await operation(legacyPassword)
+      if (mounted.current) {
+        setLegacyOperation(null)
+        setSyncPassword('')
+      }
     } catch (caught) {
       if (mounted.current) {
         if (action === 'load') {
@@ -95,11 +112,17 @@ export function SyncSettings({
           toast.error(t('desktop.sync.error.loadConnection'), {
             duration: 6000,
           })
-        } else {
-          toast.error(syncError(caught, t), { duration: 6000 })
-          if (isSyncPasswordError(caught)) {
+        } else if (isSyncPasswordError(caught)) {
+          setLegacyOperation({ action, operation })
+          if (
+            legacyPassword ||
+            String(caught).includes('Sync decryption failed')
+          ) {
             setPasswordInvalid(true)
+            toast.error(syncError(caught, t), { duration: 6000 })
           }
+        } else {
+          toast.error(syncError(caught, t, action), { duration: 6000 })
         }
       }
     } finally {
@@ -110,6 +133,13 @@ export function SyncSettings({
   useEffect(() => {
     if (passwordInvalid && !busy) syncPasswordRef.current?.focus()
   }, [passwordInvalid, busy])
+
+  async function closeLegacyPassword() {
+    if (busy) return
+    await run('cancel-import', async () => {
+      await window.skillShelf.cancelSyncImport()
+    })
+  }
 
   useEffect(() => {
     mounted.current = true
@@ -136,6 +166,7 @@ export function SyncSettings({
     return () => {
       active = false
       mounted.current = false
+      void window.skillShelf.cancelSyncImport().catch(() => {})
       if (previewRef.current)
         void window.skillShelf
           .discardSyncPreview(previewRef.current.id)
@@ -151,7 +182,7 @@ export function SyncSettings({
     }
     setPreview(next)
     setResolutions({})
-    setIncludePreferences(false)
+    setIncludePreferences(true)
     setIncludeAiPreferences(Boolean(next.aiPreferences))
   }
 
@@ -178,12 +209,8 @@ export function SyncSettings({
   )
   const aiLanguageName = aiLanguageOption ? t(aiLanguageOption.key) : aiLanguage
   const aiSettingsLabel = preview?.aiConnections?.length
-    ? preview.mode === 'upload'
-      ? 'desktop.sync.uploadAiConfiguration'
-      : 'desktop.sync.importAiConfiguration'
-    : preview?.mode === 'upload'
-      ? 'desktop.sync.uploadAiPreferences'
-      : 'desktop.sync.importAiPreferences'
+    ? 'desktop.sync.importAiConfiguration'
+    : 'desktop.sync.importAiPreferences'
 
   return (
     <div className="settings-page sync-settings">
@@ -199,38 +226,6 @@ export function SyncSettings({
         <p>{t('desktop.sync.matchingDescription')}</p>
       </div>
       <section className="settings-section">
-        <h3>{t('desktop.sync.encryptionTitle')}</h3>
-        <div className="setting-rows">
-          <div className="setting-row sync-encryption-row">
-            <div>
-              <label htmlFor="sync-encryption-password">
-                <strong>{t('desktop.sync.encryptionPassword')}</strong>
-              </label>
-              <small id="sync-encryption-hint">
-                {t('desktop.sync.encryptionHint')}
-              </small>
-            </div>
-            <Input
-              ref={syncPasswordRef}
-              id="sync-encryption-password"
-              aria-describedby="sync-encryption-hint"
-              aria-invalid={passwordInvalid || undefined}
-              placeholder={t('desktop.sync.encryptionPlaceholder')}
-              className="setting-input"
-              type="password"
-              value={syncPassword}
-              disabled={Boolean(busy)}
-              maxLength={1024}
-              onChange={(event) => {
-                setSyncPassword(event.target.value)
-                setPasswordInvalid(false)
-              }}
-              autoComplete="off"
-            />
-          </div>
-        </div>
-      </section>
-      <section className="settings-section">
         <h3>{t('desktop.sync.files')}</h3>
         <div className="setting-rows sync-method">
           <FileJson aria-hidden="true" />
@@ -245,11 +240,7 @@ export function SyncSettings({
               variant="outline"
               onClick={() =>
                 void run('export', async () => {
-                  if (
-                    await window.skillShelf.exportSyncData(
-                      syncPassword || undefined
-                    )
-                  )
+                  if (await window.skillShelf.exportSyncData())
                     toast.success(t('desktop.sync.exported'))
                 })
               }
@@ -261,10 +252,11 @@ export function SyncSettings({
               size="sm"
               variant="outline"
               onClick={() =>
-                void run('import', async () =>
+                void run('import', async (legacyPassword) =>
                   showPreview(
                     await window.skillShelf.importSyncData(
-                      syncPassword || undefined
+                      legacyPassword,
+                      Boolean(legacyPassword)
                     )
                   )
                 )
@@ -307,7 +299,7 @@ export function SyncSettings({
                 value={url}
                 disabled={Boolean(busy)}
                 onChange={(event) => setUrl(event.target.value)}
-                placeholder="https://dav.example.com/SkillShelf/"
+                placeholder="https://dav.jianguoyun.com/dav/"
                 autoComplete="off"
                 spellCheck={false}
               />
@@ -391,13 +383,16 @@ export function SyncSettings({
               size="sm"
               variant="outline"
               onClick={() =>
-                void run('push', async () =>
-                  showPreview(
-                    await window.skillShelf.pushWebDavSync(
-                      syncPassword || undefined
-                    )
-                  )
-                )
+                void run('push', async (legacyPassword) => {
+                  const result =
+                    await window.skillShelf.pushWebDavSync(legacyPassword)
+                  onApplied(result)
+                  if (result.cloudBackupSaved === false)
+                    toast.warning(t('desktop.sync.backupFailed'), {
+                      duration: 7000,
+                    })
+                  else toast.success(t('desktop.sync.uploaded'))
+                })
               }
             >
               {label('push', t('desktop.sync.push'), <ArrowUpFromLine />)}
@@ -407,13 +402,11 @@ export function SyncSettings({
               size="sm"
               variant="outline"
               onClick={() =>
-                void run('pull', async () =>
-                  showPreview(
-                    await window.skillShelf.pullWebDavSync(
-                      syncPassword || undefined
-                    )
+                void run('pull', async () => {
+                  setCloudSnapshots(
+                    await window.skillShelf.listWebDavSnapshots()
                   )
-                )
+                })
               }
             >
               {label('pull', t('desktop.sync.pull'), <ArrowDownToLine />)}
@@ -422,8 +415,106 @@ export function SyncSettings({
           </div>
         </div>
       </section>
+      {cloudSnapshots ? (
+        <SyncCloudBrowser
+          open={!legacyOperation}
+          snapshots={cloudSnapshots}
+          busy={Boolean(busy)}
+          onClose={() => setCloudSnapshots(null)}
+          onPreview={(snapshotId, strategy) =>
+            void run('cloud-preview', async (legacyPassword) => {
+              const next = await window.skillShelf.previewWebDavSnapshot({
+                snapshotId,
+                strategy,
+                password: legacyPassword,
+              })
+              setCloudSnapshots(null)
+              await showPreview(next)
+            })
+          }
+        />
+      ) : null}
       <Dialog
-        open={Boolean(preview)}
+        open={Boolean(legacyOperation)}
+        onOpenChange={(open) => {
+          if (!open) void closeLegacyPassword()
+        }}
+      >
+        <DialogContent
+          closeLabel={t('common.close')}
+          onEscapeKeyDown={(event) => {
+            if (busy) event.preventDefault()
+          }}
+          onInteractOutside={(event) => {
+            if (
+              busy ||
+              (event.target instanceof Element &&
+                event.target.closest('[data-slot="toaster"]'))
+            )
+              event.preventDefault()
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle>{t('desktop.sync.legacyPasswordTitle')}</DialogTitle>
+            <DialogDescription>
+              {t('desktop.sync.legacyPasswordDescription')}
+            </DialogDescription>
+          </DialogHeader>
+          <form
+            className="sync-legacy-password-form"
+            onSubmit={(event) => {
+              event.preventDefault()
+              if (legacyOperation && syncPassword.length >= 8)
+                void run(
+                  legacyOperation.action,
+                  legacyOperation.operation,
+                  syncPassword
+                )
+            }}
+          >
+            <label htmlFor="sync-legacy-password">
+              {t('desktop.sync.legacyPassword')}
+            </label>
+            <Input
+              ref={syncPasswordRef}
+              id="sync-legacy-password"
+              type="password"
+              value={syncPassword}
+              maxLength={1024}
+              autoComplete="off"
+              aria-invalid={passwordInvalid || undefined}
+              disabled={Boolean(busy)}
+              placeholder={t('desktop.sync.legacyPasswordPlaceholder')}
+              onChange={(event) => {
+                setSyncPassword(event.target.value)
+                setPasswordInvalid(false)
+              }}
+            />
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="ghost"
+                disabled={Boolean(busy)}
+                onClick={() => void closeLegacyPassword()}
+              >
+                {t('common.cancel')}
+              </Button>
+              <Button
+                type="submit"
+                disabled={Boolean(busy) || syncPassword.length < 8}
+              >
+                {label(
+                  legacyOperation?.action ?? '',
+                  t('desktop.sync.legacyPasswordContinue'),
+                  null
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
+      <Dialog
+        open={Boolean(preview) && !legacyOperation}
         onOpenChange={(open) => {
           if (!open) void closePreview()
         }}
@@ -442,15 +533,15 @@ export function SyncSettings({
           <DialogHeader>
             <DialogTitle>
               {t(
-                preview?.mode === 'upload'
-                  ? 'desktop.sync.uploadPreview'
+                preview?.strategy === 'replace'
+                  ? 'desktop.sync.replacePreview'
                   : 'desktop.sync.importPreview'
               )}
             </DialogTitle>
             <DialogDescription>
               {t(
-                preview?.mode === 'upload'
-                  ? 'desktop.sync.uploadPreviewDescription'
+                preview?.strategy === 'replace'
+                  ? 'desktop.sync.replaceStrategyDescription'
                   : 'desktop.sync.importPreviewDescription'
               )}
             </DialogDescription>
@@ -458,6 +549,26 @@ export function SyncSettings({
           {preview ? (
             <>
               <div className="sync-preview-scroll">
+                {preview.snapshotKind ? (
+                  <strong className="sync-preview-source">
+                    {preview.snapshotKind === 'shared'
+                      ? t('desktop.sync.sharedSnapshot')
+                      : t('desktop.sync.deviceSnapshot', {
+                          name:
+                            preview.source?.deviceName ??
+                            t('desktop.sync.unknownSource'),
+                        })}
+                  </strong>
+                ) : null}
+                {preview.snapshotKind !== 'device' ? (
+                  <p className="sync-preview-source">
+                    {t('desktop.sync.lastUploadFrom', {
+                      name:
+                        preview.source?.deviceName ??
+                        t('desktop.sync.unknownSource'),
+                    })}
+                  </p>
+                ) : null}
                 <p className="sync-preview-date">
                   {t('desktop.sync.snapshotDate', {
                     date: date(preview.exportedAt, {
@@ -472,24 +583,12 @@ export function SyncSettings({
                     {t('desktop.sync.matched')}
                   </span>
                   <span>
-                    <strong>
-                      {preview.mode === 'upload'
-                        ? preview.localOnly
-                        : preview.changed}
-                    </strong>
-                    {t(
-                      preview.mode === 'upload'
-                        ? 'desktop.sync.uploadNew'
-                        : 'desktop.sync.changed'
-                    )}
+                    <strong>{preview.changed}</strong>
+                    {t('desktop.sync.changed')}
                   </span>
                   <span>
                     <strong>{preview.skipped}</strong>
-                    {t(
-                      preview.mode === 'upload'
-                        ? 'desktop.sync.retained'
-                        : 'desktop.sync.skipped'
-                    )}
+                    {t('desktop.sync.skipped')}
                   </span>
                   <span>
                     <strong>{preview.conflicts.length}</strong>
@@ -508,12 +607,9 @@ export function SyncSettings({
                 {preview.packs?.skippedMembers.length ? (
                   <details className="sync-skipped-list">
                     <summary>
-                      {t(
-                        preview.mode === 'upload'
-                          ? 'desktop.sync.packMembersRetained'
-                          : 'desktop.sync.packMembersSkipped',
-                        { count: preview.packs.skippedMembers.length }
-                      )}
+                      {t('desktop.sync.packMembersSkipped', {
+                        count: preview.packs.skippedMembers.length,
+                      })}
                     </summary>
                     <ul>
                       {preview.packs.skippedMembers.map((member, index) => (
@@ -536,13 +632,7 @@ export function SyncSettings({
                 ) : null}
                 {preview.skippedSkills.length ? (
                   <details className="sync-skipped-list">
-                    <summary>
-                      {t(
-                        preview.mode === 'upload'
-                          ? 'desktop.sync.retainedDetails'
-                          : 'desktop.sync.skippedDetails'
-                      )}
-                    </summary>
+                    <summary>{t('desktop.sync.skippedDetails')}</summary>
                     <ul>
                       {preview.skippedSkills.map((skill, index) => (
                         <li key={index}>
@@ -643,23 +733,13 @@ export function SyncSettings({
                 ) : null}
                 <label className="sync-preferences">
                   <Switch
-                    aria-label={t(
-                      preview.mode === 'upload'
-                        ? 'desktop.sync.uploadPreferences'
-                        : 'desktop.sync.importPreferences'
-                    )}
+                    aria-label={t('desktop.sync.importPreferences')}
                     checked={includePreferences}
                     disabled={Boolean(busy)}
                     onCheckedChange={setIncludePreferences}
                   />
                   <div>
-                    <strong>
-                      {t(
-                        preview.mode === 'upload'
-                          ? 'desktop.sync.uploadPreferences'
-                          : 'desktop.sync.importPreferences'
-                      )}
-                    </strong>
+                    <strong>{t('desktop.sync.importPreferences')}</strong>
                     <p>{t('desktop.sync.preferencesDescription')}</p>
                   </div>
                 </label>
@@ -712,7 +792,7 @@ export function SyncSettings({
                     </div>
                   </label>
                 ) : null}
-                {preview.mode === 'import' && !preview.matched ? (
+                {!preview.matched ? (
                   <p className="sync-warning">{t('desktop.sync.noMatches')}</p>
                 ) : null}
               </div>
@@ -728,8 +808,7 @@ export function SyncSettings({
                   disabled={
                     Boolean(busy) ||
                     unresolved > 0 ||
-                    (preview.mode === 'import' &&
-                      preview.changed === 0 &&
+                    (preview.changed === 0 &&
                       !preview.packs?.changed &&
                       !includePreferences &&
                       !includeAiPreferences)
@@ -746,8 +825,8 @@ export function SyncSettings({
                       setPreview(null)
                       toast.success(
                         t(
-                          preview.mode === 'upload'
-                            ? 'desktop.sync.uploaded'
+                          preview.strategy === 'replace'
+                            ? 'desktop.sync.replaced'
                             : 'desktop.sync.imported'
                         )
                       )
@@ -757,8 +836,8 @@ export function SyncSettings({
                   {label(
                     'apply',
                     t(
-                      preview.mode === 'upload'
-                        ? 'desktop.sync.confirmUpload'
+                      preview.strategy === 'replace'
+                        ? 'desktop.sync.confirmReplace'
                         : 'desktop.sync.confirmImport'
                     ),
                     null
@@ -798,8 +877,12 @@ function fieldLabel(conflict: SyncConflict, t: Translate) {
         : 'desktop.sync.fieldTags'
   )
 }
-function syncError(error: unknown, t: Translate) {
+function syncError(error: unknown, t: Translate, action?: string) {
   const message = error instanceof Error ? error.message : String(error)
+  if (message.includes('backup index'))
+    return t('desktop.sync.error.backupIndex')
+  if (message.includes('snapshot unavailable'))
+    return t('desktop.sync.error.snapshotUnavailable')
   if (message.includes('Sync decryption failed'))
     return t('desktop.sync.error.decryption')
   if (
@@ -812,7 +895,11 @@ function syncError(error: unknown, t: Translate) {
   if (message.includes('Invalid sync document'))
     return t('desktop.sync.error.document')
   if (message.includes('preview is outdated'))
-    return t('desktop.sync.error.outdated')
+    return t(
+      action === 'push'
+        ? 'desktop.sync.error.uploadOutdated'
+        : 'desktop.sync.error.outdated'
+    )
   if (message.includes('conflicts need')) return t('desktop.sync.error.choices')
   if (message.includes('ambiguous Skills'))
     return t('desktop.sync.error.ambiguous')
@@ -822,8 +909,14 @@ function syncError(error: unknown, t: Translate) {
     return t('desktop.sync.error.credentials')
   if (message.includes('Invalid sync WebDAV URL'))
     return t('desktop.sync.error.url')
-  if (message.includes('HTTP 401') || message.includes('HTTP 403'))
-    return t('desktop.sync.error.auth')
+  if (message.includes('HTTP 401')) return t('desktop.sync.error.auth')
+  if (message.includes('Sync WebDAV folder creation HTTP 403'))
+    return t('desktop.sync.error.folderPermission')
+  if (message.includes('Sync WebDAV folder creation'))
+    return t('desktop.sync.error.folderCreation')
+  if (message.includes('Sync WebDAV folder unavailable'))
+    return t('desktop.sync.error.folder')
+  if (message.includes('HTTP 403')) return t('desktop.sync.error.auth')
   if (message.includes('HTTP 412') || message.includes('HTTP 409'))
     return t('desktop.sync.error.remoteChanged')
   if (message.includes('HTTP 404')) return t('desktop.sync.error.folder')

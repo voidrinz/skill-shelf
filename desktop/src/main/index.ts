@@ -69,12 +69,12 @@ import {
   MAX_SYNC_BYTES,
   MetadataSyncService,
 } from './services/metadata-sync-service'
-import {
-  WebDavSyncService,
-  type RemoteSyncFile,
-} from './services/webdav-sync-service'
+import { WebDavSyncService } from './services/webdav-sync-service'
 import type { ApplySyncInput } from '../shared/sync-contract'
 import { assertSyncPassword } from './services/sync-encryption'
+import { SyncFileImport } from './services/sync-file-import'
+import { SyncDeviceService } from './services/sync-device-service'
+import type { PreviewCloudSnapshotInput } from '../shared/sync-contract'
 import { SkillsApiService } from './services/skills-api-service'
 import { listSkillFiles, readSkillFile } from './services/skill-file-service'
 import {
@@ -234,15 +234,18 @@ function registerIpc(
   terminalService: TerminalService,
   workbench: WorkbenchService
 ) {
+  const syncDevice = new SyncDeviceService(
+    join(dirname(shelfFilePath), 'sync-device.json'),
+    app.getVersion()
+  )
   const metadataSync = new MetadataSyncService(
     store,
     () => catalog.getCatalog(),
-    { aiProvider, managedSkills }
+    { aiProvider, managedSkills, getSource: () => syncDevice.getSource() }
   )
   const webDavSync = new WebDavSyncService(
     join(dirname(shelfFilePath), 'webdav-sync.json')
   )
-  let uploadPreview: { id: string; remote: RemoteSyncFile } | null = null
   const handleSync = createSyncIpcHandler(() => mainWindow)
   const syncHandler = (
     channel: string,
@@ -256,10 +259,7 @@ function registerIpc(
         app.getLocale()
       )
     )
-  syncHandler(desktopIpcChannels.syncExport, async (input) => {
-    const password = assertSyncPassword(input)
-    if (aiProvider.getPortableConnections().length && !password)
-      throw new Error('Sync encryption password required')
+  syncHandler(desktopIpcChannels.syncExport, async () => {
     const messages = await syncMessages()
     const result = await dialog.showSaveDialog(mainWindow!, {
       title: translate(messages, 'desktop.sync.export'),
@@ -269,51 +269,54 @@ function registerIpc(
     if (result.canceled || !result.filePath) return false
     await writeFile(
       result.filePath,
-      `${JSON.stringify(await metadataSync.exportDocument({ password }), null, 2)}\n`,
+      `${JSON.stringify(await metadataSync.exportDocument(), null, 2)}\n`,
       { mode: 0o600 }
     )
     return true
   })
-  syncHandler(desktopIpcChannels.syncImport, async (input) => {
-    const password = assertSyncPassword(input)
-    const messages = await syncMessages()
-    const result = await dialog.showOpenDialog(mainWindow!, {
-      title: translate(messages, 'desktop.sync.import'),
-      properties: ['openFile'],
-      filters: [{ name: 'Skill Shelf', extensions: ['json'] }],
-    })
-    if (result.canceled || !result.filePaths[0]) return null
-    if ((await stat(result.filePaths[0])).size > MAX_SYNC_BYTES)
-      throw new Error('Invalid sync document')
-    const preview = await metadataSync.preview(
-      await readFile(result.filePaths[0], 'utf8'),
-      'import',
-      { password }
+  const fileSyncImport = new SyncFileImport(
+    async () => {
+      const messages = await syncMessages()
+      const result = await dialog.showOpenDialog(mainWindow!, {
+        title: translate(messages, 'desktop.sync.import'),
+        properties: ['openFile'],
+        filters: [{ name: 'Skill Shelf', extensions: ['json'] }],
+      })
+      if (result.canceled || !result.filePaths[0]) return null
+      if ((await stat(result.filePaths[0])).size > MAX_SYNC_BYTES)
+        throw new Error('Invalid sync document')
+      return readFile(result.filePaths[0], 'utf8')
+    },
+    (contents, password) =>
+      metadataSync.preview(contents, 'import', { password })
+  )
+  syncHandler(desktopIpcChannels.syncImport, async (value) => {
+    const input = value as { password?: unknown; retry?: unknown } | undefined
+    if (
+      input !== undefined &&
+      (!input ||
+        typeof input !== 'object' ||
+        (input.retry !== undefined && typeof input.retry !== 'boolean'))
     )
-    uploadPreview = null
+      throw new Error('Invalid sync import')
+    const preview = await fileSyncImport.open(
+      assertSyncPassword(input?.password),
+      input?.retry === true
+    )
     return preview
   })
+  syncHandler(desktopIpcChannels.syncImportCancel, () =>
+    fileSyncImport.cancel()
+  )
   syncHandler(desktopIpcChannels.syncDiscard, (input) => {
     if (typeof input !== 'string') throw new Error('Invalid sync preview')
     metadataSync.discard(input)
-    if (uploadPreview?.id === input) uploadPreview = null
   })
   syncHandler(desktopIpcChannels.syncApply, async (value) => {
     if (!value || typeof value !== 'object')
       throw new Error('Invalid sync choices')
     const input = value as ApplySyncInput
-    const target = uploadPreview?.id === input.previewId ? uploadPreview : null
-    const result = await metadataSync.apply(
-      input,
-      target
-        ? (document) =>
-            webDavSync.upload(
-              `${JSON.stringify(document, null, 2)}\n`,
-              target.remote
-            )
-        : undefined
-    )
-    uploadPreview = null
+    const result = await metadataSync.apply(input)
     trayController?.updateCatalog(result.catalog)
     void trayController?.notify()
     return result
@@ -321,14 +324,34 @@ function registerIpc(
   syncHandler(desktopIpcChannels.syncWebDavGet, () => webDavSync.getStatus(), {
     readOnly: true,
   })
-  syncHandler(desktopIpcChannels.syncWebDavSave, async (input) => {
-    if (uploadPreview) {
-      metadataSync.discard(uploadPreview.id)
-      uploadPreview = null
-    }
-    return webDavSync.save(input)
-  })
+  syncHandler(desktopIpcChannels.syncWebDavSave, (input) =>
+    webDavSync.save(input)
+  )
   syncHandler(desktopIpcChannels.syncWebDavTest, () => webDavSync.test())
+  syncHandler(desktopIpcChannels.syncWebDavList, () =>
+    webDavSync.listSnapshots()
+  )
+  syncHandler(desktopIpcChannels.syncWebDavPreview, async (value) => {
+    const input = value as PreviewCloudSnapshotInput
+    if (
+      !input ||
+      typeof input.snapshotId !== 'string' ||
+      !['merge', 'replace'].includes(input.strategy)
+    )
+      throw new Error('Invalid sync snapshot')
+    const password = assertSyncPassword(input.password)
+    const contents = await webDavSync.readSnapshot(input.snapshotId)
+    const preview = await metadataSync.preview(
+      contents,
+      'import',
+      { password },
+      input.strategy
+    )
+    return {
+      ...preview,
+      snapshotKind: input.snapshotId === 'shared' ? 'shared' : 'device',
+    }
+  })
   syncHandler(desktopIpcChannels.syncWebDavPull, async (input) => {
     const password = assertSyncPassword(input)
     const remote = await webDavSync.read()
@@ -336,13 +359,13 @@ function registerIpc(
     const preview = await metadataSync.preview(remote.contents, 'import', {
       password,
     })
-    uploadPreview = null
     return preview
   })
   syncHandler(desktopIpcChannels.syncWebDavPush, async (input) => {
     const password = assertSyncPassword(input)
     const remote = await webDavSync.read()
-    const preview = await metadataSync.preview(
+    let cloudBackupSaved: boolean | undefined
+    const result = await metadataSync.uploadDocument(
       remote.contents ??
         JSON.stringify({
           format: 'skill-shelf-metadata',
@@ -351,11 +374,16 @@ function registerIpc(
           skills: [],
           preferences: {},
         }),
-      'upload',
+      async (document, deviceSnapshot) => {
+        cloudBackupSaved = await webDavSync.upload(
+          `${JSON.stringify(document, null, 2)}\n`,
+          remote,
+          deviceSnapshot
+        )
+      },
       { password }
     )
-    uploadPreview = { id: preview.id, remote }
-    return preview
+    return { ...result, cloudBackupSaved }
   })
   const updateHandler = (channel: string, action: () => unknown) =>
     ipcMain.handle(channel, (event) => {

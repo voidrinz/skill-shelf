@@ -1,18 +1,52 @@
 import type { Messages } from '../index'
 
 export const messages = {
+  'desktop.sync.cloudTitle': '选择云端数据',
+  'desktop.sync.cloudDescription':
+    '先选择下载哪份数据，再决定如何处理本机的整理信息。',
+  'desktop.sync.chooseSnapshot': '下载哪份数据',
+  'desktop.sync.sharedSnapshot': '云端最新数据',
+  'desktop.sync.sharedSnapshotDescription':
+    '包含各台电脑上传的整理信息；下载后再与本机同步。',
+  'desktop.sync.historySource': '{date} · {name}',
+  'desktop.sync.selectedCloudSource': '下载来源：{source}',
+  'desktop.sync.uploadHistory': '上传历史（{count} 条）',
+  'desktop.sync.uploadHistoryDescription': '每次上传一份备份，最新的在前。',
+  'desktop.sync.uploadHistoryEmpty': '尚无历史备份，下次上传会自动保存。',
+  'desktop.sync.deviceSnapshot': '{name} 的备份',
+  'desktop.sync.snapshotCounts': '{skills} 个 Skill，{packs} 个 Pack',
+  'desktop.sync.lastUploadFrom': '上传来源：{name}',
+  'desktop.sync.unknownSource': '旧版本／未记录电脑',
+  'desktop.sync.cloudEmpty': '云端还没有数据，请先从一台电脑上传。',
+  'desktop.sync.importStrategy': '下载后如何处理本机整理信息',
+  'desktop.sync.mergeStrategy': '与本机合并（推荐）',
+  'desktop.sync.replaceStrategy': '以下载的数据为准',
+  'desktop.sync.mergeStrategyDescription':
+    '合并标签，保留本机独有条目；描述、分组等冲突在下一步选择。',
+  'desktop.sync.replaceStrategyDescription':
+    '替换对应 Skill 和同名 Pack 的整理信息，包含空值。其他条目保留，替换前自动备份。',
+  'desktop.sync.previewChanges': '下一步：预览变更',
+  'desktop.sync.replacePreview': '覆盖预览',
+  'desktop.sync.confirmReplace': '确认覆盖匹配项',
+  'desktop.sync.replaced': '匹配项的管理数据已覆盖，原有管理数据已在本机备份。',
+  'desktop.sync.backupFailed':
+    '合并数据已上传，但本机来源备份未能保存。可再次上传以重试保存备份。',
+  'desktop.sync.error.backupIndex':
+    '无法读取云端备份列表，请检查服务器后重试。',
+  'desktop.sync.error.snapshotUnavailable':
+    '这份备份已更新或被移除，请重新打开云端列表选择。',
   'desktop.sync.title': '同步',
   'desktop.sync.description': '在不同电脑间同步你的 Skill 整理成果。',
   'desktop.sync.scopeTitle': '同步整理成果与应用偏好',
   'desktop.sync.scopeDescription':
-    '包含 Packs、分组层级、标签、画布位置、自定义描述和译文；也可同步应用及 AI 配置。AI API Key 使用下方的加密密码保护，Skill 文件、安装情况、本机路径和 WebDAV 账号凭据保留在各自电脑。',
-  'desktop.sync.encryptionTitle': 'AI 配置同步',
-  'desktop.sync.encryptionPassword': 'AI 配置加密密码',
-  'desktop.sync.encryptionHint':
-    '自行设置至少 8 位密码，用于加密导出或上传的 AI API Key。另一台电脑导入或拉取时输入相同密码。它与 WebDAV 登录密码独立，仅在本页打开期间保留。',
-  'desktop.sync.encryptionPlaceholder': '设置或输入至少 8 位密码',
+    '上传包含 Packs、分组层级、标签、画布位置、自定义描述、译文、应用偏好和 AI 配置。AI API Key 以明文保存；Skill 文件、安装情况、本机路径和 WebDAV 账号凭据保留在各自电脑。',
+  'desktop.sync.legacyPasswordTitle': '读取旧版加密备份',
+  'desktop.sync.legacyPasswordDescription':
+    '这份备份由旧版本加密，请输入当时使用的密码。新的上传和导出不再需要加密密码。',
+  'desktop.sync.legacyPassword': '旧版加密密码',
+  'desktop.sync.legacyPasswordPlaceholder': '输入这份备份原来的密码',
+  'desktop.sync.legacyPasswordContinue': '读取备份',
   'desktop.sync.importAiConfiguration': '同时导入 AI 配置',
-  'desktop.sync.uploadAiConfiguration': '同时上传 AI 配置',
   'desktop.sync.aiConfigurationDescription':
     '包含 API Key、连接启用状态、模型、默认翻译语言和上下文偏好。导入会替换对应提供商的本机配置；连接是否可用由各电脑自行检查。',
   'desktop.sync.aiConnectionSummary': '{provider}：{key}，{state}。',
@@ -21,9 +55,9 @@ export const messages = {
   'desktop.sync.aiConnectionEnabled': '已启用',
   'desktop.sync.aiConnectionDisabled': '已停用',
   'desktop.sync.error.encryptionPassword':
-    '请填写至少 8 位的 AI 配置加密密码。导出时自行设置，另一台电脑导入时使用相同密码。',
+    '请输入这份旧版加密备份原来的密码，至少 8 位。',
   'desktop.sync.error.decryption':
-    '无法解密 AI 配置，请检查同步密码是否正确，或同步文件是否损坏。',
+    '无法读取旧版加密备份，请检查原来的密码是否正确，或备份是否损坏。',
   'desktop.sync.matchingDescription':
     '按来源和 Skill 名称匹配；本地 Skill 使用内容指纹，项目 Skill 还会匹配项目名称。未找到或无法确定的条目会跳过。',
   'desktop.sync.files': '导出／导入',
@@ -35,10 +69,10 @@ export const messages = {
   'desktop.sync.exported': '管理数据已导出。',
   'desktop.sync.webdavTitle': '使用你的 WebDAV 存储',
   'desktop.sync.webdavDescription':
-    '手动上传或拉取共享数据。上传会保留云端独有的 Skill 记录，变更预览后再确认。',
-  'desktop.sync.url': 'WebDAV 文件夹地址',
+    '点击即上传全部数据，并保留本机来源备份。字段冲突以本机为准，云端独有条目会保留。拉取时选择数据来源，预览合并或覆盖后再确认。',
+  'desktop.sync.url': 'WebDAV 服务地址',
   'desktop.sync.urlHint':
-    '填写已存在的 HTTPS 文件夹地址，两台电脑使用同一文件夹。',
+    '两台电脑使用相同的服务地址和账号。应用会自动创建 SkillShelf 同步文件夹。坚果云填写 https://dav.jianguoyun.com/dav/，密码使用应用专用密码。',
   'desktop.sync.username': '用户名',
   'desktop.sync.password': '密码／应用专用密码',
   'desktop.sync.passwordSaved': '保留当前密码',
@@ -55,22 +89,16 @@ export const messages = {
   'desktop.sync.saveFirst': '请先保存连接修改。',
   'desktop.sync.connected': 'WebDAV 连接成功。',
   'desktop.sync.importPreview': '导入预览',
-  'desktop.sync.uploadPreview': '上传预览',
   'desktop.sync.importPreviewDescription':
     '为匹配的 Skill 合并标签和管理数据，其他本机 Skill 保持原样。确认后才会写入。',
-  'desktop.sync.uploadPreviewDescription':
-    '合并共有条目，保留云端独有条目。本次上传不会修改本机管理数据。',
   'desktop.sync.snapshotDate': '数据导出时间：{date}',
   'desktop.sync.matched': '匹配的 Skill',
   'desktop.sync.changed': '有变更的 Skill',
   'desktop.sync.skipped': '跳过的 Skill',
-  'desktop.sync.uploadNew': '本机独有 Skill',
-  'desktop.sync.retained': '保留的云端条目',
   'desktop.sync.conflicts': '字段冲突',
   'desktop.sync.staleTranslations':
     '{count} 条翻译的原文与本机版本不同，已跳过。',
   'desktop.sync.skippedDetails': '查看跳过的条目',
-  'desktop.sync.retainedDetails': '查看保留的云端条目',
   'desktop.sync.skip.not-found': '本机没有对应的 Skill',
   'desktop.sync.skip.ambiguous': '有多个相同身份的条目，无法确定对应关系',
   'desktop.sync.skip.no-identity': '缺少可靠的匹配信息',
@@ -85,11 +113,9 @@ export const messages = {
   'desktop.sync.keepLocal': '保留本机数据',
   'desktop.sync.useIncoming': '采用文件／云端数据',
   'desktop.sync.importPreferences': '同时导入应用偏好',
-  'desktop.sync.uploadPreferences': '同时上传应用偏好',
   'desktop.sync.preferencesDescription':
     '语言、主题、列表密度、默认视图和 Agent 偏好。不包含本机路径和登录启动设置。',
   'desktop.sync.importAiPreferences': '同时导入 AI 偏好',
-  'desktop.sync.uploadAiPreferences': '同时上传 AI 偏好',
   'desktop.sync.aiPreferencesDescription':
     '默认翻译语言、默认模型、模型列表和上下文偏好。保留本机 API 密钥及连接启用状态。',
   'desktop.sync.aiDefaults':
@@ -98,12 +124,9 @@ export const messages = {
     '{count} 个 Pack，其中 {changed} 个有变更，匹配到 {matched} 个本机托管 Skill 成员。',
   'desktop.sync.packMembersSkipped':
     '{count} 个 Pack 成员在本机未匹配，查看详情',
-  'desktop.sync.packMembersRetained':
-    '{count} 个云端 Pack 成员在本机未匹配，上传时保留，查看详情',
   'desktop.sync.noMatches':
     '没有找到匹配的 Skill；仍可合并 Packs 和选定的偏好。',
   'desktop.sync.confirmImport': '确认合并',
-  'desktop.sync.confirmUpload': '确认上传',
   'desktop.sync.imported': '管理数据已合并，原有管理数据已在本机备份。',
   'desktop.sync.uploaded': '管理数据已上传，云端独有条目已保留。',
   'desktop.sync.fieldDescription': '描述 · {language}',
@@ -120,13 +143,19 @@ export const messages = {
     '部分 Skill 身份重复。请通过文件导入检查，云端数据未修改。',
   'desktop.sync.error.credentials': '无法读取或保存本地 WebDAV 连接。',
   'desktop.sync.error.url':
-    '请填写有效的 HTTPS WebDAV 文件夹地址，不要在地址中包含密码或查询参数。',
+    '请填写有效的 HTTPS WebDAV 服务地址，不要在地址中包含密码或查询参数。',
   'desktop.sync.error.auth':
     'WebDAV 拒绝访问，请检查用户名、密码和文件夹权限。',
   'desktop.sync.error.remoteChanged':
-    '预览后云端文件发生变化，请取消并重新预览。',
+    '云端数据在上传期间发生变化，请重新上传以合并最新数据。',
+  'desktop.sync.error.uploadOutdated':
+    '本机数据在上传期间发生变化，请重新上传最新数据。',
   'desktop.sync.error.folder':
-    'WebDAV 文件夹不存在，请先在服务器上创建，再保存其地址。',
+    '无法访问 WebDAV 同步目录，请检查服务地址和账号权限。坚果云的服务地址为 https://dav.jianguoyun.com/dav/。',
+  'desktop.sync.error.folderPermission':
+    'WebDAV 拒绝创建同步文件夹，请检查该账号是否具有创建目录的权限。',
+  'desktop.sync.error.folderCreation':
+    '无法自动创建 WebDAV 同步文件夹，请检查地址和服务器是否允许创建目录。',
   'desktop.sync.error.etag':
     '此 WebDAV 服务无法防止上传覆盖其他电脑的同时修改，请使用文件导出／导入。',
   'desktop.sync.error.noData':

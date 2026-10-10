@@ -5,11 +5,14 @@ import type {
   SyncPreview,
   WebDavInput,
   WebDavStatus,
+  SyncCloudSnapshot,
+  PreviewCloudSnapshotInput,
 } from './sync-contract'
 
 export const desktopIpcChannels = {
   syncExport: 'sync:export',
   syncImport: 'sync:import',
+  syncImportCancel: 'sync:import-cancel',
   syncApply: 'sync:apply',
   syncDiscard: 'sync:discard',
   syncWebDavGet: 'sync:webdav-get',
@@ -17,6 +20,8 @@ export const desktopIpcChannels = {
   syncWebDavTest: 'sync:webdav-test',
   syncWebDavPull: 'sync:webdav-pull',
   syncWebDavPush: 'sync:webdav-push',
+  syncWebDavList: 'sync:webdav-list',
+  syncWebDavPreview: 'sync:webdav-preview',
   appLinkOpen: 'app-link:open',
   appUpdateGet: 'app-update:get',
   appUpdateCheck: 'app-update:check',
@@ -920,15 +925,21 @@ export interface TerminalExitEvent {
 }
 
 export interface SkillShelfDesktopApi {
-  exportSyncData(password?: string): Promise<boolean>
-  importSyncData(password?: string): Promise<SyncPreview | null>
+  exportSyncData(): Promise<boolean>
+  importSyncData(
+    password?: string,
+    retry?: boolean
+  ): Promise<SyncPreview | null>
+  cancelSyncImport(): Promise<void>
   applySyncData(input: ApplySyncInput): Promise<SyncApplyResult>
   discardSyncPreview(previewId: string): Promise<void>
   getWebDavSettings(): Promise<WebDavStatus>
   saveWebDavSettings(input: WebDavInput): Promise<WebDavStatus>
   testWebDavConnection(): Promise<void>
   pullWebDavSync(password?: string): Promise<SyncPreview>
-  pushWebDavSync(password?: string): Promise<SyncPreview>
+  pushWebDavSync(password?: string): Promise<SyncApplyResult>
+  listWebDavSnapshots(): Promise<SyncCloudSnapshot[]>
+  previewWebDavSnapshot(input: PreviewCloudSnapshotInput): Promise<SyncPreview>
   getAppUpdate(): Promise<AppUpdateState>
   checkAppUpdate(): Promise<AppUpdateState>
   downloadAppUpdate(): Promise<AppUpdateState>
