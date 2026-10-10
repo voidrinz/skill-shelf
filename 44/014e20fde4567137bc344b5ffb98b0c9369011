@@ -1,0 +1,40 @@
+docs/ai-storage.md
+  s_d156a057076bd4::t_f359f22d6f213a 25-33,36-38
+docs/development.md
+  s_195416a04c53e0::t_0061e40d28b1f0 155-158,177-184
+  s_195416a04c53e0::t_8f05dea294c232 163-169
+  s_195416a04c53e0::t_39f80e74bcaee0 159-162,170,185-195
+  s_195416a04c53e0::t_8d50529763b2b6 140-146
+  s_195416a04c53e0::t_c10970983b28d5 130-132,139
+  s_195416a04c53e0::t_e24ed3475f0d20 133-134,136-137
+  s_195416a04c53e0::t_9be489e41809f4 107,109-118
+  s_195416a04c53e0::t_19171c7b5bc03a 135,138,172-176
+  s_195416a04c53e0::t_95577e50622799 128,204,214-215
+  s_195416a04c53e0::t_23deabb8156ddf 171,197-198
+  s_195416a04c53e0::t_2bce0618885a36 129
+  s_195416a04c53e0::t_71f072ae0f17d7 196
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "44014e20fde4567137bc344b5ffb98b0c9369011",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    },
+    "s_d156a057076bd4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11f65-e785-7730-8ba3-2f272150ac9e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
