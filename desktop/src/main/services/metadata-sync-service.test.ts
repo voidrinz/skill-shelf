@@ -15,7 +15,7 @@ import {
   AiProviderService,
   type DeepSeekTextGenerator,
 } from './ai-provider-service'
-import { decryptAiConnections } from './sync-encryption'
+import { encryptAiConnections } from './sync-encryption'
 import { ManagedSkillService } from './managed-skill-service'
 
 const directories: string[] = []
@@ -122,6 +122,274 @@ const choices = (
 })
 
 describe('metadata sync', () => {
+  it('uploads once with local conflict values, merged metadata and a separate original backup', async () => {
+    const a = await setupExtended(['shared', 'cloud-only'])
+    const b = await setupExtended(['shared', 'local-only'])
+    for (const [fixture, label] of [
+      [a, 'Cloud'],
+      [b, 'Local'],
+    ] as const) {
+      const state = await fixture.store.createGroup({
+        name: label,
+        color: '#aabbcc',
+        parentId: null,
+        position: { x: 0, y: 0 },
+        scopeKey: 'global',
+      })
+      await fixture.store.saveOrganization({
+        skillId: 'global:shared',
+        tags: [label.toLowerCase()],
+        groupId: state.groups[0]!.id,
+      })
+      await fixture.store.saveSkillDescription({
+        skillId: 'global:shared',
+        language: 'en',
+        description: `${label} description`,
+      })
+      await fixture.managed.savePack({
+        name: 'Essentials',
+        description: `${label} Pack description`,
+        skillIds: fixture.managed.snapshot().skills.map((item) => item.id),
+      })
+    }
+    await b.ai.saveSettings({
+      provider: 'deepseek',
+      model: 'deepseek-v4-flash',
+      apiKey: 'sk-synthetic-local-key',
+      targetLanguage: 'ja',
+    })
+    await b.store.updateSettings({ theme: 'dark' })
+    const before = JSON.stringify({
+      shelf: await b.store.getState(),
+      packs: b.managed.snapshot(),
+      ai: b.ai.getPortableConnections(),
+    })
+    const remote = await a.service.exportDocument()
+    const write = vi.fn(
+      async (_document: SyncDocument, _backup: SyncDocument) => {}
+    )
+    await b.service.uploadDocument(JSON.stringify(remote), write)
+    expect(write).toHaveBeenCalledOnce()
+    const [shared, backup] = write.mock.calls[0]!
+    expect(shared.skills.map((item) => item.name)).toEqual([
+      'shared',
+      'cloud-only',
+      'local-only',
+    ])
+    expect(shared.skills[0]).toMatchObject({
+      tags: ['local', 'cloud'],
+      descriptions: { en: 'Local description' },
+      folder: [{ name: 'Local' }],
+    })
+    expect(shared.skills[1]).toEqual(remote.skills[1])
+    expect(shared.packs?.[0]?.description).toBe('Local Pack description')
+    expect(shared.packs?.[0]?.skills.map((item) => item.name)).toEqual([
+      'shared',
+      'cloud-only',
+      'local-only',
+    ])
+    for (const document of [shared, backup]) {
+      expect(document.version).toBe(4)
+      expect(document.preferences.theme).toBe('dark')
+      expect(document.aiPreferences?.targetLanguage).toBe('ja')
+      expect(document.aiConnections).toEqual(b.ai.getPortableConnections())
+    }
+    expect(backup.skills.map((item) => item.name)).toEqual([
+      'shared',
+      'local-only',
+    ])
+    expect(backup.skills[0]?.tags).toEqual(['local'])
+    expect(
+      JSON.stringify({
+        shelf: await b.store.getState(),
+        packs: b.managed.snapshot(),
+        ai: b.ai.getPortableConnections(),
+      })
+    ).toBe(before)
+  })
+
+  it('discards a failed automatic upload plan and retries with fresh remote metadata', async () => {
+    const a = await setup([skill('shared')])
+    const b = await setup([skill('shared')])
+    await b.store.saveOrganization({
+      skillId: 'global:shared',
+      tags: ['local'],
+      groupId: null,
+    })
+    const remote = await a.service.exportDocument()
+    const preview = vi.spyOn(b.service, 'preview')
+    const write = vi
+      .fn(async (_document: SyncDocument, _backup: SyncDocument) => {})
+      .mockRejectedValueOnce(new Error('Sync WebDAV HTTP 412'))
+    await expect(
+      b.service.uploadDocument(JSON.stringify(remote), write)
+    ).rejects.toThrow('HTTP 412')
+    const failed = await preview.mock.results[0]!.value
+    await expect(b.service.apply(choices(failed), write)).rejects.toThrow(
+      'outdated'
+    )
+    remote.skills[0]!.tags = ['concurrent']
+    await b.service.uploadDocument(JSON.stringify(remote), write)
+    expect(write.mock.calls[1]![0].skills[0]!.tags).toEqual([
+      'local',
+      'concurrent',
+    ])
+    expect(
+      (await b.store.getState()).organizations['global:shared']!.tags
+    ).toEqual(['local'])
+  })
+
+  it('replaces matching management fields including empty values, keeps unrelated Skills, and backs up previous metadata', async () => {
+    const a = await setup([skill('shared')])
+    const b = await setup([skill('shared'), skill('local-only')])
+    await b.store.saveOrganization({
+      skillId: 'global:shared',
+      tags: ['local'],
+      groupId: null,
+      position: { x: 1, y: 2 },
+    })
+    await b.store.saveOrganization({
+      skillId: 'global:local-only',
+      tags: ['keep'],
+      groupId: null,
+    })
+    await b.store.saveSkillDescription({
+      skillId: 'global:shared',
+      language: 'en',
+      description: 'Remove me',
+    })
+    await b.store.saveSkillTranslation({
+      skillId: 'global:shared',
+      language: 'zh-CN',
+      content: 'Local translation',
+      sourceDescription: 'Original description',
+      method: 'ai',
+    })
+    const document = await a.service.exportDocument()
+    const preview = await b.service.preview(
+      JSON.stringify(document),
+      'import',
+      undefined,
+      'replace'
+    )
+    expect(preview.conflicts).toEqual([])
+    expect(preview.changed).toBe(1)
+    const result = await b.service.apply(choices(preview))
+    expect(
+      result.catalog.skills.find((item) => item.name === 'shared')
+    ).toMatchObject(organization())
+    expect(
+      result.catalog.skills.find((item) => item.name === 'local-only')!.tags
+    ).toEqual(['keep'])
+    expect(await readFile(`${b.path}.sync-backup`, 'utf8')).toContain(
+      'Remove me'
+    )
+    await expect(
+      b.service.preview(
+        JSON.stringify(document),
+        'upload',
+        undefined,
+        'replace'
+      )
+    ).rejects.toThrow('Invalid sync strategy')
+  })
+
+  it('retains identical valid translations during replacement and skips translations for different source text', async () => {
+    const fixture = await setup([skill('shared')])
+    await fixture.store.saveSkillTranslation({
+      skillId: 'global:shared',
+      language: 'zh-CN',
+      content: 'Same translation',
+      sourceDescription: 'Original description',
+      method: 'ai',
+    })
+    const document = await fixture.service.exportDocument()
+    document.skills[0]!.translations.en = {
+      ...document.skills[0]!.translations['zh-CN']!,
+      content: 'Stale translation',
+      sourceDescription: 'An older source description',
+    }
+    const preview = await fixture.service.preview(
+      JSON.stringify(document),
+      'import',
+      undefined,
+      'replace'
+    )
+    expect(preview.changed).toBe(0)
+    expect(preview.staleTranslations).toBe(1)
+    const result = await fixture.service.apply(choices(preview))
+    expect(result.catalog.skills[0]!.translations).toEqual({
+      'zh-CN': document.skills[0]!.translations['zh-CN'],
+    })
+  })
+
+  it('replaces same-name Pack descriptions and membership without removing other local Packs or managed Skills', async () => {
+    const a = await setupExtended(['shared'])
+    const b = await setupExtended(['shared', 'local-only'])
+    await a.managed.savePack({
+      name: 'Essentials',
+      description: '',
+      skillIds: [a.managed.snapshot().skills[0]!.id],
+    })
+    await b.managed.savePack({
+      name: 'Essentials',
+      description: 'Local description',
+      skillIds: b.managed.snapshot().skills.map((item) => item.id),
+    })
+    await b.managed.savePack({
+      name: 'Local pack',
+      description: 'Keep',
+      skillIds: [b.managed.snapshot().skills[1]!.id],
+    })
+    const before = structuredClone(b.managed.snapshot().skills)
+    const preview = await b.service.preview(
+      JSON.stringify(await a.service.exportDocument()),
+      'import',
+      undefined,
+      'replace'
+    )
+    expect(preview.conflicts).toEqual([])
+    await b.service.apply(choices(preview))
+    expect(
+      b.managed.snapshot().packs.find((pack) => pack.name === 'Essentials')
+    ).toMatchObject({ description: '', skillIds: [before[0]!.id] })
+    expect(
+      b.managed.snapshot().packs.find((pack) => pack.name === 'Local pack')!
+        .description
+    ).toBe('Keep')
+    expect(b.managed.snapshot().skills).toEqual(before)
+    expect(
+      await readFile(join(b.directory, 'managed.json.sync-backup'), 'utf8')
+    ).toContain('Local description')
+  })
+
+  it('records the uploading computer and validates source metadata without changing old document compatibility', async () => {
+    const fixture = await setup([skill('shared')])
+    const source = {
+      deviceId: '22222222-2222-4222-8222-222222222222',
+      deviceName: 'Computer B',
+      appVersion: '0.1.11',
+    }
+    const service = new MetadataSyncService(fixture.store, fixture.getCatalog, {
+      getSource: async () => source,
+    })
+    const document = await service.exportDocument()
+    expect(parseSyncDocument(JSON.stringify(document)).source).toEqual(source)
+    const preview = await service.preview(JSON.stringify(document), 'upload')
+    expect(preview.uploadSource).toEqual(source)
+    expect(preview.source).toEqual(source)
+    expect(() =>
+      parseSyncDocument(
+        JSON.stringify({
+          ...document,
+          source: { ...source, deviceId: '../other' },
+        })
+      )
+    ).toThrow('Invalid sync document')
+    const { source: ignored, ...legacy } = document
+    expect(parseSyncDocument(JSON.stringify(legacy)).source).toBeUndefined()
+  })
+
   it('imports only the 20 shared Skills from A100 into B30 without adding Skills or unrelated folders', async () => {
     const aSkills = Array.from({ length: 100 }, (_, index) =>
       skill(`skill-${index}`)
@@ -366,6 +634,8 @@ describe('metadata sync', () => {
   it('uploads a union of both machines without changing local state, and leaves cloud-only records intact', async () => {
     const a = await setup([skill('shared'), skill('a-only')])
     const b = await setup([skill('shared'), skill('b-only')])
+    await a.store.updateSettings({ theme: 'dark', language: 'en' })
+    await b.store.updateSettings({ theme: 'light', language: 'zh-CN' })
     await a.store.saveOrganization({
       skillId: 'global:shared',
       tags: ['a'],
@@ -389,9 +659,15 @@ describe('metadata sync', () => {
     const remote = await a.service.exportDocument()
     const preview = await b.service.preview(JSON.stringify(remote), 'upload')
     const before = JSON.stringify(await b.store.getState())
-    const upload = vi.fn(async (_document: SyncDocument) => {})
+    const upload = vi.fn(
+      async (_document: SyncDocument, _backup: SyncDocument) => {}
+    )
     await b.service.apply(choices(preview, 'incoming'), upload)
     const document = upload.mock.calls[0]![0]
+    expect(document.preferences).toMatchObject({
+      theme: 'light',
+      language: 'zh-CN',
+    })
     expect(document.skills.map((item) => item.name)).toEqual([
       'shared',
       'a-only',
@@ -402,6 +678,13 @@ describe('metadata sync', () => {
     )
     expect(document.skills[0]!.tags).toEqual(['b', 'a'])
     expect(document.skills[0]!.descriptions.en).toBe('Remote')
+    const backup = upload.mock.calls[0]![1]
+    expect(backup.skills.map((item) => item.name)).toEqual(['shared', 'b-only'])
+    expect(backup.skills[0]!.tags).toEqual(['b'])
+    expect(backup.skills[0]!.descriptions.en).toBe('Local')
+    expect(backup.preferences).toEqual(document.preferences)
+    expect(backup.aiPreferences).toBeUndefined()
+    expect(backup.aiConnections).toBeUndefined()
     expect(JSON.stringify(await b.store.getState())).toBe(before)
   })
 
@@ -560,7 +843,7 @@ describe('metadata sync', () => {
     expect(upload.mock.calls[0]![0].skills).toEqual(remote.skills)
   })
 
-  it('syncs Packs and AI defaults across machines while preserving local members and credentials', async () => {
+  it('imports legacy Packs and AI defaults while preserving local members and credentials', async () => {
     const a = await setupExtended(['shared', 'a-only'])
     const b = await setupExtended(['shared', 'b-only'])
     await a.managed.savePack({
@@ -609,9 +892,12 @@ describe('metadata sync', () => {
       sourceDescription: 'Original description',
       method: 'ai',
     })
-    const document = await a.service.exportDocument()
+    const document = {
+      ...(await a.service.exportDocument()),
+      version: 2,
+      aiConnections: undefined,
+    }
     const contents = JSON.stringify(document)
-    expect(document.version).toBe(2)
     expect(contents).not.toContain('sk-a-private-secret')
     expect(contents).not.toContain(a.directory)
     expect(contents).not.toContain(a.managed.snapshot().skills[0]!.id)
@@ -671,7 +957,7 @@ describe('metadata sync', () => {
     expect(repeat.conflicts).toEqual([])
   })
 
-  it('preserves cloud-only Packs and members on upload and only uploads AI defaults when selected', async () => {
+  it('preserves cloud-only Packs and members while always uploading local AI configuration and app preferences', async () => {
     const a = await setupExtended(['shared', 'a-only'])
     const b = await setupExtended(['shared', 'b-only'])
     await a.managed.savePack({
@@ -732,8 +1018,9 @@ describe('metadata sync', () => {
         ?.find((pack) => pack.name === 'Essentials')!
         .skills.map((item) => item.name)
     ).toEqual(['shared', 'a-only', 'b-only'])
-    expect(uploaded.aiPreferences?.targetLanguage).toBe('zh-CN')
-    expect(JSON.stringify(uploaded)).not.toContain('sk-')
+    expect(uploaded.aiPreferences?.targetLanguage).toBe('ja')
+    expect(uploaded.aiConnections).toEqual(b.ai.getPortableConnections())
+    expect(JSON.stringify(uploaded)).toContain('sk-b-private-value')
     expect(
       JSON.stringify({
         shelf: await b.store.getState(),
@@ -976,7 +1263,7 @@ describe('metadata sync', () => {
     ).toBeTruthy()
   })
 
-  it('imports AI defaults on an unconfigured computer without importing the provider API key', async () => {
+  it('imports version 2 AI defaults on an unconfigured computer without provider credentials', async () => {
     const a = await setupExtended([])
     const b = await setupExtended([])
     await a.ai.saveSettings({
@@ -986,7 +1273,11 @@ describe('metadata sync', () => {
       targetLanguage: 'zh-CN',
     })
     const preview = await b.service.preview(
-      JSON.stringify(await a.service.exportDocument())
+      JSON.stringify({
+        ...(await a.service.exportDocument()),
+        version: 2,
+        aiConnections: undefined,
+      })
     )
     expect(preview.matched).toBe(0)
     const result = await b.service.apply({
@@ -1063,7 +1354,7 @@ describe('metadata sync', () => {
   })
 })
 
-describe('encrypted AI configuration sync', () => {
+describe('AI configuration sync', () => {
   const encryption = { password: 'synthetic-sync-password' }
   const configure = (
     ai: AiProviderService,
@@ -1078,20 +1369,92 @@ describe('encrypted AI configuration sync', () => {
       targetLanguage: 'zh-CN',
     })
 
-  it('imports usable credentials on an unconfigured computer without exposing them in the snapshot or preview', async () => {
+  it('accepts version 4 credentials and rejects invalid keys and mismatched formats', async () => {
+    const a = await setupExtended([])
+    await configure(a.ai)
+    const document = await a.service.exportDocument()
+    expect(parseSyncDocument(JSON.stringify(document)).aiConnections).toEqual(
+      a.ai.getPortableConnections()
+    )
+    const encrypted = await encryptAiConnections(
+      a.ai.getPortableConnections(),
+      encryption.password
+    )
+    for (const invalid of [
+      { ...document, version: 5 },
+      { ...document, version: 3 },
+      { ...document, version: 2 },
+      { ...document, aiConnections: encrypted },
+      { ...document, aiPreferences: undefined },
+      {
+        ...document,
+        aiConnections: [{ provider: 'deepseek', apiKey: 'bad', enabled: true }],
+      },
+      {
+        ...document,
+        aiConnections: [
+          { provider: 'unknown', apiKey: 'sk-synthetic-key', enabled: true },
+        ],
+      },
+      {
+        ...document,
+        aiConnections: [
+          ...a.ai.getPortableConnections(),
+          ...a.ai.getPortableConnections(),
+        ],
+      },
+    ]) {
+      expect(() => parseSyncDocument(JSON.stringify(invalid))).toThrow(
+        'Invalid sync document'
+      )
+    }
+  })
+
+  it('migrates an encrypted cloud snapshot into plain-text shared data and a full device backup', async () => {
+    const a = await setupExtended([])
+    const b = await setupExtended([])
+    await configure(a.ai)
+    await configure(b.ai, 'sk-synthetic-local-key')
+    const remote = {
+      ...(await a.service.exportDocument()),
+      version: 3,
+      aiConnections: await encryptAiConnections(
+        a.ai.getPortableConnections(),
+        encryption.password
+      ),
+    }
+    const upload = vi.fn(
+      async (_document: SyncDocument, _backup: SyncDocument) => {}
+    )
+    await expect(
+      b.service.uploadDocument(JSON.stringify(remote), upload)
+    ).rejects.toThrow('password required')
+    await b.service.uploadDocument(JSON.stringify(remote), upload, encryption)
+    for (const document of upload.mock.calls[0]!) {
+      expect(document.version).toBe(4)
+      expect(document.aiConnections).toEqual(b.ai.getPortableConnections())
+      expect(JSON.stringify(document)).not.toContain(encryption.password)
+      const readable = await a.service.preview(JSON.stringify(document))
+      expect(readable.aiConnections).toEqual([
+        { provider: 'deepseek', hasApiKey: true, enabled: true },
+      ])
+    }
+  })
+
+  it('imports usable credentials on an unconfigured computer in a plain-text snapshot without exposing them in previews', async () => {
     const generateText = vi.fn<DeepSeekTextGenerator>(
       async () => 'Synthetic result'
     )
     const a = await setupExtended([])
     const b = await setupExtended([], generateText)
     await configure(a.ai)
-    const document = await a.service.exportDocument(encryption)
+    const document = await a.service.exportDocument()
     const contents = JSON.stringify(document)
-    expect(document.version).toBe(3)
+    expect(document.version).toBe(4)
     expect(document.aiConnections).toBeTruthy()
-    expect(contents).not.toContain('sk-synthetic-remote-key')
+    expect(contents).toContain('sk-synthetic-remote-key')
     expect(contents).not.toContain(encryption.password)
-    const preview = await b.service.preview(contents, 'import', encryption)
+    const preview = await b.service.preview(contents)
     expect(preview.aiConnections).toEqual([
       { provider: 'deepseek', hasApiKey: true, enabled: true },
     ])
@@ -1131,10 +1494,15 @@ describe('encrypted AI configuration sync', () => {
     await configure(a.ai)
     await configure(b.ai, 'sk-synthetic-local-key', false)
     const before = await readFile(join(b.directory, 'ai.json'), 'utf8')
-    const contents = JSON.stringify(await a.service.exportDocument(encryption))
-    await expect(a.service.exportDocument({})).rejects.toThrow(
-      'password required'
-    )
+    const exported = await a.service.exportDocument()
+    const contents = JSON.stringify({
+      ...exported,
+      version: 3,
+      aiConnections: await encryptAiConnections(
+        a.ai.getPortableConnections(),
+        encryption.password
+      ),
+    })
     await expect(b.service.preview(contents)).rejects.toThrow(
       'password required'
     )
@@ -1147,45 +1515,52 @@ describe('encrypted AI configuration sync', () => {
     expect(await readFile(join(b.directory, 'ai.json'), 'utf8')).toBe(before)
   })
 
-  it('uploads encrypted local configuration without changing local data and preserves cloud credentials when opted out', async () => {
+  it('always uploads plain-text local configuration and its original backup even if old clients send opt-out flags', async () => {
     const a = await setupExtended([])
     const b = await setupExtended([])
     await configure(a.ai)
     await configure(b.ai, 'sk-synthetic-local-key', false)
-    const remote = await a.service.exportDocument(encryption)
+    const remote = await a.service.exportDocument()
     const contents = JSON.stringify(remote)
     const before = await readFile(join(b.directory, 'ai.json'), 'utf8')
-    const upload = vi.fn(async (_document: SyncDocument) => {})
-    const first = await b.service.preview(contents, 'upload', encryption)
+    const upload = vi.fn(
+      async (_document: SyncDocument, _backup: SyncDocument) => {}
+    )
+    const first = await b.service.preview(contents, 'upload')
     await b.service.apply(
       { ...choices(first), includeAiPreferences: false },
       upload
     )
-    expect(upload.mock.calls[0]![0].aiConnections).toEqual(remote.aiConnections)
-    const second = await b.service.preview(contents, 'upload', encryption)
+    expect(upload.mock.calls[0]![0].aiConnections).toEqual(
+      b.ai.getPortableConnections()
+    )
+    expect(upload.mock.calls[0]![1].aiConnections).toEqual(
+      b.ai.getPortableConnections()
+    )
+    expect(upload.mock.calls[0]![1].aiPreferences).toEqual(
+      b.ai.getPortablePreferences()
+    )
+    const second = await b.service.preview(contents, 'upload')
     await b.service.apply(
       { ...choices(second), includeAiPreferences: true },
       upload
     )
     const uploaded = upload.mock.calls[1]![0]
-    expect(uploaded.version).toBe(3)
-    expect(JSON.stringify(uploaded)).not.toContain('sk-synthetic-local-key')
-    expect(
-      await decryptAiConnections(uploaded.aiConnections!, encryption.password)
-    ).toEqual([
+    const backup = upload.mock.calls[1]![1]
+    expect(uploaded.version).toBe(4)
+    expect(JSON.stringify(uploaded)).toContain('sk-synthetic-local-key')
+    expect(uploaded.aiConnections).toEqual([
       {
         provider: 'deepseek',
         apiKey: 'sk-synthetic-local-key',
         enabled: false,
       },
     ])
+    expect(JSON.stringify(backup)).toContain('sk-synthetic-local-key')
+    expect(backup.aiConnections).toEqual(b.ai.getPortableConnections())
     expect(await readFile(join(b.directory, 'ai.json'), 'utf8')).toBe(before)
     const emptyRemote = { ...remote, skills: [], aiConnections: undefined }
-    const fresh = await b.service.preview(
-      JSON.stringify(emptyRemote),
-      'upload',
-      encryption
-    )
+    const fresh = await b.service.preview(JSON.stringify(emptyRemote), 'upload')
     await b.service.apply(
       { ...choices(fresh), includeAiPreferences: true },
       upload
@@ -1201,9 +1576,8 @@ describe('encrypted AI configuration sync', () => {
       await configure(a.ai)
       await configure(b.ai, 'sk-synthetic-local-key')
       const preview = await b.service.preview(
-        JSON.stringify(await a.service.exportDocument(encryption)),
-        'import',
-        encryption
+        JSON.stringify(await a.service.exportDocument()),
+        'import'
       )
       await configure(
         b.ai,
@@ -1230,9 +1604,8 @@ describe('encrypted AI configuration sync', () => {
     await b.ai.verify({ provider: 'deepseek', modelId: 'deepseek-v4-flash' })
     const before = b.ai.getSettingsStatus()
     const preview = await b.service.preview(
-      JSON.stringify(await a.service.exportDocument(encryption)),
-      'import',
-      encryption
+      JSON.stringify(await a.service.exportDocument()),
+      'import'
     )
     vi.spyOn(b.store, 'applySyncPatch').mockRejectedValueOnce(
       new Error('Disk full')
@@ -1265,9 +1638,8 @@ describe('encrypted AI configuration sync', () => {
       await configure(b.ai, 'sk-synthetic-local-key', true)
       if (state === 'removed') await a.ai.clearSettings('deepseek')
       const preview = await b.service.preview(
-        JSON.stringify(await a.service.exportDocument(encryption)),
-        'import',
-        encryption
+        JSON.stringify(await a.service.exportDocument()),
+        'import'
       )
       await b.service.apply({ ...choices(preview), includeAiPreferences: true })
       expect(b.ai.getSettingsStatus()).toMatchObject({

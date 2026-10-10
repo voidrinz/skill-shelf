@@ -12,6 +12,7 @@ import type {
   SyncPackMember,
   SyncPackPreview,
   SyncPreview,
+  SyncImportStrategy,
 } from '../../shared/sync-contract'
 
 type Identify = (
@@ -66,6 +67,7 @@ export async function planSyncPacks({
   mode,
   resolutions = {},
   conflicts = [],
+  strategy = 'merge',
 }: {
   incoming: SyncPack[]
   snapshot: ManagedSkillsSnapshot
@@ -74,6 +76,7 @@ export async function planSyncPacks({
   mode: SyncPreview['mode']
   resolutions?: ApplySyncInput['resolutions']
   conflicts?: SyncConflict[]
+  strategy?: SyncImportStrategy
 }) {
   const members = await packMembers(snapshot, catalog, identify)
   const references = new Map(
@@ -124,8 +127,12 @@ export async function planSyncPacks({
         })
       }
     }
-    let description = existing?.description ?? pack.description
+    const replacing = mode === 'import' && strategy === 'replace'
+    let description = replacing
+      ? pack.description
+      : (existing?.description ?? pack.description)
     if (
+      !replacing &&
       existing &&
       pack.description &&
       pack.description !== existing.description
@@ -144,7 +151,10 @@ export async function planSyncPacks({
       }
     }
     const skillIds = [
-      ...new Set([...(existing?.skillIds ?? []), ...matchedIds]),
+      ...new Set([
+        ...(replacing ? [] : (existing?.skillIds ?? [])),
+        ...matchedIds,
+      ]),
     ]
     const changed =
       !existing ||

@@ -46,13 +46,37 @@ export interface SyncSkill {
 
 export interface SyncDocument {
   format: 'skill-shelf-metadata'
-  version: 1 | 2 | 3
+  version: 1 | 2 | 3 | 4
   exportedAt: string
   skills: SyncSkill[]
   preferences: Partial<PortableSettings>
   packs?: SyncPack[]
   aiPreferences?: PortableAiPreferences
-  aiConnections?: EncryptedAiConnections
+  aiConnections?: EncryptedAiConnections | PortableAiConnection[]
+  source?: SyncSource
+}
+
+export interface SyncSource {
+  deviceId: string
+  deviceName: string
+  appVersion: string
+}
+
+export type SyncImportStrategy = 'merge' | 'replace'
+
+export interface SyncCloudSnapshot {
+  id: string
+  kind: 'shared' | 'device'
+  exportedAt: string
+  skills: number
+  packs: number
+  source?: SyncSource
+}
+
+export interface PreviewCloudSnapshotInput {
+  snapshotId: string
+  strategy: SyncImportStrategy
+  password?: string
 }
 
 export interface PortableAiConnection {
@@ -133,6 +157,10 @@ export interface SyncPreview {
   packs?: SyncPackPreview
   aiPreferences?: PortableAiPreferences
   aiConnections?: SyncAiConnectionPreview[]
+  source?: SyncSource
+  uploadSource?: SyncSource
+  strategy?: SyncImportStrategy
+  snapshotKind?: SyncCloudSnapshot['kind']
 }
 
 export interface ApplySyncInput {
@@ -146,6 +174,7 @@ export interface SyncApplyResult {
   catalog: CatalogSnapshot
   settings: DesktopSettings
   aiSettings?: AiProviderSettingsStatus
+  cloudBackupSaved?: boolean
 }
 
 export interface WebDavInput {
