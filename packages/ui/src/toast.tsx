@@ -66,15 +66,20 @@ export function Toaster({
 
   return (
     <div
+      data-slot="toaster"
       className="pointer-events-none fixed inset-x-4 top-4 z-[100] mx-auto grid w-auto max-w-sm gap-2 sm:w-full"
       role="region"
       aria-label={label}
+      aria-live="polite"
+      aria-relevant="additions"
+      // Keep toast interactions from dismissing a dialog underneath.
+      onPointerDown={(event) => event.stopPropagation()}
     >
       {items.map((item) => (
         <div
           className="border-border/70 bg-popover text-popover-foreground animate-in fade-in slide-in-from-top-2 pointer-events-auto flex min-h-12 items-center gap-2.5 rounded-xl border px-3.5 py-3 shadow-[var(--ss-shadow-menu)]"
           key={item.id}
-          role="status"
+          role={item.tone === 'error' ? 'alert' : 'status'}
         >
           <ToastIcon tone={item.tone} />
           <div className="min-w-0 flex-1 text-[0.8125rem] leading-5">
