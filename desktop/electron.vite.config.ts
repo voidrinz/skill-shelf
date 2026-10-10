@@ -9,6 +9,8 @@ export default defineConfig({
       rollupOptions: {
         external: ['electron', 'node-pty', 'electron-updater'],
         input: resolve('src/main/index.ts'),
+        // Avoid the ESM shim path that emits an empty entry with Vite 8.
+        output: { format: 'cjs', entryFileNames: 'index.cjs' },
       },
     },
   },
