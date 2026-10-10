@@ -22,16 +22,20 @@ rename. Conversation mutations are serialized and become visible in memory
 only after persistence succeeds.
 
 Metadata sync includes translation language, model lists, default role models and
-context mode. Version 3 snapshots also carry API keys and connection enabled states
-in an AES-256-GCM encrypted block, using a scrypt key derived from the sync password
-and a fresh random salt and nonce. Both computers use the same password, separate
-from WebDAV credentials. The password is held only while the Sync page is open.
-Keys are never shown in sync previews or written as plaintext to export files or
-WebDAV snapshots. Other metadata remains readable in the snapshot.
+context mode. New version 4 snapshots carry API keys and connection enabled states
+as plain-text configuration in exported files, shared WebDAV snapshots, and each
+upload's original device backup. Exports and uploads require no encryption password
+or system Keychain access. Keys are never shown in sync previews.
+
+Version 3 snapshots retain support for their AES-256-GCM encrypted connections
+with a scrypt-derived key. Opening one asks for its original password only for
+that operation; the password is not saved. File import retries reuse the selected
+document, and cancelling clears it. Uploading merged legacy data writes version 4.
 
 Importing AI configuration replaces the corresponding local keys and enabled
-states. Opting out, or importing a version 1 or 2 document, retains local
-credentials. Conversations and model verification results remain local; changing
+states. Import previews allow opting out, and version 1 or 2 documents retain local
+credentials. Uploads always include all app preferences and AI configuration.
+Conversations and model verification results remain local; changing
 a key resets its verification results. Imports save an owner-only
 `ai-provider.json.sync-backup` and restore earlier AI writes if a later metadata
 write fails. Local provider files and backups still use the storage described above.

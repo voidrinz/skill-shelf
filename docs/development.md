@@ -104,12 +104,18 @@ Quit command to exit completely.
 ## Metadata Sync
 
 Settings > Sync supports file export/import and manual WebDAV upload/pull.
-Both methods use the same version 3 metadata document; versions 1 and 2 remain
+Both methods write version 4 metadata documents; versions 1, 2 and 3 remain
 importable. Skill files, deployment paths and WebDAV credentials are excluded.
-AI provider keys and enabled states travel in an AES-256-GCM encrypted block,
-using a password-derived scrypt key with a random salt and nonce. Enter the same
-sync password (at least 8 characters) on both computers. The password stays in
-memory while the Sync page is open and is never included in the document.
+AI provider keys and enabled states are included as plain-text configuration in
+both cloud snapshots and exported files. Uploads and exports need no encryption
+password or system Keychain access. Import previews show only key presence and
+provider enabled state, never the keys themselves.
+
+Version 3 backups retain support for their AES-256-GCM/scrypt encryption. Only
+when reading one of these backups does the UI ask for its original password.
+The password is used for that operation and is not saved. File import retries
+reuse the selected document; cancelling clears it. Uploading merged legacy data
+writes the new version 4 plain-text format, including the original device backup.
 
 Saving a WebDAV connection also persists its password by default. The version 1
 `webdav-sync.json` file stores the connection locally as unencrypted JSON with
@@ -119,7 +125,25 @@ never include the password. Existing unversioned, system-encrypted connections
 retain their URL and username, with an inline prompt to enter the password again.
 Reading them leaves the original file intact; network actions stay disabled until
 the replacement password is saved. WebDAV credentials remain local and separate
-from the session-only password used to encrypt AI configuration in sync files.
+from AI provider credentials included in sync files.
+
+Users enter the WebDAV service endpoint, such as `https://dav.jianguoyun.com/dav/`
+for Nutstore (with an app password). New connections store the snapshot at
+`SkillShelf/skill-shelf-metadata.json` below that endpoint. An address already
+ending in `SkillShelf/` uses that directory directly. All connections first check
+the app directory, then fall back to a snapshot directly under the service URL
+if it exists, including when a new computer joins an older setup. Uploads
+retain that location and its ETag so updates do not lose existing data or bypass
+concurrency checks. If both locations contain snapshots, the app directory takes
+precedence. Each upload uses the currently saved connection.
+
+Testing a connection or syncing automatically creates missing WebDAV directories.
+The app uses `PROPFIND` to find the nearest existing parent and `MKCOL` to create
+missing directories in order, checking again if another computer created one
+concurrently. Saving or reading local connection settings does not contact the
+server. An empty remote folder remains distinct from a missing folder: pulling
+an empty folder asks the user to upload data first. Directory setup never writes
+a sync snapshot, and upload retries retain the original conditional headers.
 
 Skill organization and cached translations merge only into matching installed
 Skills. Translations with a different source description are skipped and counted
@@ -128,13 +152,56 @@ matched against existing managed Skills by source identity or content fingerprin
 Missing or ambiguous members are listed in the preview. Uploads preserve cloud-only
 Packs and member references.
 
-The preview has separate switches for app preferences and AI configuration. AI
+The cloud browser opens only when the user clicks Pull data. It separates the current
+shared snapshot from upload history. Every upload has its own original backup, with
+computer name, upload time (including seconds) and Skill/Pack counts, newest first.
+The history count excludes the shared snapshot. A local `sync-device.json` keeps
+a stable random device ID across restarts; source information travels with both
+file exports and WebDAV snapshots. Older documents remain importable and show
+an unknown source until a new upload records it.
+
+The picker separates which cloud document to download from how it applies to local
+organization. The shared source is labeled "Latest cloud data"; the apply section
+repeats the selected source and defaults to merging with local data. Replacement
+uses the downloaded values on matching entries. Both choices lead to a change
+preview before local writes. Backup rows use two lines: timestamp and counts,
+then the source computer, with scrolling for longer histories.
+
+Uploads preserve the original local document separately from the merged shared
+document. Both documents always include all app preferences and AI configuration;
+upload has no preview, confirmation or scope switches. A single main-process
+operation reads the remote snapshot, merges management data and writes both
+documents. Tags and Pack membership merge; conflicting non-empty fields use the
+local value. Cloud-only entries are retained and local stores are not changed.
+Failed uploads discard their temporary merge plan; retry reads fresh remote data.
+Device snapshots use immutable UUID filenames below `SkillShelf/backups/`; a version 2
+`backups/index.json` retains every upload, including repeated uploads from one device.
+Conditional index writes retry concurrent edits without losing existing history.
+Version 1 indexes remain readable: a Depth 1 directory listing recovers older UUID
+backup files omitted by the previous latest-per-computer index. Missing indexes can
+also be recovered from existing backup files. Only direct UUID JSON files in the app's
+backup directory are read; invalid unindexed files are skipped. The next successful
+upload saves the recovered history in the version 2 index.
+The shared write keeps its original ETag protection. If the shared upload
+succeeds but its backup cannot be indexed, the UI reports partial success and
+does not incorrectly invite retrying a failed shared upload.
+
+Cloud imports default to merging. Replacement is a separate, explicit choice:
+it replaces matching Skill management fields, including empty fields, and
+same-name Pack descriptions/membership. Other Skills and Packs remain unchanged,
+and no Skill files or installations are added or removed. Both strategies use
+the same identity checks, stale-translation filtering, local backups and rollback
+protection. The selected strategy is fixed in the preview so confirmation cannot
+silently change it.
+
+Import previews have separate switches for app preferences and AI configuration,
+included by default and optional before confirmation. AI
 configuration includes provider keys, enabled states, translation language, model
 lists, default role models and context mode, selected by default when available.
 Previews show only provider names, key presence and enabled state. Imports replace
 the corresponding provider credentials and update the open application's AI
 settings immediately. Opting out preserves the local configuration; imports of
-older documents without encrypted connections preserve local credentials. Model
+older documents without provider connections preserve local credentials. Model
 verification results are local and reset when the key changes.
 
 Preview revisions cover Skill organization, Packs, member identities and AI
@@ -144,8 +211,8 @@ the local stores.
 
 Sync operation results use the app's floating toast notifications, including
 errors while a preview is open. Notifications do not change the page layout, and
-dismissing one leaves the preview open for a retry. Encryption password errors
-focus the password field after the operation finishes.
+dismissing one leaves the preview open for a retry. Legacy encrypted backups open
+a password dialog; incorrect passwords keep that dialog open for another attempt.
 
 ## Desktop Releases And Updates
 
