@@ -1,0 +1,35 @@
+desktop/src/renderer/src/pack-contents.test.tsx
+  s_d156a057076bd4::t_6f1815d7a91d70 150-151,162-163
+  s_d156a057076bd4::t_b46a19e3624b27 143-149,152-157,161,164-165,170-178,182-187
+  s_d156a057076bd4::t_05e16b29e75db6 188
+  s_d156a057076bd4::t_b7f293221fc175 169
+  s_d156a057076bd4::t_1a28cf4b0a45a6 158-160,166-168,179-181
+desktop/src/renderer/src/finder-library-workspace.test.tsx
+  s_d156a057076bd4::t_1a28cf4b0a45a6 196-198
+  s_d156a057076bd4::t_6f1815d7a91d70 176-195,199-208
+  s_d156a057076bd4::t_d3ec2a1a3cee1e 175
+desktop/src/renderer/src/finder-interactions.ts
+  s_d156a057076bd4::t_b46a19e3624b27 240,255
+desktop/src/renderer/src/finder-interactions.test.ts
+  s_d156a057076bd4::t_1a28cf4b0a45a6 279-297
+  s_d156a057076bd4::t_b46a19e3624b27 264,267,270,273,276-278
+  s_d156a057076bd4::t_934fe09726ec79 298
+desktop/src/renderer/src/pack-contents.tsx
+  s_d156a057076bd4::t_340ad06b6273a9 159
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "18967e0969aeb74e88b8347e4c618397459b2b2b",
+  "prompts": {},
+  "sessions": {
+    "s_d156a057076bd4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11f65-e785-7730-8ba3-2f272150ac9e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
