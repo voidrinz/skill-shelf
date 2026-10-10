@@ -1,0 +1,34 @@
+desktop/electron.vite.config.ts
+  s_195416a04c53e0::t_20b2a115f38ab9 12-13
+desktop/src/main/startup-build.test.ts
+  s_195416a04c53e0::t_3133de28230ebf 14,19-20,27,36
+  s_195416a04c53e0::t_0eb81bfe26a6df 21-26
+  s_195416a04c53e0::t_20b2a115f38ab9 1-7,11-13,15-18,28,39-44
+  s_195416a04c53e0::t_d429e8b207c6d1 8-10,29-35,37-38
+desktop/package.json
+  s_d156a057076bd4::t_86e2cbd4eea594 7
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "04b5c9795982cfa648607666d2ac3a05f54911ef",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    },
+    "s_d156a057076bd4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11f65-e785-7730-8ba3-2f272150ac9e",
+        "model": "unknown"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
