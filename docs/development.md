@@ -101,6 +101,21 @@ the panel releases its renderer and recreates it when opened again. Right-click
 the icon for the native menu. Use Quit in the panel/menu or the application's
 Quit command to exit completely.
 
+## Project Instructions
+
+In Skills, select a project in the scope sidebar and open **Project instructions**.
+The editor reads and saves `AGENTS.md` and `CLAUDE.md` in that project's root.
+Opening it does not create files. Keep shared rules in `AGENTS.md`, then use
+**Connect Claude** to append the native `@AGENTS.md` import to `CLAUDE.md` while
+preserving its existing contents. An existing import is left alone.
+
+Saving checks the file's content revision and refuses to overwrite changes from
+another editor. Previous contents are backed up under
+`project-instruction-backups` in the application's data directory. Symbolic
+links, protected files, non-text files, and files over 1 MiB cannot be edited
+through this interface. These project files remain local and are not included
+in metadata sync.
+
 ## Metadata Sync
 
 Settings > Sync supports file export/import and manual WebDAV upload/pull.

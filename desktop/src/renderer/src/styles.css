@@ -2,6 +2,129 @@
 @import '@skill-shelf/ui/styles.css';
 @source '../../../../packages/ui/src';
 
+[data-slot='dialog-content'].project-instructions-dialog {
+  display: flex;
+  width: min(800px, calc(100vw - 32px));
+  max-width: 800px;
+  max-height: calc(100dvh - 40px);
+  flex-direction: column;
+  gap: 14px;
+  overflow-y: auto;
+}
+.project-instructions-dialog [data-slot='dialog-header'] {
+  padding-right: 24px;
+}
+.project-instructions-path {
+  display: block;
+  overflow: hidden;
+  color: var(--ss-ink-faint);
+  font-family: var(--ss-font-mono);
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.project-instructions-bridge {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  border: 1px solid var(--border);
+  border-radius: var(--ss-radius-panel);
+  background: color-mix(in srgb, var(--accent) 48%, transparent);
+  padding: 12px 14px;
+}
+.project-instructions-bridge strong {
+  color: var(--ss-ink-strong);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+.project-instructions-bridge p,
+.project-instructions-file-hint,
+.project-instructions-unsaved,
+.project-instructions-error {
+  color: var(--muted-foreground);
+  font-size: 0.73rem;
+  line-height: 1.6;
+}
+.project-instructions-bridge p {
+  margin-top: 3px;
+}
+.project-instructions-bridge > button,
+.project-instructions-linked {
+  flex-shrink: 0;
+}
+.project-instructions-linked {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--primary);
+  font-size: 0.73rem;
+}
+.project-instructions-linked svg {
+  width: 14px;
+  height: 14px;
+}
+.project-instructions-files {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.project-instructions-tabs,
+.project-instructions-tab-content {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.project-instructions-dialog .project-instructions-editor {
+  width: 100%;
+  height: clamp(160px, 38dvh, 400px);
+  min-height: 120px;
+  flex: 0 0 auto;
+  resize: vertical;
+  border: 1px solid var(--border);
+  border-radius: var(--ss-radius-panel);
+  color: var(--ss-ink-strong);
+  background: var(--ss-field-surface);
+  padding: 14px;
+  font-family: var(--ss-font-mono);
+  font-size: 0.78rem;
+  line-height: 1.7;
+  tab-size: 2;
+}
+.project-instructions-editor:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.project-instructions-editor:disabled {
+  color: var(--muted-foreground);
+  cursor: default;
+}
+.project-instructions-error {
+  color: var(--destructive);
+}
+.project-instructions-dialog [data-slot='dialog-footer'] {
+  flex-shrink: 0;
+  align-items: center;
+}
+.project-instructions-unsaved {
+  margin-right: auto;
+}
+@media (max-width: 600px) {
+  .project-instructions-bridge {
+    flex-wrap: wrap;
+  }
+  .project-instructions-dialog [data-slot='dialog-footer'] {
+    flex-direction: row;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+  .project-instructions-unsaved {
+    width: 100%;
+  }
+}
+
 .app-update-status {
   display: grid;
   gap: 8px;

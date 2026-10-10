@@ -63,6 +63,15 @@ const desktopApi: SkillShelfDesktopApi = {
   },
   addSkill: (input) => ipcRenderer.invoke(desktopIpcChannels.skillAdd, input),
   addProject: () => ipcRenderer.invoke(desktopIpcChannels.projectAdd),
+  getProjectInstructions: (projectId) =>
+    ipcRenderer.invoke(desktopIpcChannels.projectInstructionsGet, projectId),
+  saveProjectInstruction: (input) =>
+    ipcRenderer.invoke(desktopIpcChannels.projectInstructionsSave, input),
+  connectProjectClaude: (input) =>
+    ipcRenderer.invoke(
+      desktopIpcChannels.projectInstructionsConnectClaude,
+      input
+    ),
   clearAiProviderSettings: (provider) =>
     ipcRenderer.invoke(desktopIpcChannels.aiProviderSettingsClear, provider),
   deleteAiConversation: (id) =>

@@ -29,6 +29,7 @@ import type {
   AiProviderVerificationInput,
   AiSkillRequest,
   CreateGroupInput,
+  ConnectProjectClaudeInput,
   DeployManagedSkillInput,
   ManagedDeploymentFolderPurpose,
   ManagedSkillDeploymentTarget,
@@ -36,6 +37,7 @@ import type {
   SaveAiConversationInput,
   SaveGroupInput,
   SaveOrganizationInput,
+  SaveProjectInstructionInput,
   SaveSkillDescriptionInput,
   SaveSkillTranslationInput,
   SaveSkillPackInput,
@@ -77,6 +79,7 @@ import { SyncDeviceService } from './services/sync-device-service'
 import type { PreviewCloudSnapshotInput } from '../shared/sync-contract'
 import { SkillsApiService } from './services/skills-api-service'
 import { listSkillFiles, readSkillFile } from './services/skill-file-service'
+import { ProjectInstructionsService } from './services/project-instructions-service'
 import {
   ManagedSkillService,
   type ManagedSkillDeploymentDestination,
@@ -234,6 +237,10 @@ function registerIpc(
   terminalService: TerminalService,
   workbench: WorkbenchService
 ) {
+  const projectInstructions = new ProjectInstructionsService(
+    async () => (await store.getState()).projects,
+    join(dirname(shelfFilePath), 'project-instruction-backups')
+  )
   const syncDevice = new SyncDeviceService(
     join(dirname(shelfFilePath), 'sync-device.json'),
     app.getVersion()
@@ -667,6 +674,26 @@ function registerIpc(
     trayController?.updateCatalog(result)
     return result
   })
+  const instructionHandler = createSyncIpcHandler(() => mainWindow)
+  ipcMain.handle(
+    desktopIpcChannels.projectInstructionsGet,
+    instructionHandler(
+      (value) => projectInstructions.get(assertIdentifier(value, 'project')),
+      { readOnly: true }
+    )
+  )
+  ipcMain.handle(
+    desktopIpcChannels.projectInstructionsSave,
+    instructionHandler((value) =>
+      projectInstructions.save(value as SaveProjectInstructionInput)
+    )
+  )
+  ipcMain.handle(
+    desktopIpcChannels.projectInstructionsConnectClaude,
+    instructionHandler((value) =>
+      projectInstructions.connectClaude(value as ConnectProjectClaudeInput)
+    )
+  )
   ipcMain.handle(
     desktopIpcChannels.managedDeploymentFolderSelect,
     async (_event, value: unknown) => {

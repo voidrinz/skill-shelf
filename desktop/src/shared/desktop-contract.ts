@@ -69,6 +69,9 @@ export const desktopIpcChannels = {
   managedSkillPackSave: 'managed:pack-save',
   projectAdd: 'project:add',
   projectRemove: 'project:remove',
+  projectInstructionsGet: 'project:instructions-get',
+  projectInstructionsSave: 'project:instructions-save',
+  projectInstructionsConnectClaude: 'project:instructions-connect-claude',
   dataOpenFolder: 'data:open-folder',
   runtimeGet: 'runtime:get',
   settingsGet: 'settings:get',
@@ -226,6 +229,35 @@ export interface ShelfProject {
 export interface CatalogProject extends ShelfProject {
   scanError?: string
   skillCount: number
+}
+
+export type ProjectInstructionName = 'AGENTS.md' | 'CLAUDE.md'
+
+export interface ProjectInstructionFile {
+  name: ProjectInstructionName
+  content: string
+  exists: boolean
+  readOnly: boolean
+  revision: string | null
+}
+
+export interface ProjectInstructions {
+  projectId: string
+  projectPath: string
+  files: Record<ProjectInstructionName, ProjectInstructionFile>
+  claudeUsesAgents: boolean
+}
+
+export interface SaveProjectInstructionInput {
+  projectId: string
+  name: ProjectInstructionName
+  content: string
+  expectedRevision: string | null
+}
+
+export interface ConnectProjectClaudeInput {
+  projectId: string
+  expectedRevision: string | null
 }
 
 export interface CatalogSnapshot {
@@ -952,6 +984,13 @@ export interface SkillShelfDesktopApi {
   ): () => void
   addSkill(input: AddSkillInput): Promise<OperationResult>
   addProject(): Promise<CatalogSnapshot | null>
+  getProjectInstructions(projectId: string): Promise<ProjectInstructions>
+  saveProjectInstruction(
+    input: SaveProjectInstructionInput
+  ): Promise<ProjectInstructions>
+  connectProjectClaude(
+    input: ConnectProjectClaudeInput
+  ): Promise<ProjectInstructions>
   clearAiProviderSettings(
     provider: AiProviderId
   ): Promise<AiProviderSettingsStatus>

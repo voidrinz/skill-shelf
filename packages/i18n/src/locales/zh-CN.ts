@@ -752,6 +752,42 @@ export const messages = {
   'desktop.installDialog.description':
     '粘贴 skills.sh 链接、GitHub 链接或 owner/repository。',
   'desktop.installDialog.title': '添加到你的书架',
+  'desktop.instructions.action': '项目指令',
+  'desktop.instructions.title': '{name} / 项目指令',
+  'desktop.instructions.description':
+    '将项目的通用规则写入 AGENTS.md，再让 Claude 通过 CLAUDE.md 读取同一份规则。',
+  'desktop.instructions.claude': 'Claude 兼容',
+  'desktop.instructions.bridgeDescription':
+    '在 CLAUDE.md 中追加 @AGENTS.md，保留原有指令。请先保存 AGENTS.md。',
+  'desktop.instructions.linked': 'CLAUDE.md 已引用 AGENTS.md。',
+  'desktop.instructions.linkedStatus': '已连接',
+  'desktop.instructions.connect': '连接 Claude',
+  'desktop.instructions.connected': 'Claude 已连接 AGENTS.md。',
+  'desktop.instructions.files': '项目指令文件',
+  'desktop.instructions.reload': '重新读取文件',
+  'desktop.instructions.existing':
+    '编辑项目根目录中的文件，保存前会备份原有内容。',
+  'desktop.instructions.newFile': '文件尚不存在，保存后会在项目根目录中创建。',
+  'desktop.instructions.readOnly':
+    '无法在此编辑该文件：它可能是符号链接、受保护、过大或非文本文件。',
+  'desktop.instructions.editor': '编辑 {name}',
+  'desktop.instructions.placeholder':
+    '# 项目指令\n\n描述项目约定、常用命令，以及编码 Agent 应遵循的规则。',
+  'desktop.instructions.save': '保存 {name}',
+  'desktop.instructions.saved': '{name} 已保存。',
+  'desktop.instructions.savedOnDisk': '没有未保存的修改',
+  'desktop.instructions.unsaved': '有未保存的修改',
+  'desktop.instructions.loading': '正在读取项目指令…',
+  'desktop.instructions.saveFirst': '请先保存非空的 AGENTS.md，再连接 Claude。',
+  'desktop.instructions.discardDescription': '放弃未保存的修改并关闭编辑器？',
+  'desktop.instructions.keepEditing': '继续编辑',
+  'desktop.instructions.discard': '放弃修改',
+  'desktop.instructions.error.conflict':
+    '文件已在其他编辑器中修改，当前草稿已保留。请先复制草稿，再重新打开并与最新文件合并。',
+  'desktop.instructions.error.missing':
+    '该项目已不可用，请检查目录后重新打开编辑器。',
+  'desktop.instructions.error.operation':
+    '无法读取或保存指令，请检查项目目录和文件权限。',
   'desktop.library.add': '添加 Skill',
   'desktop.library.addFirst': '添加 Skill',
   'desktop.library.clearSearch': '清除搜索',

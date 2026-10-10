@@ -309,6 +309,24 @@ it('keeps project skills separate from global status results', () => {
   ).toBe('true')
 })
 
+it('offers project instructions only for the selected project without reading files on navigation', () => {
+  mount()
+  const getProjectInstructions = vi.fn()
+  window.skillShelf.getProjectInstructions = getProjectInstructions
+  expect(
+    screen.queryByRole('button', { name: 'Project instructions' })
+  ).toBeNull()
+  fireEvent.click(screen.getByRole('button', { name: /Demo project.*1/ }))
+  expect(
+    screen.getByRole('button', { name: 'Project instructions' })
+  ).toBeTruthy()
+  expect(getProjectInstructions).not.toHaveBeenCalled()
+  fireEvent.click(screen.getByRole('button', { name: /^Global/ }))
+  expect(
+    screen.queryByRole('button', { name: 'Project instructions' })
+  ).toBeNull()
+})
+
 it('keeps the active status filter when switching between view modes', () => {
   const { container } = mount()
   fireEvent.click(screen.getByRole('button', { name: /Up to date\s*1$/ }))

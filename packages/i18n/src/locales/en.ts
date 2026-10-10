@@ -814,6 +814,45 @@ export const messages = {
   'desktop.installDialog.description':
     'Paste a skills.sh URL, GitHub URL, or owner/repository.',
   'desktop.installDialog.title': 'Add to your shelf',
+  'desktop.instructions.action': 'Project instructions',
+  'desktop.instructions.title': '{name} / Project instructions',
+  'desktop.instructions.description':
+    'Keep shared project rules in AGENTS.md. Connect Claude to load the same rules through CLAUDE.md.',
+  'desktop.instructions.claude': 'Claude compatibility',
+  'desktop.instructions.bridgeDescription':
+    'Append @AGENTS.md to CLAUDE.md, preserving its existing instructions. Save AGENTS.md first.',
+  'desktop.instructions.linked': 'CLAUDE.md already imports AGENTS.md.',
+  'desktop.instructions.linkedStatus': 'Connected',
+  'desktop.instructions.connect': 'Connect Claude',
+  'desktop.instructions.connected': 'Claude now imports AGENTS.md.',
+  'desktop.instructions.files': 'Project instruction files',
+  'desktop.instructions.reload': 'Reload files',
+  'desktop.instructions.existing':
+    'Edit the file in the project root. The previous content is backed up before saving.',
+  'desktop.instructions.newFile':
+    'This file does not exist yet. Saving creates it in the project root.',
+  'desktop.instructions.readOnly':
+    'This file cannot be edited here. It may be a symbolic link, protected, too large, or not a text file.',
+  'desktop.instructions.editor': 'Edit {name}',
+  'desktop.instructions.placeholder':
+    '# Project instructions\n\nDescribe the project conventions, common commands, and rules your coding agents should follow.',
+  'desktop.instructions.save': 'Save {name}',
+  'desktop.instructions.saved': '{name} saved.',
+  'desktop.instructions.savedOnDisk': 'No unsaved changes',
+  'desktop.instructions.unsaved': 'Unsaved changes',
+  'desktop.instructions.loading': 'Loading project instructions...',
+  'desktop.instructions.saveFirst':
+    'Save a nonempty AGENTS.md before connecting Claude.',
+  'desktop.instructions.discardDescription':
+    'Discard your unsaved changes and close the editor?',
+  'desktop.instructions.keepEditing': 'Keep editing',
+  'desktop.instructions.discard': 'Discard changes',
+  'desktop.instructions.error.conflict':
+    'The file changed in another editor. Your draft is preserved; copy it before reopening to merge with the latest file.',
+  'desktop.instructions.error.missing':
+    'This project is no longer available. Check its folder and reopen the editor.',
+  'desktop.instructions.error.operation':
+    'Could not read or save the instructions. Check the project folder and file permissions.',
   'desktop.library.add': 'Add skill',
   'desktop.library.addFirst': 'Add a skill',
   'desktop.library.clearSearch': 'Clear search',

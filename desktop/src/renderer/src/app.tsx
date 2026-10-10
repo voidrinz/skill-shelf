@@ -8,6 +8,7 @@ import {
   WorkbenchSkeleton,
 } from './loading-skeletons'
 import { SyncSettings } from './sync-settings'
+import { ProjectInstructionsButton } from './project-instructions'
 import { hasAppUpdate, useAppUpdate } from './app-update-context'
 import {
   lazy,
@@ -2132,6 +2133,11 @@ export function FinderLibraryWorkspace({
   const persistenceVersion = useRef(0)
   catalogRef.current = catalog
   const scopeKey = getLibraryScopeKey(filter)
+  const instructionProject = filter.startsWith('project:')
+    ? catalog?.projects.find(
+        (project) => project.id === filter.slice('project:'.length)
+      )
+    : undefined
   const finderLocationKey = `${scopeKey}:${currentFolderId ?? 'root'}`
   const currentFinderViewOptions = finderViewOptions[finderLocationKey] ?? {
     alignToGrid: false,
@@ -2573,6 +2579,12 @@ export function FinderLibraryWorkspace({
         <PageHeader
           actions={
             <>
+              {instructionProject ? (
+                <ProjectInstructionsButton
+                  key={instructionProject.id}
+                  project={instructionProject}
+                />
+              ) : null}
               <Button
                 disabled={Boolean(busyAction) || !catalog}
                 onClick={onRefresh}
