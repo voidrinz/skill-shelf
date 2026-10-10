@@ -1,0 +1,21 @@
+docs/development.md
+  s_195416a04c53e0::t_24fdaa61ee8cec 145-148
+  s_195416a04c53e0::t_bd0eb0453a4e49 114-123
+  s_195416a04c53e0::t_8eefab514772cc 149
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "47cf0d74dd22ae7bdc8465b29e986e12bc7d0675",
+  "prompts": {},
+  "sessions": {
+    "s_195416a04c53e0": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11e50-cc54-76c3-99aa-e723562867e6",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
