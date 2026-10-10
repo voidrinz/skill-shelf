@@ -604,6 +604,15 @@ export function SyncSettings({
                     })}
                   </p>
                 ) : null}
+                {preview.managedSkills && preview.managedSkills.total > 0 ? (
+                  <p className="sync-warning">
+                    {t('desktop.sync.managedSummary', {
+                      count: preview.managedSkills.total,
+                      added: preview.managedSkills.added,
+                      updated: preview.managedSkills.updated,
+                    })}
+                  </p>
+                ) : null}
                 {preview.packs?.skippedMembers.length ? (
                   <details className="sync-skipped-list">
                     <summary>
@@ -618,6 +627,23 @@ export function SyncSettings({
                             {member.packName} · {member.skillName}
                           </strong>
                           <span>{t(`desktop.sync.skip.${member.reason}`)}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </details>
+                ) : null}
+                {preview.managedSkills?.skipped.length ? (
+                  <details className="sync-skipped-list">
+                    <summary>
+                      {t('desktop.sync.managedSkipped', {
+                        count: preview.managedSkills.skipped.length,
+                      })}
+                    </summary>
+                    <ul>
+                      {preview.managedSkills.skipped.map((name, index) => (
+                        <li key={index}>
+                          <strong>{name}</strong>
+                          <span>{t('desktop.sync.skip.ambiguous')}</span>
                         </li>
                       ))}
                     </ul>
@@ -792,7 +818,7 @@ export function SyncSettings({
                     </div>
                   </label>
                 ) : null}
-                {!preview.matched ? (
+                {!preview.matched && !preview.managedSkills?.total ? (
                   <p className="sync-warning">{t('desktop.sync.noMatches')}</p>
                 ) : null}
               </div>
@@ -810,6 +836,8 @@ export function SyncSettings({
                     unresolved > 0 ||
                     (preview.changed === 0 &&
                       !preview.packs?.changed &&
+                      !preview.managedSkills?.added &&
+                      !preview.managedSkills?.updated &&
                       !includePreferences &&
                       !includeAiPreferences)
                   }
@@ -859,8 +887,12 @@ function isSyncPasswordError(error: unknown) {
 }
 
 function fieldLabel(conflict: SyncConflict, t: Translate) {
+  if (conflict.field === 'managed-files')
+    return t('desktop.sync.fieldManagedFiles')
   if (conflict.field === 'pack-description')
     return t('desktop.sync.fieldPackDescription')
+  if (conflict.field === 'pack-organization')
+    return t('desktop.sync.fieldPackOrganization')
   if (conflict.field.startsWith('description:'))
     return t('desktop.sync.fieldDescription', {
       language: conflict.field.slice(12),
@@ -879,6 +911,12 @@ function fieldLabel(conflict: SyncConflict, t: Translate) {
 }
 function syncError(error: unknown, t: Translate, action?: string) {
   const message = error instanceof Error ? error.message : String(error)
+  if (message.includes('Skill files are too large'))
+    return t('desktop.sync.error.managedTooLarge')
+  if (message.includes('Skill contains symbolic links'))
+    return t('desktop.sync.error.managedSymlinks')
+  if (message.includes('Invalid synced Skill path'))
+    return t('desktop.sync.error.managedPath')
   if (message.includes('backup index'))
     return t('desktop.sync.error.backupIndex')
   if (message.includes('snapshot unavailable'))

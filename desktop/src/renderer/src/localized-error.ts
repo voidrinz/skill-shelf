@@ -78,6 +78,9 @@ export function getLocalizedErrorMessage(error: unknown, t: Translate) {
   if (message.includes('Folder name already exists')) {
     return t('desktop.errors.folderNameExists')
   }
+  if (message.includes('Multiple library copies match this Skill')) {
+    return t('desktop.managed.ambiguousImport')
+  }
   if (message.includes('Skill is no longer installed')) {
     return t('desktop.errors.skillMissing')
   }

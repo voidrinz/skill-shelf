@@ -64,20 +64,33 @@ export const messages = {
   'desktop.managed.tagsHint':
     'Separate tags with commas; up to 12 tags, 32 characters each.',
   'desktop.managed.removeFromPack': 'Remove {name} from this Pack',
+  'desktop.managed.exportPack': 'Export Pack',
+  'desktop.managed.packExported':
+    'Pack exported with its Skills, groups, tags and order.',
+  'desktop.sync.fieldPackOrganization': 'Pack groups, tags and order',
+  'desktop.sync.managedSkipped': '{count} Packs Skills could not be matched',
+  'desktop.sync.snapshotCountsWithManaged':
+    '{skills} installed Skills, {managed} Packs Skills, {packs} Packs',
+  'desktop.sync.managedSummary':
+    '{count} Skills in Packs: {added} to add, {updated} with changes. Includes Default and all other Packs.',
+  'desktop.sync.fieldManagedFiles': 'Packs Skill files and description',
+  'desktop.sync.error.managedTooLarge':
+    'The Packs Skill files exceed the sync size limit. Each file can be up to 20 MiB, with up to 64 MiB of files in one snapshot.',
+  'desktop.sync.error.managedSymlinks':
+    'A Packs Skill contains a symbolic link. Replace it with the actual file or folder before syncing.',
+  'desktop.sync.error.managedPath':
+    'A Packs Skill has a file path that cannot be transferred between computers. Check its file names before syncing.',
   'desktop.workspace.loadErrorTitle': 'This page could not load',
   'desktop.workspace.loadErrorDescription':
     'Reload the app to try again, or open another page from the sidebar.',
   'desktop.workspace.reload': 'Reload app',
-  'desktop.managed.exportPack': 'Export Pack',
-  'desktop.managed.packExported':
-    'Pack exported with its Skills, groups, tags and order.',
   'desktop.sync.cloudTitle': 'Choose cloud data',
   'desktop.sync.cloudDescription':
-    'Choose which data to download, then decide how to apply it to your local organization.',
+    'Choose which data to download, then decide how to apply its Skills and organization locally.',
   'desktop.sync.chooseSnapshot': 'Which data to download',
   'desktop.sync.sharedSnapshot': 'Latest cloud data',
   'desktop.sync.sharedSnapshotDescription':
-    'Contains organization uploaded from all computers. Choose how to apply it locally below.',
+    'Contains Skills and organization uploaded from all computers. Choose how to apply it locally below.',
   'desktop.sync.historySource': '{date} · {name}',
   'desktop.sync.selectedCloudSource': 'Downloading from: {source}',
   'desktop.sync.uploadHistory': 'Upload history ({count})',
@@ -90,18 +103,18 @@ export const messages = {
   'desktop.sync.lastUploadFrom': 'Uploaded from {name}',
   'desktop.sync.unknownSource': 'Older version / unknown computer',
   'desktop.sync.cloudEmpty': 'No cloud data yet. Upload from a computer first.',
-  'desktop.sync.importStrategy': 'How to apply it to local organization',
+  'desktop.sync.importStrategy': 'How to apply it to local data',
   'desktop.sync.mergeStrategy': 'Merge with local data (recommended)',
   'desktop.sync.replaceStrategy': 'Use the downloaded values',
   'desktop.sync.mergeStrategyDescription':
-    'Combine tags and keep local-only entries. Choose how to resolve differing descriptions and folders in the next step.',
+    'Combine tags and keep local-only entries. Choose how to resolve differing Skill files, descriptions and folders in the next step.',
   'desktop.sync.replaceStrategyDescription':
-    'Replace organization on matching Skills and same-name Packs, including empty values. Other entries remain. Local data is backed up first.',
+    'Replace organization on matching Skills, same-name Packs, and matching Packs Skill files, including empty values. Add missing Packs Skills and keep unrelated entries. Local data is backed up first.',
   'desktop.sync.previewChanges': 'Next: Preview changes',
   'desktop.sync.replacePreview': 'Replacement preview',
   'desktop.sync.confirmReplace': 'Confirm replacement',
   'desktop.sync.replaced':
-    'Matching management data replaced. Previous metadata was backed up locally.',
+    'Matching data replaced. Previous data and replaced Skill files were backed up locally.',
   'desktop.sync.backupFailed':
     'Shared data uploaded, but the computer backup could not be saved. Upload again to retry the backup.',
   'desktop.sync.error.backupIndex':
@@ -110,10 +123,10 @@ export const messages = {
     'This backup has changed or was removed. Reopen the cloud list to choose again.',
   'desktop.sync.title': 'Sync',
   'desktop.sync.description':
-    'Bring your Skill organization to another computer.',
-  'desktop.sync.scopeTitle': 'Sync organization and app preferences',
+    'Bring your Packs Skills and Skill organization to another computer.',
+  'desktop.sync.scopeTitle': 'Sync Packs Skills, organization and preferences',
   'desktop.sync.scopeDescription':
-    'Uploads include Packs, folder hierarchy, tags, canvas positions, custom descriptions, translations, app preferences and AI configuration. AI API keys are included as plain text. Skill files, installations, local paths and WebDAV credentials stay on each computer.',
+    'Uploads include every Skill saved in Packs with its files, Pack membership, Pack groups, tags and order, installed Skill folder hierarchy, tags, canvas positions, descriptions, translations, app preferences and AI configuration. AI API keys are included as plain text. Original installed Skill files, deployments, local paths and WebDAV credentials stay on each computer.',
   'desktop.sync.legacyPasswordTitle': 'Read an older encrypted backup',
   'desktop.sync.legacyPasswordDescription':
     'This backup was encrypted by an earlier version. Enter its original password to read it. New uploads and exports do not use encryption passwords.',
@@ -133,14 +146,14 @@ export const messages = {
   'desktop.sync.error.decryption':
     'Could not read the encrypted backup. Check its original password; the file may also be damaged.',
   'desktop.sync.matchingDescription':
-    'Matches by source and Skill name; local Skills use content fingerprints. Project Skills also match the project name. Missing or ambiguous Skills are skipped.',
+    'Installed Skill organization matches by source and name; local Skills use content fingerprints. Project Skills also match the project name. Skills in Default and all other Packs are transferred with their files.',
   'desktop.sync.files': 'Export / import',
   'desktop.sync.filesTitle': 'Transfer with a file',
   'desktop.sync.filesDescription':
-    'Export on one computer, then import and preview on the other. Only matching Skills receive management data.',
-  'desktop.sync.export': 'Export management data',
-  'desktop.sync.import': 'Import management data',
-  'desktop.sync.exported': 'Management data exported.',
+    'Export on one computer, then import and preview on the other. Includes every Skill saved in Packs with its files, plus organization for matching installed Skills.',
+  'desktop.sync.export': 'Export sync data',
+  'desktop.sync.import': 'Import sync data',
+  'desktop.sync.exported': 'Sync data exported.',
   'desktop.sync.webdavTitle': 'Use your WebDAV storage',
   'desktop.sync.webdavDescription':
     'One click uploads all data and saves an original backup for this computer. Conflicting fields use local values; cloud-only entries are retained. Choose a source when pulling, then preview a merge or replacement before confirming.',
@@ -165,7 +178,7 @@ export const messages = {
   'desktop.sync.connected': 'WebDAV connection succeeded.',
   'desktop.sync.importPreview': 'Import preview',
   'desktop.sync.importPreviewDescription':
-    'Matching Skills receive merged tags and metadata. Other local Skills stay as they are. Nothing changes until you confirm.',
+    'Matching installed Skills receive merged organization. Skills saved in Packs are imported with their files and membership. Choose how to handle differing files before confirming.',
   'desktop.sync.snapshotDate': 'Snapshot from {date}',
   'desktop.sync.matched': 'Matched Skills',
   'desktop.sync.changed': 'Skills with changes',
@@ -200,12 +213,12 @@ export const messages = {
   'desktop.sync.packMembersSkipped':
     '{count} Pack members were not matched locally. Show details',
   'desktop.sync.noMatches':
-    'No matching Skills were found. Packs and selected preferences can still be merged.',
+    'No matching installed Skills were found. Packs Skills, Packs and selected preferences can still be merged.',
   'desktop.sync.confirmImport': 'Confirm merge',
   'desktop.sync.imported':
-    'Management data merged. A backup of the previous metadata was saved locally.',
+    'Sync data merged. Previous data and replaced Skill files were backed up locally.',
   'desktop.sync.uploaded':
-    'Management data uploaded. Cloud-only entries were preserved.',
+    'Sync data uploaded. Cloud-only entries were preserved.',
   'desktop.sync.fieldDescription': 'Description · {language}',
   'desktop.sync.fieldTranslation': 'Translation · {language}',
   'desktop.sync.fieldFolder': 'Folder hierarchy',

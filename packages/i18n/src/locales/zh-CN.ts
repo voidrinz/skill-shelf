@@ -65,20 +65,33 @@ export const messages = {
   'desktop.managed.tagsHint':
     '用逗号分隔，最多 12 个标签，每个最多 32 个字符。',
   'desktop.managed.removeFromPack': '从当前 Pack 移除 {name}',
+  'desktop.managed.exportPack': '导出 Pack',
+  'desktop.managed.packExported':
+    'Pack 已导出，包含 Skill 文件、分组、标签与顺序。',
+  'desktop.sync.fieldPackOrganization': 'Pack 分组、标签与顺序',
+  'desktop.sync.managedSkipped': '{count} 个 Packs Skill 无法确定匹配项',
+  'desktop.sync.snapshotCountsWithManaged':
+    '{skills} 个已安装 Skill，{managed} 个 Packs Skill，{packs} 个 Pack',
+  'desktop.sync.managedSummary':
+    'Packs 中共 {count} 个 Skill：新增 {added} 个，有修改 {updated} 个。包含 Default 和其他所有 Pack。',
+  'desktop.sync.fieldManagedFiles': 'Packs Skill 文件与描述',
+  'desktop.sync.error.managedTooLarge':
+    'Packs Skill 文件超过同步上限：单个文件最多 20 MiB，一份快照的文件总量最多 64 MiB。',
+  'desktop.sync.error.managedSymlinks':
+    'Packs 中有 Skill 包含符号链接，请先替换为实际文件或目录后再同步。',
+  'desktop.sync.error.managedPath':
+    'Packs 中有 Skill 的文件路径无法跨电脑传输，请检查文件命名后再同步。',
   'desktop.workspace.loadErrorTitle': '页面加载失败',
   'desktop.workspace.loadErrorDescription':
     '可以重新加载应用重试，或从侧栏打开其他页面。',
   'desktop.workspace.reload': '重新加载应用',
-  'desktop.managed.exportPack': '导出 Pack',
-  'desktop.managed.packExported':
-    'Pack 已导出，包含 Skill 文件、分组、标签与顺序。',
   'desktop.sync.cloudTitle': '选择云端数据',
   'desktop.sync.cloudDescription':
-    '先选择下载哪份数据，再决定如何处理本机的整理信息。',
+    '先选择下载哪份数据，再决定如何导入 Skill 文件与整理信息。',
   'desktop.sync.chooseSnapshot': '下载哪份数据',
   'desktop.sync.sharedSnapshot': '云端最新数据',
   'desktop.sync.sharedSnapshotDescription':
-    '包含各台电脑上传的整理信息；下载后再与本机同步。',
+    '包含各台电脑上传的 Skill 文件与整理信息；下载后再与本机同步。',
   'desktop.sync.historySource': '{date} · {name}',
   'desktop.sync.selectedCloudSource': '下载来源：{source}',
   'desktop.sync.uploadHistory': '上传历史（{count} 条）',
@@ -89,17 +102,18 @@ export const messages = {
   'desktop.sync.lastUploadFrom': '上传来源：{name}',
   'desktop.sync.unknownSource': '旧版本／未记录电脑',
   'desktop.sync.cloudEmpty': '云端还没有数据，请先从一台电脑上传。',
-  'desktop.sync.importStrategy': '下载后如何处理本机整理信息',
+  'desktop.sync.importStrategy': '下载后如何处理本机数据',
   'desktop.sync.mergeStrategy': '与本机合并（推荐）',
   'desktop.sync.replaceStrategy': '以下载的数据为准',
   'desktop.sync.mergeStrategyDescription':
-    '合并标签，保留本机独有条目；描述、分组等冲突在下一步选择。',
+    '合并标签，保留本机独有条目；Skill 文件、描述、分组等冲突在下一步选择。',
   'desktop.sync.replaceStrategyDescription':
-    '替换对应 Skill 和同名 Pack 的整理信息，包含空值。其他条目保留，替换前自动备份。',
+    '替换匹配 Skill、同名 Pack 的整理信息，以及匹配的 Packs Skill 文件，包含空值。新增缺少的 Packs Skill，保留其他条目，替换前自动备份。',
   'desktop.sync.previewChanges': '下一步：预览变更',
   'desktop.sync.replacePreview': '覆盖预览',
   'desktop.sync.confirmReplace': '确认覆盖匹配项',
-  'desktop.sync.replaced': '匹配项的管理数据已覆盖，原有管理数据已在本机备份。',
+  'desktop.sync.replaced':
+    '匹配项已覆盖，原有数据与被替换的 Skill 文件已在本机备份。',
   'desktop.sync.backupFailed':
     '合并数据已上传，但本机来源备份未能保存。可再次上传以重试保存备份。',
   'desktop.sync.error.backupIndex':
@@ -107,10 +121,10 @@ export const messages = {
   'desktop.sync.error.snapshotUnavailable':
     '这份备份已更新或被移除，请重新打开云端列表选择。',
   'desktop.sync.title': '同步',
-  'desktop.sync.description': '在不同电脑间同步你的 Skill 整理成果。',
-  'desktop.sync.scopeTitle': '同步整理成果与应用偏好',
+  'desktop.sync.description': '在不同电脑间同步 Packs Skill 与整理成果。',
+  'desktop.sync.scopeTitle': '同步 Packs Skill、整理成果与应用偏好',
   'desktop.sync.scopeDescription':
-    '上传包含 Packs、分组层级、标签、画布位置、自定义描述、译文、应用偏好和 AI 配置。AI API Key 以明文保存；Skill 文件、安装情况、本机路径和 WebDAV 账号凭据保留在各自电脑。',
+    '上传包含 Packs 中全部 Skill 及其文件、Pack 归属、包内分组、标签与排序，以及已安装 Skill 的分组层级、标签、画布位置、自定义描述、译文、应用偏好和 AI 配置。AI API Key 以明文保存；原始安装的 Skill 文件、部署记录、本机路径和 WebDAV 账号凭据保留在各自电脑。',
   'desktop.sync.legacyPasswordTitle': '读取旧版加密备份',
   'desktop.sync.legacyPasswordDescription':
     '这份备份由旧版本加密，请输入当时使用的密码。新的上传和导出不再需要加密密码。',
@@ -130,14 +144,14 @@ export const messages = {
   'desktop.sync.error.decryption':
     '无法读取旧版加密备份，请检查原来的密码是否正确，或备份是否损坏。',
   'desktop.sync.matchingDescription':
-    '按来源和 Skill 名称匹配；本地 Skill 使用内容指纹，项目 Skill 还会匹配项目名称。未找到或无法确定的条目会跳过。',
+    '已安装 Skill 的整理信息按来源和名称匹配，本地 Skill 使用内容指纹，项目 Skill 还会匹配项目名称。Default 和其他所有 Pack 中的 Skill 连同文件一起传输。',
   'desktop.sync.files': '导出／导入',
   'desktop.sync.filesTitle': '通过文件迁移',
   'desktop.sync.filesDescription':
-    '在一台电脑导出，在另一台电脑导入并预览。只为匹配的 Skill 合并管理数据。',
-  'desktop.sync.export': '导出管理数据',
-  'desktop.sync.import': '导入管理数据',
-  'desktop.sync.exported': '管理数据已导出。',
+    '在一台电脑导出，在另一台电脑导入并预览。包含 Packs 中全部 Skill 及其文件，以及匹配的已安装 Skill 整理信息。',
+  'desktop.sync.export': '导出同步数据',
+  'desktop.sync.import': '导入同步数据',
+  'desktop.sync.exported': '同步数据已导出。',
   'desktop.sync.webdavTitle': '使用你的 WebDAV 存储',
   'desktop.sync.webdavDescription':
     '点击即上传全部数据，并保留本机来源备份。字段冲突以本机为准，云端独有条目会保留。拉取时选择数据来源，预览合并或覆盖后再确认。',
@@ -161,7 +175,7 @@ export const messages = {
   'desktop.sync.connected': 'WebDAV 连接成功。',
   'desktop.sync.importPreview': '导入预览',
   'desktop.sync.importPreviewDescription':
-    '为匹配的 Skill 合并标签和管理数据，其他本机 Skill 保持原样。确认后才会写入。',
+    '合并匹配的已安装 Skill 整理信息，并导入 Packs 中保存的 Skill 文件及归属。文件有差异时先选择处理方式，确认后才会写入。',
   'desktop.sync.snapshotDate': '数据导出时间：{date}',
   'desktop.sync.matched': '匹配的 Skill',
   'desktop.sync.changed': '有变更的 Skill',
@@ -196,10 +210,11 @@ export const messages = {
   'desktop.sync.packMembersSkipped':
     '{count} 个 Pack 成员在本机未匹配，查看详情',
   'desktop.sync.noMatches':
-    '没有找到匹配的 Skill；仍可合并 Packs 和选定的偏好。',
+    '没有找到匹配的已安装 Skill；仍可导入 Packs Skill、Pack 和选定的偏好。',
   'desktop.sync.confirmImport': '确认合并',
-  'desktop.sync.imported': '管理数据已合并，原有管理数据已在本机备份。',
-  'desktop.sync.uploaded': '管理数据已上传，云端独有条目已保留。',
+  'desktop.sync.imported':
+    '同步数据已合并，原有数据与被替换的 Skill 文件已在本机备份。',
+  'desktop.sync.uploaded': '同步数据已上传，云端独有条目已保留。',
   'desktop.sync.fieldDescription': '描述 · {language}',
   'desktop.sync.fieldTranslation': '翻译 · {language}',
   'desktop.sync.fieldFolder': '分组层级',

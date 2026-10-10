@@ -156,8 +156,18 @@ Packs and empty groups can also be shared.
 ## Metadata Sync
 
 Settings > Sync supports file export/import and manual WebDAV upload/pull.
-Both methods write version 4 metadata documents; versions 1, 2 and 3 remain
-importable. Skill files, deployment paths and WebDAV credentials are excluded.
+Both methods write version 5 documents; versions 1 through 4 remain importable.
+Every Skill in Default and all additional Packs is included with its files.
+Portable Pack names and copy IDs keep same-source copies separate across Packs
+and preserve repeated imports within a Pack. The receiving computer creates
+copies with new local IDs and restores ownership, folders, colors, positions,
+tags and per-folder view options. Folder IDs are rebased through portable paths.
+Legacy version 5 shared file entries expand into independent copies per Pack.
+Legacy metadata-only Pack references copy matching local files when available
+and report unmatched or ambiguous members. Original
+installed Skill files, deployment records, machine paths and WebDAV credentials
+are excluded. Legacy snapshots contain only Pack references and cannot recreate
+missing Skill files; upload again from the updated app to include them.
 AI provider keys and enabled states are included as plain-text configuration in
 both cloud snapshots and exported files. Uploads and exports need no encryption
 password or system Keychain access. Import previews show only key presence and
@@ -167,7 +177,14 @@ Version 3 backups retain support for their AES-256-GCM/scrypt encryption. Only
 when reading one of these backups does the UI ask for its original password.
 The password is used for that operation and is not saved. File import retries
 reuse the selected document; cancelling clears it. Uploading merged legacy data
-writes the new version 4 plain-text format, including the original device backup.
+writes the new version 5 plain-text format, including the original device backup.
+
+Managed Skill payloads include nested files, binary assets, empty files and
+executable flags, with content hashes checked before importing. Each file is
+limited to 20 MiB; one snapshot can contain up to 64 MiB of decoded file content
+and 10,000 files. The serialized document is limited to 100 MiB. `.git` entries
+are excluded. Symbolic links and paths that cannot be transferred safely between
+operating systems are rejected. Empty directories are not transferred.
 
 Saving a WebDAV connection also persists its password by default. The version 1
 `webdav-sync.json` file stores the connection locally as unencrypted JSON with
@@ -200,13 +217,23 @@ a sync snapshot, and upload retries retain the original conditional headers.
 Skill organization and cached translations merge only into matching installed
 Skills. Translations with a different source description are skipped and counted
 in the preview. Packs merge by name, preserving local-only members; members are
-matched against existing managed Skills by source identity or content fingerprint.
+matched against existing or newly imported managed Skills by source identity or
+content fingerprint and name. Repeated imports reuse the same managed copies.
 Missing or ambiguous members are listed in the preview. Uploads preserve cloud-only
 Packs and member references.
+Version 5 also transfers each Pack's groups, tags and sorting mode. Member array
+order records the custom order; groups travel by name and receive local IDs on
+import. Merge previews offer local/incoming choices for differing Pack
+organization. Choosing incoming organization keeps local-only members and their
+groups in merge mode; replacement uses the downloaded membership and layout.
+Legacy snapshots that omit organization preserve the existing Pack layout.
+Uploads use local organization on matching members and preserve cloud-only
+members with their tags and group membership.
 
 The cloud browser opens only when the user clicks Pull data. It separates the current
 shared snapshot from upload history. Every upload has its own original backup, with
-computer name, upload time (including seconds) and Skill/Pack counts, newest first.
+computer name, upload time (including seconds) and installed Skill, managed Skill
+and Pack counts, newest first. Older snapshots retain their original counts.
 The history count excludes the shared snapshot. A local `sync-device.json` keeps
 a stable random device ID across restarts; source information travels with both
 file exports and WebDAV snapshots. Older documents remain importable and show
@@ -222,9 +249,10 @@ then the source computer, with scrolling for longer histories.
 Uploads preserve the original local document separately from the merged shared
 document. Both documents always include all app preferences and AI configuration;
 upload has no preview, confirmation or scope switches. A single main-process
-operation reads the remote snapshot, merges management data and writes both
+operation reads the remote snapshot, merges Skills and management data and writes both
 documents. Tags and Pack membership merge; conflicting non-empty fields use the
-local value. Cloud-only entries are retained and local stores are not changed.
+local value. Matching managed Skills use local files and descriptions; cloud-only
+Skills are retained. Local stores and files are not changed by uploading.
 Failed uploads discard their temporary merge plan; retry reads fresh remote data.
 Device snapshots use immutable UUID filenames below `SkillShelf/backups/`; a version 2
 `backups/index.json` retains every upload, including repeated uploads from one device.
@@ -240,8 +268,12 @@ does not incorrectly invite retrying a failed shared upload.
 
 Cloud imports default to merging. Replacement is a separate, explicit choice:
 it replaces matching Skill management fields, including empty fields, and
-same-name Pack descriptions/membership. Other Skills and Packs remain unchanged,
-and no Skill files or installations are added or removed. Both strategies use
+same-name Pack descriptions/membership, and matching managed Skill files and
+descriptions. Both strategies add missing managed Skills and preserve unrelated
+Skills and Packs. Merge previews require a local/incoming choice for differing
+managed files or descriptions. Original installations and copy deployments are
+not modified; existing symlink deployments continue pointing to the managed copy.
+Both strategies use
 the same identity checks, stale-translation filtering, local backups and rollback
 protection. The selected strategy is fixed in the preview so confirmation cannot
 silently change it.
@@ -256,10 +288,14 @@ settings immediately. Opting out preserves the local configuration; imports of
 older documents without provider connections preserve local credentials. Model
 verification results are local and reset when the key changes.
 
-Preview revisions cover Skill organization, Packs, member identities and AI
-preferences, keys and enabled states. Local imports back up all affected metadata stores and roll back
-Pack/AI writes if a later metadata write fails. Uploads do not apply changes to
-the local stores.
+Preview revisions cover Skill organization, Packs, member identities, all managed
+Skill files and AI preferences, keys and enabled states. Local imports back up
+all affected metadata stores and replaced managed folders. File backups live
+under `managed-skills.json.sync-files-backup/<transaction>/<skill-id>` beside the
+managed state file. New file trees are staged before swapping into place. If a
+later metadata write fails, Pack, file and AI writes are rolled back. Rollback
+refuses to overwrite files changed externally after the import. Uploads do not
+apply changes to local stores or files.
 
 Sync operation results use the app's floating toast notifications, including
 errors while a preview is open. Notifications do not change the page layout, and

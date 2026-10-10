@@ -79,10 +79,16 @@ export function SyncCloudBrowser({
             )}
           </strong>
           <small className="sync-cloud-item-counts">
-            {t('desktop.sync.snapshotCounts', {
-              skills: snapshot.skills,
-              packs: snapshot.packs,
-            })}
+            {t(
+              snapshot.managedSkills === undefined
+                ? 'desktop.sync.snapshotCounts'
+                : 'desktop.sync.snapshotCountsWithManaged',
+              {
+                skills: snapshot.skills,
+                packs: snapshot.packs,
+                managed: snapshot.managedSkills ?? 0,
+              }
+            )}
           </small>
         </span>
         <small className="sync-cloud-item-detail">

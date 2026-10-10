@@ -151,7 +151,7 @@ function setup({
 it('opens an unconfigured sync page in StrictMode without alerts or automatic sync requests', async () => {
   const { api } = setup({ strict: true, unconfigured: true })
   const exporting = screen.getByRole('button', {
-    name: 'Export management data',
+    name: 'Export sync data',
   })
   await waitFor(() =>
     expect((exporting as HTMLButtonElement).disabled).toBe(false)
@@ -170,7 +170,7 @@ it('opens an unconfigured sync page in StrictMode without alerts or automatic sy
 it('saves a new connection with its password without requiring a remember-password switch', async () => {
   const { api } = setup({ unconfigured: true })
   const exporting = screen.getByRole('button', {
-    name: 'Export management data',
+    name: 'Export sync data',
   })
   await waitFor(() =>
     expect((exporting as HTMLButtonElement).disabled).toBe(false)
@@ -248,7 +248,7 @@ it('shows legacy password reentry inline and enables WebDAV only after saving th
 it('exports, imports and uploads all data without an encryption password setup', async () => {
   const { api } = setup()
   const exporting = screen.getByRole('button', {
-    name: 'Export management data',
+    name: 'Export sync data',
   })
   await waitFor(() =>
     expect((exporting as HTMLButtonElement).disabled).toBe(false)
@@ -259,9 +259,7 @@ it('exports, imports and uploads all data without an encryption password setup',
   expect(screen.queryByRole('button', { name: 'Save password' })).toBeNull()
   fireEvent.click(exporting)
   await waitFor(() => expect(api.exportSyncData).toHaveBeenCalledWith())
-  fireEvent.click(
-    screen.getByRole('button', { name: 'Import management data' })
-  )
+  fireEvent.click(screen.getByRole('button', { name: 'Import sync data' }))
   await screen.findByRole('dialog', { name: 'Import preview' })
   expect(api.importSyncData).toHaveBeenCalledWith(undefined, false)
   fireEvent.click(screen.getByRole('button', { name: 'Cancel' }))
@@ -296,7 +294,7 @@ it('prompts only for an encrypted file and retries the selected import with its 
     new Error('Sync encryption password required')
   )
   const importing = screen.getByRole('button', {
-    name: 'Import management data',
+    name: 'Import sync data',
   })
   await waitFor(() =>
     expect((importing as HTMLButtonElement).disabled).toBe(false)
@@ -336,7 +334,7 @@ it('cancels an encrypted import without changing data and starts the next import
     new Error('Sync encryption password required')
   )
   const importing = screen.getByRole('button', {
-    name: 'Import management data',
+    name: 'Import sync data',
   })
   await waitFor(() =>
     expect((importing as HTMLButtonElement).disabled).toBe(false)
@@ -369,7 +367,7 @@ it('retries a legacy cloud upload with its original password', async () => {
   fireEvent.click(screen.getByRole('button', { name: 'Read backup' }))
   await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull())
   expect(api.pushWebDavSync).toHaveBeenLastCalledWith('synthetic-old-password')
-  expect(screen.getByText(/Management data uploaded/)).toBeTruthy()
+  expect(screen.getByText(/Sync data uploaded/)).toBeTruthy()
 })
 
 it('previews provider key presence and enabled state with a single opt-out for AI configuration', async () => {
@@ -394,7 +392,7 @@ it('previews provider key presence and enabled state with a single opt-out for A
   }
   const { api } = setup({ importPreview: value })
   const importing = screen.getByRole('button', {
-    name: 'Import management data',
+    name: 'Import sync data',
   })
   await waitFor(() =>
     expect((importing as HTMLButtonElement).disabled).toBe(false)
@@ -441,11 +439,11 @@ it('shows configuration read failures as a toast and allows reloading the connec
   fireEvent.click(screen.getByRole('button', { name: 'Dismiss notification' }))
   expect(screen.queryByRole('alert')).toBeNull()
   const exporting = screen.getByRole('button', {
-    name: 'Export management data',
+    name: 'Export sync data',
   })
   expect((exporting as HTMLButtonElement).disabled).toBe(false)
   fireEvent.click(exporting)
-  await screen.findByText('Management data exported.')
+  await screen.findByText('Sync data exported.')
   expect(api.exportSyncData).toHaveBeenCalledOnce()
   fireEvent.click(screen.getByRole('button', { name: 'Reload connection' }))
   await screen.findByText('WebDAV connection reloaded.')
@@ -459,7 +457,7 @@ it('shows configuration read failures as a toast and allows reloading the connec
 it('shows a failed merge above the preview and keeps the preview open when dismissing the toast', async () => {
   const { api, onApplied } = setup()
   const importing = screen.getByRole('button', {
-    name: 'Import management data',
+    name: 'Import sync data',
   })
   await waitFor(() =>
     expect((importing as HTMLButtonElement).disabled).toBe(false)
@@ -486,7 +484,7 @@ it('shows a failed merge above the preview and keeps the preview open when dismi
   expect(
     (
       await screen.findByText(
-        'Management data merged. A backup of the previous metadata was saved locally.'
+        'Sync data merged. Previous data and replaced Skill files were backed up locally.'
       )
     ).closest('[data-slot="toaster"]')
   ).toBeTruthy()
@@ -495,7 +493,7 @@ it('shows a failed merge above the preview and keeps the preview open when dismi
 it('does not show a success toast when the export file picker is cancelled', async () => {
   const { api } = setup()
   const exporting = screen.getByRole('button', {
-    name: 'Export management data',
+    name: 'Export sync data',
   })
   await waitFor(() =>
     expect((exporting as HTMLButtonElement).disabled).toBe(false)
@@ -552,7 +550,7 @@ it.each([
 it('previews an import and requires conflict choices before applying it', async () => {
   const { api, onApplied } = setup()
   const importing = screen.getByRole('button', {
-    name: 'Import management data',
+    name: 'Import sync data',
   })
   await waitFor(() =>
     expect((importing as HTMLButtonElement).disabled).toBe(false)
@@ -578,10 +576,73 @@ it('previews an import and requires conflict choices before applying it', async 
   expect(screen.queryByRole('dialog')).toBeNull()
 })
 
+it('allows importing an unassigned Packs Skill without installed matches, Pack changes or preferences', async () => {
+  const value: SyncPreview = {
+    ...preview,
+    matched: 0,
+    changed: 0,
+    skipped: 0,
+    skippedSkills: [],
+    conflicts: [],
+    managedSkills: {
+      total: 1,
+      added: 1,
+      updated: 0,
+      unchanged: 0,
+      skipped: [],
+    },
+  }
+  const { api } = setup({ importPreview: value })
+  const importing = screen.getByRole('button', { name: 'Import sync data' })
+  await waitFor(() =>
+    expect((importing as HTMLButtonElement).disabled).toBe(false)
+  )
+  fireEvent.click(importing)
+  await screen.findByRole('dialog', { name: 'Import preview' })
+  expect(
+    screen.getByText(/1 Skills in Packs: 1 to add, 0 with changes/)
+  ).toBeTruthy()
+  expect(
+    screen.queryByText(/No matching installed Skills were found/)
+  ).toBeNull()
+  fireEvent.click(
+    screen.getByRole('switch', { name: 'Also import app preferences' })
+  )
+  const confirm = screen.getByRole('button', { name: 'Confirm merge' })
+  expect((confirm as HTMLButtonElement).disabled).toBe(false)
+  fireEvent.click(confirm)
+  await waitFor(() =>
+    expect(api.applySyncData).toHaveBeenCalledWith({
+      previewId: value.id,
+      resolutions: {},
+      includePreferences: false,
+      includeAiPreferences: false,
+    })
+  )
+})
+
+it('shows Packs Skill counts for new cloud snapshots and retains the original counts for legacy backups', async () => {
+  const { api } = setup()
+  api.listWebDavSnapshots.mockResolvedValueOnce([
+    { ...cloudSnapshots[0]!, managedSkills: 5 },
+    cloudSnapshots[1]!,
+  ])
+  const pulling = screen.getByRole('button', { name: 'Pull data' })
+  await waitFor(() =>
+    expect((pulling as HTMLButtonElement).disabled).toBe(false)
+  )
+  fireEvent.click(pulling)
+  await screen.findByRole('dialog', { name: 'Choose cloud data' })
+  expect(
+    screen.getByText('110 installed Skills, 5 Packs Skills, 3 Packs')
+  ).toBeTruthy()
+  expect(screen.getByText('100 Skills, 2 Packs')).toBeTruthy()
+})
+
 it('cancels a preview without merging or uploading', async () => {
   const { api } = setup()
   const importing = screen.getByRole('button', {
-    name: 'Import management data',
+    name: 'Import sync data',
   })
   await waitFor(() =>
     expect((importing as HTMLButtonElement).disabled).toBe(false)
@@ -657,9 +718,7 @@ it('uploads all configuration immediately with one request and no confirmation d
   expect(screen.queryByRole('button', { name: 'Confirm upload' })).toBeNull()
   expect(screen.queryByRole('switch')).toBeNull()
   expect(
-    screen
-      .getByText(/Management data uploaded/)
-      .closest('[data-slot="toaster"]')
+    screen.getByText(/Sync data uploaded/).closest('[data-slot="toaster"]')
   ).toBeTruthy()
 })
 
@@ -919,7 +978,7 @@ it('reports shared upload success with a backup warning without keeping the prev
 it('defaults app preferences on for each import and supports opting out', async () => {
   const { api } = setup({ importPreview: { ...preview, conflicts: [] } })
   const importing = screen.getByRole('button', {
-    name: 'Import management data',
+    name: 'Import sync data',
   })
   await waitFor(() =>
     expect((importing as HTMLButtonElement).disabled).toBe(false)
@@ -954,7 +1013,7 @@ it('keeps import preferences optional without carrying an import opt-out into up
   const { api } = setup()
   api.importSyncData.mockResolvedValue({ ...preview, conflicts: [] })
   const importing = screen.getByRole('button', {
-    name: 'Import management data',
+    name: 'Import sync data',
   })
   const uploading = screen.getByRole('button', { name: 'Upload data' })
   await waitFor(() =>
@@ -1018,7 +1077,7 @@ it('previews Pack-only changes and imports AI defaults by default, with a separa
   }
   const { api } = setup({ importPreview: value })
   const importing = screen.getByRole('button', {
-    name: 'Import management data',
+    name: 'Import sync data',
   })
   await waitFor(() =>
     expect((importing as HTMLButtonElement).disabled).toBe(false)
@@ -1069,7 +1128,7 @@ it('allows an AI-preferences-only import without matching Skills or Pack changes
   }
   const { api } = setup({ importPreview: value })
   const importing = screen.getByRole('button', {
-    name: 'Import management data',
+    name: 'Import sync data',
   })
   await waitFor(() =>
     expect((importing as HTMLButtonElement).disabled).toBe(false)
