@@ -10070,38 +10070,13 @@ html[data-density='compact']
   line-height: 1.6;
 }
 .sync-url-field,
-.sync-remember-field,
 .sync-save-actions {
-  grid-column: 1 / -1;
-}
-.sync-webdav-form > .sync-remember-field {
-  grid-template-columns: 1fr auto;
-  align-items: center;
-}
-.sync-remember-field small {
   grid-column: 1 / -1;
 }
 .sync-webdav-actions {
   margin-top: 16px;
   padding-top: 14px;
   border-top: 1px solid var(--settings-border);
-}
-.sync-feedback {
-  border: 1px solid
-    color-mix(in srgb, var(--ss-success) 25%, var(--settings-border));
-  border-radius: var(--ss-radius-control);
-  color: var(--ss-success);
-  padding: 10px 12px;
-  font-size: 0.74rem;
-  line-height: 1.6;
-}
-.sync-feedback.is-error {
-  color: var(--destructive);
-  border-color: color-mix(
-    in srgb,
-    var(--destructive) 30%,
-    var(--settings-border)
-  );
 }
 .sync-preview-dialog {
   --settings-border: var(--border);

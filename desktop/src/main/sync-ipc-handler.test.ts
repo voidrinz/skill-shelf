@@ -19,14 +19,8 @@ function setup() {
 it('allows concurrent configuration reads when opening an unconfigured sync page', async () => {
   const { event, handle } = setup()
   const request = vi.fn<typeof fetch>()
-  const encryption = {
-    isEncryptionAvailable: vi.fn(() => false),
-    encryptString: vi.fn(),
-    decryptString: vi.fn(),
-  }
   const service = new WebDavSyncService(
     join(tmpdir(), `skill-shelf-missing-${randomUUID()}`, 'webdav.json'),
-    encryption,
     request
   )
   const read = handle(() => service.getStatus(), { readOnly: true })
@@ -35,11 +29,10 @@ it('allows concurrent configuration reads when opening an unconfigured sync page
     read(event, undefined),
   ])
   expect(results).toEqual([
-    { url: '', username: '', hasPassword: false, rememberPassword: false },
-    { url: '', username: '', hasPassword: false, rememberPassword: false },
+    { url: '', username: '', hasPassword: false, passwordNeedsReentry: false },
+    { url: '', username: '', hasPassword: false, passwordNeedsReentry: false },
   ])
   expect(request).not.toHaveBeenCalled()
-  expect(encryption.decryptString).not.toHaveBeenCalled()
 })
 
 it('allows settings reads during a sync while rejecting overlapping sync operations', async () => {

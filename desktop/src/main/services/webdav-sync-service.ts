@@ -4,16 +4,8 @@ import { dirname } from 'node:path'
 import type { WebDavInput, WebDavStatus } from '../../shared/sync-contract'
 import { MAX_SYNC_BYTES, parseSyncDocument } from './metadata-sync-service'
 
-interface EncryptionStorage {
-  isEncryptionAvailable(): boolean
-  encryptString(value: string): Buffer
-  decryptString(value: Buffer): string
-}
-interface SavedWebDav {
-  url: string
-  username: string
-  password?: string
-  rememberPassword: boolean
+interface SavedWebDav extends WebDavInput {
+  version: 1
 }
 export interface RemoteSyncFile {
   contents: string | null
@@ -22,10 +14,10 @@ export interface RemoteSyncFile {
 
 export class WebDavSyncService {
   private config: WebDavInput | null = null
+  private passwordNeedsReentry = false
   private initializing: Promise<void> | null = null
   constructor(
     private readonly path: string,
-    private readonly encryption: EncryptionStorage,
     private readonly request: typeof fetch = fetch
   ) {}
 
@@ -35,7 +27,7 @@ export class WebDavSyncService {
       url: this.config?.url ?? '',
       username: this.config?.username ?? '',
       hasPassword: Boolean(this.config?.password),
-      rememberPassword: this.config?.rememberPassword ?? false,
+      passwordNeedsReentry: this.passwordNeedsReentry,
     }
   }
 
@@ -46,21 +38,17 @@ export class WebDavSyncService {
     })
     const sameAccount =
       this.config?.url === input.url && this.config.username === input.username
+    if (sameAccount && this.passwordNeedsReentry && !input.password)
+      throw new Error('Sync WebDAV password required')
     const password =
       input.password === undefined && sameAccount
         ? (this.config?.password ?? '')
         : (input.password ?? '')
     const saved: SavedWebDav = {
+      version: 1,
       url: input.url,
       username: input.username,
-      rememberPassword: input.rememberPassword,
-    }
-    if (password && input.rememberPassword) {
-      if (!this.encryption.isEncryptionAvailable())
-        throw new Error('Sync credentials cannot be stored securely')
-      saved.password = this.encryption
-        .encryptString(password)
-        .toString('base64')
+      password,
     }
     await mkdir(dirname(this.path), { recursive: true })
     const temporary = `${this.path}.${randomUUID()}.tmp`
@@ -74,6 +62,7 @@ export class WebDavSyncService {
       await unlink(temporary).catch(() => {})
     }
     this.config = { ...input, password }
+    this.passwordNeedsReentry = false
     this.initializing = Promise.resolve()
     return this.getStatus()
   }
@@ -137,16 +126,22 @@ export class WebDavSyncService {
         try {
           const saved = JSON.parse(
             await readFile(this.path, 'utf8')
-          ) as SavedWebDav
-          const input = validateWebDavInput({ ...saved, password: undefined })
-          let password = ''
-          if (saved.password) {
-            if (!this.encryption.isEncryptionAvailable()) throw new Error()
-            password = this.encryption.decryptString(
-              Buffer.from(saved.password, 'base64')
-            )
-          }
-          this.config = { ...input, password }
+          ) as Partial<SavedWebDav>
+          if (!saved || (saved.version !== undefined && saved.version !== 1))
+            throw new Error()
+          if (
+            saved.password !== undefined &&
+            typeof saved.password !== 'string'
+          )
+            throw new Error()
+          // Unversioned files contain system-encrypted passwords. Never open the Keychain.
+          const input = validateWebDavInput({
+            ...saved,
+            password: saved.version === 1 ? saved.password : undefined,
+          })
+          this.config = input
+          this.passwordNeedsReentry =
+            saved.version === undefined && Boolean(saved.password)
         } catch (error) {
           if (
             error &&
@@ -171,6 +166,8 @@ export class WebDavSyncService {
     await this.initialize()
     const config = this.config
     if (!config) throw new Error('Sync WebDAV is not configured')
+    if (this.passwordNeedsReentry)
+      throw new Error('Sync WebDAV password required')
     try {
       const response = await this.request(new URL(file, config.url), {
         ...options,
@@ -215,8 +212,7 @@ export function validateWebDavInput(value: unknown): WebDavInput {
     input.username.includes(':') ||
     /[\r\n]/.test(input.username) ||
     (input.password !== undefined &&
-      (typeof input.password !== 'string' || input.password.length > 4096)) ||
-    typeof input.rememberPassword !== 'boolean'
+      (typeof input.password !== 'string' || input.password.length > 4096))
   )
     throw new Error('Invalid sync WebDAV settings')
   try {
@@ -236,7 +232,6 @@ export function validateWebDavInput(value: unknown): WebDavInput {
       url: url.href,
       username: input.username.trim(),
       password: input.password,
-      rememberPassword: input.rememberPassword,
     }
   } catch {
     throw new Error('Invalid sync WebDAV URL')

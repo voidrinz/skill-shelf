@@ -1,5 +1,14 @@
 import { createServer, type Server } from 'node:http'
-import { mkdtemp, readFile, rm, stat, writeFile } from 'node:fs/promises'
+import {
+  mkdir,
+  mkdtemp,
+  readFile,
+  readdir,
+  rename,
+  rm,
+  stat,
+  writeFile,
+} from 'node:fs/promises'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { afterEach, describe, expect, it, vi } from 'vitest'
@@ -29,13 +38,6 @@ afterEach(async () => {
       .map((path) => rm(path, { recursive: true, force: true }))
   )
 })
-const encryption = {
-  isEncryptionAvailable: () => true,
-  encryptString: (value: string) =>
-    Buffer.from([...Buffer.from(value)].map((byte) => byte ^ 123)),
-  decryptString: (value: Buffer) =>
-    Buffer.from([...value].map((byte) => byte ^ 123)).toString(),
-}
 const document: SyncDocument = {
   format: 'skill-shelf-metadata',
   version: 1,
@@ -43,11 +45,11 @@ const document: SyncDocument = {
   skills: [],
   preferences: { theme: 'dark' },
 }
-async function setup(request?: typeof fetch, storage = encryption) {
+async function setup(request?: typeof fetch) {
   const directory = await mkdtemp(join(tmpdir(), 'skill-shelf-webdav-'))
   directories.push(directory)
   const path = join(directory, 'webdav.json')
-  return { path, service: new WebDavSyncService(path, storage, request) }
+  return { path, service: new WebDavSyncService(path, request) }
 }
 
 describe('WebDAV sync', () => {
@@ -119,7 +121,6 @@ describe('WebDAV sync', () => {
       url: `http://127.0.0.1:${address.port}/dav`,
       username: 'user',
       password: 'secret',
-      rememberPassword: false,
     })
     await service.test()
     const missing = await service.read()
@@ -146,26 +147,31 @@ describe('WebDAV sync', () => {
     ).toBe(true)
   })
 
-  it('encrypts remembered passwords and never returns the secret to the renderer', async () => {
+  it('saves passwords by default in an owner-only file and restores authentication after restarting', async () => {
     const { path, service } = await setup()
     const status = await service.save({
       url: 'https://dav.example.com/shelf/',
       username: 'user',
       password: 'private-secret',
-      rememberPassword: true,
     })
     expect(status).toEqual({
       url: 'https://dav.example.com/shelf/',
       username: 'user',
       hasPassword: true,
-      rememberPassword: true,
+      passwordNeedsReentry: false,
     })
-    expect(await readFile(path, 'utf8')).not.toContain('private-secret')
+    expect(JSON.parse(await readFile(path, 'utf8'))).toEqual({
+      version: 1,
+      url: status.url,
+      username: status.username,
+      password: 'private-secret',
+    })
+    expect(status).not.toHaveProperty('password')
     expect((await stat(path)).mode & 0o777).toBe(0o600)
     const request = vi.fn<typeof fetch>(
       async () => new Response('<xml/>', { status: 207 })
     )
-    const restored = new WebDavSyncService(path, encryption, request)
+    const restored = new WebDavSyncService(path, request)
     await restored.test()
     expect(
       (request.mock.calls[0]![1]!.headers as Record<string, string>)
@@ -174,45 +180,109 @@ describe('WebDAV sync', () => {
     await service.save({
       url: status.url,
       username: status.username,
-      rememberPassword: false,
     })
     expect((await service.getStatus()).hasPassword).toBe(true)
-    expect(JSON.parse(await readFile(path, 'utf8')).password).toBeUndefined()
-    expect(
-      (await new WebDavSyncService(path, encryption).getStatus()).hasPassword
-    ).toBe(false)
-  })
-
-  it('does not reuse a saved password when the account or server changes', async () => {
-    const { service } = await setup()
+    expect(JSON.parse(await readFile(path, 'utf8')).password).toBe(
+      'private-secret'
+    )
+    expect((await new WebDavSyncService(path).getStatus()).hasPassword).toBe(
+      true
+    )
     await service.save({
-      url: 'https://one.example.com/',
-      username: 'a',
-      password: 'secret',
-      rememberPassword: false,
+      url: status.url,
+      username: status.username,
+      password: '',
     })
-    const status = await service.save({
-      url: 'https://two.example.com/',
-      username: 'a',
-      rememberPassword: false,
-    })
-    expect(status.hasPassword).toBe(false)
+    expect((await new WebDavSyncService(path).getStatus()).hasPassword).toBe(
+      false
+    )
   })
 
-  it('refuses to store credentials when system encryption is unavailable', async () => {
-    const { service } = await setup(undefined, {
-      ...encryption,
-      isEncryptionAvailable: () => false,
-    })
-    await expect(
-      service.save({
-        url: 'https://dav.example.com/',
-        username: 'user',
+  it.each([
+    { url: 'https://two.example.com/', username: 'a' },
+    { url: 'https://one.example.com/', username: 'b' },
+  ])(
+    'does not reuse a saved password when the account or server changes: %j',
+    async (input) => {
+      const { path, service } = await setup()
+      await service.save({
+        url: 'https://one.example.com/',
+        username: 'a',
         password: 'secret',
-        rememberPassword: true,
       })
-    ).rejects.toThrow('securely')
-    expect((await service.getStatus()).url).toBe('')
+      const status = await service.save(input)
+      expect(status.hasPassword).toBe(false)
+      expect((await new WebDavSyncService(path).getStatus()).hasPassword).toBe(
+        false
+      )
+    }
+  )
+
+  it('preserves legacy ciphertext and requires reentry without decrypting or making network requests', async () => {
+    const request = vi.fn<typeof fetch>(
+      async () => new Response('<xml/>', { status: 207 })
+    )
+    const { path, service } = await setup(request)
+    const legacy = JSON.stringify({
+      url: 'https://dav.example.com/',
+      username: 'user',
+      password: Buffer.from('legacy-system-ciphertext').toString('base64'),
+      rememberPassword: true,
+    })
+    await writeFile(path, legacy)
+    const status = await service.getStatus()
+    expect(status).toEqual({
+      url: 'https://dav.example.com/',
+      username: 'user',
+      hasPassword: false,
+      passwordNeedsReentry: true,
+    })
+    await expect(service.test()).rejects.toThrow('password required')
+    await expect(
+      service.save({ url: status.url, username: status.username })
+    ).rejects.toThrow('password required')
+    expect(request).not.toHaveBeenCalled()
+    expect(await readFile(path, 'utf8')).toBe(legacy)
+    await service.save({
+      url: status.url,
+      username: status.username,
+      password: 'replacement-secret',
+    })
+    const restored = new WebDavSyncService(path, request)
+    expect(await restored.getStatus()).toMatchObject({
+      hasPassword: true,
+      passwordNeedsReentry: false,
+    })
+    await restored.test()
+    expect(request.mock.calls[0]![1]!.headers).toMatchObject({
+      Authorization: `Basic ${Buffer.from('user:replacement-secret').toString('base64')}`,
+    })
+  })
+
+  it('keeps the previous password in memory if a replacement cannot be written', async () => {
+    const request = vi.fn<typeof fetch>(
+      async () => new Response('<xml/>', { status: 207 })
+    )
+    const { path, service } = await setup(request)
+    const input = {
+      url: 'https://dav.example.com/',
+      username: 'user',
+      password: 'original',
+    }
+    await service.save(input)
+    await rename(path, `${path}.backup`)
+    await mkdir(path)
+    await expect(
+      service.save({ ...input, password: 'replacement' })
+    ).rejects.toThrow()
+    await service.test()
+    expect(request.mock.calls[0]![1]!.headers).toMatchObject({
+      Authorization: `Basic ${Buffer.from('user:original').toString('base64')}`,
+    })
+    expect((await readdir(join(path, '..'))).sort()).toEqual([
+      'webdav.json',
+      'webdav.json.backup',
+    ])
   })
 
   it('rejects unsafe URLs and does not follow redirects or leak transport error details', async () => {
@@ -222,9 +292,9 @@ describe('WebDAV sync', () => {
       'file:///tmp/data',
       'https://dav.example.com/?token=secret',
     ]) {
-      expect(() =>
-        validateWebDavInput({ url, username: '', rememberPassword: false })
-      ).toThrow('Invalid sync WebDAV URL')
+      expect(() => validateWebDavInput({ url, username: '' })).toThrow(
+        'Invalid sync WebDAV URL'
+      )
     }
     const request = vi.fn<typeof fetch>(async () => {
       throw new Error('secret-server-error')
@@ -234,7 +304,6 @@ describe('WebDAV sync', () => {
       url: 'https://dav.example.com/',
       username: 'user',
       password: 'secret',
-      rememberPassword: false,
     })
     await expect(service.test()).rejects.toThrow('Sync WebDAV network error')
     expect(request.mock.calls[0]![1]).toMatchObject({ redirect: 'error' })
@@ -247,7 +316,6 @@ describe('WebDAV sync', () => {
     await service.save({
       url: 'https://dav.example.com/',
       username: '',
-      rememberPassword: false,
     })
     await expect(service.read()).rejects.toThrow('Invalid sync document')
     await expect(
@@ -276,7 +344,6 @@ describe('WebDAV sync', () => {
     await service.save({
       url: 'https://dav.example.com/',
       username: '',
-      rememberPassword: false,
     })
     await expect(service.read()).rejects.toThrow('Invalid sync document')
   })
@@ -284,16 +351,17 @@ describe('WebDAV sync', () => {
   it('allows replacing an unreadable saved connection with a new draft', async () => {
     const { path } = await setup()
     await writeFile(path, '{invalid data')
-    const service = new WebDavSyncService(path, encryption)
+    const service = new WebDavSyncService(path)
     await expect(service.getStatus()).rejects.toThrow('credentials unavailable')
     const result = await service.save({
       url: 'https://dav.example.com/',
       username: 'new-user',
       password: 'new-password',
-      rememberPassword: true,
     })
     expect(result).toMatchObject({ username: 'new-user', hasPassword: true })
-    expect(await readFile(path, 'utf8')).not.toContain('new-password')
+    expect(JSON.parse(await readFile(path, 'utf8')).password).toBe(
+      'new-password'
+    )
   })
 
   it('retries reading the saved connection after a temporary read failure', async () => {
@@ -305,14 +373,13 @@ describe('WebDAV sync', () => {
       JSON.stringify({
         url: 'https://dav.example.com/',
         username: 'user',
-        rememberPassword: false,
       })
     )
     await expect(service.getStatus()).resolves.toEqual({
       url: 'https://dav.example.com/',
       username: 'user',
-      rememberPassword: false,
       hasPassword: false,
+      passwordNeedsReentry: false,
     })
   })
 })

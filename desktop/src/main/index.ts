@@ -240,15 +240,7 @@ function registerIpc(
     { aiProvider, managedSkills }
   )
   const webDavSync = new WebDavSyncService(
-    join(dirname(shelfFilePath), 'webdav-sync.json'),
-    {
-      encryptString: (value) => safeStorage.encryptString(value),
-      decryptString: (value) => safeStorage.decryptString(value),
-      isEncryptionAvailable: () =>
-        safeStorage.isEncryptionAvailable() &&
-        (process.platform !== 'linux' ||
-          safeStorage.getSelectedStorageBackend() !== 'basic_text'),
-    }
+    join(dirname(shelfFilePath), 'webdav-sync.json')
   )
   let uploadPreview: { id: string; remote: RemoteSyncFile } | null = null
   const handleSync = createSyncIpcHandler(() => mainWindow)

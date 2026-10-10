@@ -4,11 +4,12 @@ export const messages = {
     'Bring your Skill organization to another computer.',
   'desktop.sync.scopeTitle': 'Sync organization and app preferences',
   'desktop.sync.scopeDescription':
-    'Includes Packs, folder hierarchy, tags, canvas positions, custom descriptions and translations, with optional app and AI configuration. AI API keys are encrypted with your sync password. Skill files, installations, local paths and WebDAV credentials stay on each computer.',
+    'Includes Packs, folder hierarchy, tags, canvas positions, custom descriptions and translations, with optional app and AI configuration. AI API keys use the encryption password below. Skill files, installations, local paths and WebDAV credentials stay on each computer.',
   'desktop.sync.encryptionTitle': 'AI configuration sync',
-  'desktop.sync.encryptionPassword': 'Sync password',
+  'desktop.sync.encryptionPassword': 'AI configuration encryption password',
   'desktop.sync.encryptionHint':
-    'Use the same password (at least 8 characters) on both computers to protect AI API keys. This is separate from your WebDAV password and is kept only while this page is open.',
+    'Choose a password of at least 8 characters to encrypt AI API keys when exporting or uploading. Enter the same password on the other computer when importing or pulling. It is separate from your WebDAV login and is kept only while this page is open.',
+  'desktop.sync.encryptionPlaceholder': 'Set or enter at least 8 characters',
   'desktop.sync.importAiConfiguration': 'Also import AI configuration',
   'desktop.sync.uploadAiConfiguration': 'Also upload AI configuration',
   'desktop.sync.aiConfigurationDescription':
@@ -19,7 +20,7 @@ export const messages = {
   'desktop.sync.aiConnectionEnabled': 'enabled',
   'desktop.sync.aiConnectionDisabled': 'disabled',
   'desktop.sync.error.encryptionPassword':
-    'Enter a sync password of at least 8 characters to transfer AI provider configuration. Use the same password on both computers.',
+    'Enter an AI configuration encryption password of at least 8 characters. Choose your own password when exporting; use the same password when importing.',
   'desktop.sync.error.decryption':
     'Could not decrypt the AI configuration. Check your sync password; the file may also be damaged.',
   'desktop.sync.matchingDescription':
@@ -40,11 +41,13 @@ export const messages = {
   'desktop.sync.username': 'Username',
   'desktop.sync.password': 'Password / app password',
   'desktop.sync.passwordSaved': 'Keep the current password',
-  'desktop.sync.rememberPassword': 'Remember password on this computer',
-  'desktop.sync.rememberHint':
-    'Stored with system encryption. Otherwise enter it again after restarting.',
+  'desktop.sync.passwordHint':
+    'Saving the connection also saves the password locally for future launches.',
+  'desktop.sync.passwordReentry':
+    'Enter your WebDAV password once more and save the connection.',
   'desktop.sync.save': 'Save connection',
   'desktop.sync.reloadSettings': 'Reload connection',
+  'desktop.sync.reloaded': 'WebDAV connection reloaded.',
   'desktop.sync.saved': 'WebDAV connection saved.',
   'desktop.sync.test': 'Test connection',
   'desktop.sync.push': 'Upload data',
@@ -120,7 +123,7 @@ export const messages = {
   'desktop.sync.error.ambiguous':
     'Some Skills have duplicate identities. Use file import to review them; the cloud snapshot was not changed.',
   'desktop.sync.error.credentials':
-    'The saved password could not be read or stored securely on this computer.',
+    'Could not read or save the local WebDAV connection.',
   'desktop.sync.error.url':
     'Enter a valid HTTPS WebDAV folder URL without credentials or query parameters.',
   'desktop.sync.error.auth':

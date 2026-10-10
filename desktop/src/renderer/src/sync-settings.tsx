@@ -17,6 +17,7 @@ import {
   DialogTitle,
   Input,
   Switch,
+  toast,
 } from '@skill-shelf/ui'
 import { useI18n } from '@skill-shelf/i18n/react'
 import type {
@@ -33,7 +34,7 @@ const emptyWebDav: WebDavStatus = {
   url: '',
   username: '',
   hasPassword: false,
-  rememberPassword: false,
+  passwordNeedsReentry: false,
 }
 
 export function SyncSettings({
@@ -47,11 +48,10 @@ export function SyncSettings({
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [syncPassword, setSyncPassword] = useState('')
-  const [rememberPassword, setRememberPassword] = useState(false)
   const [busy, setBusy] = useState<string | null>(null)
-  const [error, setError] = useState<string | null>(null)
-  const [connectionError, setConnectionError] = useState<string | null>(null)
-  const [status, setStatus] = useState<string | null>(null)
+  const [connectionUnavailable, setConnectionUnavailable] = useState(false)
+  const [passwordInvalid, setPasswordInvalid] = useState(false)
+  const syncPasswordRef = useRef<HTMLInputElement>(null)
   const [preview, setPreview] = useState<SyncPreview | null>(null)
   const [resolutions, setResolutions] = useState<
     Record<string, 'local' | 'incoming'>
@@ -62,39 +62,54 @@ export function SyncSettings({
   const mounted = useRef(true)
   previewRef.current = preview
   const dirty =
-    url !== saved.url ||
-    username !== saved.username ||
-    Boolean(password) ||
-    rememberPassword !== saved.rememberPassword
-  const ready = Boolean(saved.url) && !dirty && !busy
+    url !== saved.url || username !== saved.username || Boolean(password)
+  const needsPassword =
+    saved.passwordNeedsReentry &&
+    url === saved.url &&
+    username === saved.username
+  const ready =
+    Boolean(saved.url) &&
+    !saved.passwordNeedsReentry &&
+    !connectionUnavailable &&
+    !dirty &&
+    !busy
 
   function applySettings(next: WebDavStatus) {
-    setConnectionError(null)
+    setConnectionUnavailable(false)
     setSaved(next)
     setUrl(next.url)
     setUsername(next.username)
     setPassword('')
-    setRememberPassword(next.rememberPassword)
   }
 
   async function run(action: string, operation: () => Promise<void>) {
     if (busy) return
     setBusy(action)
-    setError(null)
-    setStatus(null)
-    if (action === 'load') setConnectionError(null)
+    setPasswordInvalid(false)
     try {
       await operation()
     } catch (caught) {
       if (mounted.current) {
-        if (action === 'load')
-          setConnectionError(t('desktop.sync.error.loadConnection'))
-        else setError(syncError(caught, t))
+        if (action === 'load') {
+          setConnectionUnavailable(true)
+          toast.error(t('desktop.sync.error.loadConnection'), {
+            duration: 6000,
+          })
+        } else {
+          toast.error(syncError(caught, t), { duration: 6000 })
+          if (isSyncPasswordError(caught)) {
+            setPasswordInvalid(true)
+          }
+        }
       }
     } finally {
       if (mounted.current) setBusy(null)
     }
   }
+
+  useEffect(() => {
+    if (passwordInvalid && !busy) syncPasswordRef.current?.focus()
+  }, [passwordInvalid, busy])
 
   useEffect(() => {
     mounted.current = true
@@ -107,7 +122,12 @@ export function SyncSettings({
           if (active) applySettings(next)
         },
         () => {
-          if (active) setConnectionError(t('desktop.sync.error.loadConnection'))
+          if (active) {
+            setConnectionUnavailable(true)
+            toast.error(t('desktop.sync.error.loadConnection'), {
+              duration: 6000,
+            })
+          }
         }
       )
       .finally(() => {
@@ -178,16 +198,6 @@ export function SyncSettings({
         <p>{t('desktop.sync.scopeDescription')}</p>
         <p>{t('desktop.sync.matchingDescription')}</p>
       </div>
-      {error && !preview ? (
-        <div className="sync-feedback is-error" role="alert">
-          {error}
-        </div>
-      ) : null}
-      {status ? (
-        <div className="sync-feedback" role="status">
-          {status}
-        </div>
-      ) : null}
       <section className="settings-section">
         <h3>{t('desktop.sync.encryptionTitle')}</h3>
         <div className="setting-rows">
@@ -201,14 +211,20 @@ export function SyncSettings({
               </small>
             </div>
             <Input
+              ref={syncPasswordRef}
               id="sync-encryption-password"
               aria-describedby="sync-encryption-hint"
+              aria-invalid={passwordInvalid || undefined}
+              placeholder={t('desktop.sync.encryptionPlaceholder')}
               className="setting-input"
               type="password"
               value={syncPassword}
               disabled={Boolean(busy)}
               maxLength={1024}
-              onChange={(event) => setSyncPassword(event.target.value)}
+              onChange={(event) => {
+                setSyncPassword(event.target.value)
+                setPasswordInvalid(false)
+              }}
               autoComplete="off"
             />
           </div>
@@ -234,7 +250,7 @@ export function SyncSettings({
                       syncPassword || undefined
                     )
                   )
-                    setStatus(t('desktop.sync.exported'))
+                    toast.success(t('desktop.sync.exported'))
                 })
               }
             >
@@ -269,11 +285,6 @@ export function SyncSettings({
               <p>{t('desktop.sync.webdavDescription')}</p>
             </div>
           </div>
-          {connectionError ? (
-            <p className="sync-feedback is-error" role="alert">
-              {connectionError}
-            </p>
-          ) : null}
           <form
             className="sync-webdav-form"
             onSubmit={(event) => {
@@ -284,10 +295,9 @@ export function SyncSettings({
                     url,
                     username,
                     ...(password ? { password } : {}),
-                    rememberPassword,
                   })
                 )
-                setStatus(t('desktop.sync.saved'))
+                toast.success(t('desktop.sync.saved'))
               })
             }}
           >
@@ -316,6 +326,8 @@ export function SyncSettings({
               <span>{t('desktop.sync.password')}</span>
               <Input
                 type="password"
+                aria-label={t('desktop.sync.password')}
+                aria-describedby="webdav-password-hint"
                 value={password}
                 disabled={Boolean(busy)}
                 onChange={(event) => setPassword(event.target.value)}
@@ -324,20 +336,22 @@ export function SyncSettings({
                 }
                 autoComplete="new-password"
               />
-            </label>
-            <label className="sync-remember-field">
-              <span>{t('desktop.sync.rememberPassword')}</span>
-              <Switch
-                checked={rememberPassword}
-                disabled={Boolean(busy)}
-                onCheckedChange={setRememberPassword}
-                aria-label={t('desktop.sync.rememberPassword')}
-              />
-              <small>{t('desktop.sync.rememberHint')}</small>
+              <small id="webdav-password-hint">
+                {t(
+                  needsPassword
+                    ? 'desktop.sync.passwordReentry'
+                    : 'desktop.sync.passwordHint'
+                )}
+              </small>
             </label>
             <div className="sync-actions sync-save-actions">
               <Button
-                disabled={Boolean(busy) || !url.trim() || !dirty}
+                disabled={
+                  Boolean(busy) ||
+                  !url.trim() ||
+                  !dirty ||
+                  (needsPassword && !password)
+                }
                 type="submit"
                 size="sm"
               >
@@ -348,9 +362,10 @@ export function SyncSettings({
                 size="sm"
                 variant="ghost"
                 onClick={() =>
-                  void run('load', async () =>
+                  void run('load', async () => {
                     applySettings(await window.skillShelf.getWebDavSettings())
-                  )
+                    toast.success(t('desktop.sync.reloaded'))
+                  })
                 }
               >
                 {label('load', t('desktop.sync.reloadSettings'), <RefreshCw />)}
@@ -365,7 +380,7 @@ export function SyncSettings({
               onClick={() =>
                 void run('test', async () => {
                   await window.skillShelf.testWebDavConnection()
-                  setStatus(t('desktop.sync.connected'))
+                  toast.success(t('desktop.sync.connected'))
                 })
               }
             >
@@ -416,6 +431,13 @@ export function SyncSettings({
         <DialogContent
           className="sync-preview-dialog"
           closeLabel={t('common.close')}
+          onInteractOutside={(event) => {
+            if (
+              event.target instanceof Element &&
+              event.target.closest('[data-slot="toaster"]')
+            )
+              event.preventDefault()
+          }}
         >
           <DialogHeader>
             <DialogTitle>
@@ -693,11 +715,6 @@ export function SyncSettings({
                 {preview.mode === 'import' && !preview.matched ? (
                   <p className="sync-warning">{t('desktop.sync.noMatches')}</p>
                 ) : null}
-                {error ? (
-                  <p className="sync-feedback is-error" role="alert">
-                    {error}
-                  </p>
-                ) : null}
               </div>
               <DialogFooter>
                 <Button
@@ -727,7 +744,7 @@ export function SyncSettings({
                       })
                       onApplied(result)
                       setPreview(null)
-                      setStatus(
+                      toast.success(
                         t(
                           preview.mode === 'upload'
                             ? 'desktop.sync.uploaded'
@@ -757,6 +774,11 @@ export function SyncSettings({
 }
 
 type Translate = ReturnType<typeof useI18n>['t']
+function isSyncPasswordError(error: unknown) {
+  const message = error instanceof Error ? error.message : String(error)
+  return /sync encryption password|Sync decryption failed/i.test(message)
+}
+
 function fieldLabel(conflict: SyncConflict, t: Translate) {
   if (conflict.field === 'pack-description')
     return t('desktop.sync.fieldPackDescription')
@@ -794,6 +816,8 @@ function syncError(error: unknown, t: Translate) {
   if (message.includes('conflicts need')) return t('desktop.sync.error.choices')
   if (message.includes('ambiguous Skills'))
     return t('desktop.sync.error.ambiguous')
+  if (message.includes('Sync WebDAV password required'))
+    return t('desktop.sync.passwordReentry')
   if (message.includes('credentials'))
     return t('desktop.sync.error.credentials')
   if (message.includes('Invalid sync WebDAV URL'))

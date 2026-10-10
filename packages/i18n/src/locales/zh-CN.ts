@@ -5,11 +5,12 @@ export const messages = {
   'desktop.sync.description': '在不同电脑间同步你的 Skill 整理成果。',
   'desktop.sync.scopeTitle': '同步整理成果与应用偏好',
   'desktop.sync.scopeDescription':
-    '包含 Packs、分组层级、标签、画布位置、自定义描述和译文；也可同步应用及 AI 配置。AI API Key 使用同步密码加密，Skill 文件、安装情况、本机路径和 WebDAV 账号凭据保留在各自电脑。',
+    '包含 Packs、分组层级、标签、画布位置、自定义描述和译文；也可同步应用及 AI 配置。AI API Key 使用下方的加密密码保护，Skill 文件、安装情况、本机路径和 WebDAV 账号凭据保留在各自电脑。',
   'desktop.sync.encryptionTitle': 'AI 配置同步',
-  'desktop.sync.encryptionPassword': '同步密码',
+  'desktop.sync.encryptionPassword': 'AI 配置加密密码',
   'desktop.sync.encryptionHint':
-    '两台电脑使用同一密码（至少 8 位）保护 AI API Key。它与 WebDAV 登录密码不同，仅在当前页面打开期间保留。',
+    '自行设置至少 8 位密码，用于加密导出或上传的 AI API Key。另一台电脑导入或拉取时输入相同密码。它与 WebDAV 登录密码独立，仅在本页打开期间保留。',
+  'desktop.sync.encryptionPlaceholder': '设置或输入至少 8 位密码',
   'desktop.sync.importAiConfiguration': '同时导入 AI 配置',
   'desktop.sync.uploadAiConfiguration': '同时上传 AI 配置',
   'desktop.sync.aiConfigurationDescription':
@@ -20,7 +21,7 @@ export const messages = {
   'desktop.sync.aiConnectionEnabled': '已启用',
   'desktop.sync.aiConnectionDisabled': '已停用',
   'desktop.sync.error.encryptionPassword':
-    '请输入至少 8 位的同步密码以传输 AI 提供商配置，两台电脑需使用相同的密码。',
+    '请填写至少 8 位的 AI 配置加密密码。导出时自行设置，另一台电脑导入时使用相同密码。',
   'desktop.sync.error.decryption':
     '无法解密 AI 配置，请检查同步密码是否正确，或同步文件是否损坏。',
   'desktop.sync.matchingDescription':
@@ -41,11 +42,12 @@ export const messages = {
   'desktop.sync.username': '用户名',
   'desktop.sync.password': '密码／应用专用密码',
   'desktop.sync.passwordSaved': '保留当前密码',
-  'desktop.sync.rememberPassword': '在本机记住密码',
-  'desktop.sync.rememberHint':
-    '使用系统加密保存；不记住时，重启应用后需要重新输入。',
+  'desktop.sync.passwordHint':
+    '保存连接后，密码会在本地保存，重启无需重新输入。',
+  'desktop.sync.passwordReentry': '请重新输入一次 WebDAV 密码并保存连接。',
   'desktop.sync.save': '保存连接',
   'desktop.sync.reloadSettings': '重新读取连接',
+  'desktop.sync.reloaded': 'WebDAV 连接已重新读取。',
   'desktop.sync.saved': 'WebDAV 连接已保存。',
   'desktop.sync.test': '测试连接',
   'desktop.sync.push': '上传数据',
@@ -116,7 +118,7 @@ export const messages = {
   'desktop.sync.error.choices': '请先为每个冲突选择处理方式。',
   'desktop.sync.error.ambiguous':
     '部分 Skill 身份重复。请通过文件导入检查，云端数据未修改。',
-  'desktop.sync.error.credentials': '无法在这台电脑上安全读取或保存密码。',
+  'desktop.sync.error.credentials': '无法读取或保存本地 WebDAV 连接。',
   'desktop.sync.error.url':
     '请填写有效的 HTTPS WebDAV 文件夹地址，不要在地址中包含密码或查询参数。',
   'desktop.sync.error.auth':

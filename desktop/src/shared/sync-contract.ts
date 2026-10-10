@@ -152,12 +152,11 @@ export interface WebDavInput {
   url: string
   username: string
   password?: string
-  rememberPassword: boolean
 }
 
 export interface WebDavStatus {
   url: string
   username: string
   hasPassword: boolean
-  rememberPassword: boolean
+  passwordNeedsReentry: boolean
 }
