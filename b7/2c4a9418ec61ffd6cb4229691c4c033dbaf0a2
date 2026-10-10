@@ -1,0 +1,56 @@
+packages/i18n/src/locales/zh-CN.ts
+  s_d156a057076bd4::t_7d21c2126a91be 71
+  s_d156a057076bd4::t_5d2ef8b6aee1c8 76,147
+  s_d156a057076bd4::t_1fd59d1c71b961 72
+  s_d156a057076bd4::t_9b2cb72fa8db0c 73-75,77-83,111,178
+  s_d156a057076bd4::t_4b307e31396deb 90,94,105,109,124-125,151-154,213,217
+  s_d156a057076bd4::t_302c27da38896e 115-116,215-216
+  s_d156a057076bd4::t_52133e96a8ffca 127
+  s_d156a057076bd4::t_72a83644631748 68-70
+packages/i18n/src/locales/en.ts
+  s_d156a057076bd4::t_9b2cb72fa8db0c 72-74,76-82,112,181
+  s_d156a057076bd4::t_c5ce54946025de 89,93,106,110,117,126-127,153,216,219,221
+  s_d156a057076bd4::t_5d2ef8b6aee1c8 75,149
+  s_d156a057076bd4::t_0735dddf16ed54 129
+  s_d156a057076bd4::t_9b6256d6f26474 154-156
+  s_d156a057076bd4::t_1fd59d1c71b961 71
+  s_d156a057076bd4::t_9449df66678fbc 70
+  s_d156a057076bd4::t_96ffe08c23deb0 67-69
+desktop/src/renderer/src/localized-error.ts
+  s_d156a057076bd4::t_faf2bab1676a5c 81-83
+desktop/src/renderer/src/sync-settings.tsx
+  s_d156a057076bd4::t_cb9b3fd01e5182 607-615,651
+  s_d156a057076bd4::t_5b4862b15ba3d9 821,839-840
+  s_d156a057076bd4::t_3d47a198875528 894-895
+  s_d156a057076bd4::t_e3d5e87aa16521 890-891,914-919
+  s_d156a057076bd4::t_6f7fb64573f3a4 637-646
+  s_d156a057076bd4::t_1fd59d1c71b961 635-636
+  s_d156a057076bd4::t_ebf7b9c0dc2f97 647-650
+desktop/src/renderer/src/sync-settings.test.tsx
+  s_d156a057076bd4::t_9b6256d6f26474 154,173,251,297,337,370,395,442,446,460,487,496,553,645,981,1016,1080,1131
+  s_d156a057076bd4::t_302c27da38896e 262,597-599,602-610,614-621,631-633,636-638,721
+  s_d156a057076bd4::t_19680200807cd7 579-596,600-601,611-613,622,624-630,634-635,639-641
+  s_d156a057076bd4::t_fc969e2d27fc83 623
+desktop/src/renderer/src/sync-cloud-browser.tsx
+  s_d156a057076bd4::t_e3d5e87aa16521 82-91
+docs/development.md
+  s_d156a057076bd4::t_61f0f51b8a0ab2 159,168-170,180-187,220-221,235-236,252,254-255,271-276,291-298
+  s_d156a057076bd4::t_8691b50344c4ae 224-231
+  s_d156a057076bd4::t_0a474e17824888 160-167
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "b72c4a9418ec61ffd6cb4229691c4c033dbaf0a2",
+  "prompts": {},
+  "sessions": {
+    "s_d156a057076bd4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11f65-e785-7730-8ba3-2f272150ac9e",
+        "model": "gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
