@@ -443,7 +443,11 @@ function buildCoverage(
     { agentNames: string[]; directory: string; scan: DirectoryScan }
   >
 ): AgentCoverageEntry[] {
-  const sharedReaders = new Set<string>(getUniversalInstallTarget().agentIds)
+  const universal = getUniversalInstallTarget()
+  const sharedReaders = new Set<string>([
+    ...universal.agentIds,
+    ...universal.hiddenAgentIds,
+  ])
 
   return observedAgents
     .map(

@@ -104,6 +104,27 @@ afterEach(async () => {
 })
 
 describe('WorkbenchService', () => {
+  it('counts hidden universal readers without requiring an Agent-local deployment', async () => {
+    const root = await mkdtemp(join(tmpdir(), 'skill-shelf-workbench-'))
+    temporaryDirectories.push(root)
+    const shared = await createSharedInventory(root, ['alpha'])
+    const replit = registryAgent(root, 'replit', 'Replit')
+    await mkdir(replit.detectionPaths[0]!, { recursive: true })
+    const { snapshot } = await createWorkbench(
+      { scanExternalSkills: async () => catalogOf([]) },
+      [replit],
+      shared
+    ).getSnapshot()
+    expect(snapshot.agentCoverage[0]).toMatchObject({
+      id: 'replit',
+      readsSharedDirectory: true,
+      availableSkills: 1,
+      missingSkillNames: [],
+      linkedSkills: 0,
+      directSkills: 0,
+    })
+  })
+
   it('counts program evidence separately from leftover directories and detects programs without a Skill folder', async () => {
     const root = await mkdtemp(join(tmpdir(), 'skill-shelf-workbench-'))
     temporaryDirectories.push(root)
