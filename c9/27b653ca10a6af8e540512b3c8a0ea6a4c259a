@@ -1,0 +1,21 @@
+desktop/src/main/services/workbench-service.ts
+  s_cde75939230731::t_2a78e7f0649b0d 446-450
+desktop/src/main/services/workbench-service.test.ts
+  s_cde75939230731::t_9c9ced71a6ef32 107-127
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "c927b653ca10a6af8e540512b3c8a0ea6a4c259a",
+  "prompts": {},
+  "sessions": {
+    "s_cde75939230731": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13326-e8e1-79f3-86b0-41b1de7ff3ea",
+        "model": "merlin/gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
