@@ -23,6 +23,9 @@ remain on the user's machine, and Skill Shelf metadata is stored under the
 Electron application data directory. See [AI data storage](ai-storage.md)
 for local file permissions and migration from older encrypted files.
 
+See [Agent Skill access](agent-skill-access.md) for shared-directory connections,
+link and copy semantics, ownership tracking, and preview safety guarantees.
+
 The desktop and website both support English and Simplified Chinese. Desktop
 language preferences are stored in `shelf.json`; the website stores language
 and appearance preferences in browser storage.
