@@ -1,5 +1,10 @@
 import type { AppLink } from './app-links'
 import type {
+  AgentAccessPreview,
+  AgentSkillAccessSnapshot,
+  PreviewAgentAccessInput,
+} from './agent-access-contract'
+import type {
   ApplySyncInput,
   SyncApplyResult,
   SyncPreview,
@@ -95,6 +100,11 @@ export const desktopIpcChannels = {
   workbenchGet: 'workbench:get',
   workbenchOpenDirectory: 'workbench:open-directory',
   workbenchChanged: 'workbench:changed',
+  agentAccessGet: 'agent-access:get',
+  agentAccessPreview: 'agent-access:preview',
+  agentAccessApply: 'agent-access:apply',
+  agentAccessDiscard: 'agent-access:discard',
+  agentAccessOpenFolder: 'agent-access:open-folder',
   trayAction: 'tray:action',
   trayReady: 'tray:ready',
 } as const
@@ -1125,4 +1135,15 @@ export interface SkillShelfDesktopApi {
   ): Promise<AiProviderSettingsStatus>
   getWorkbench(): Promise<WorkbenchScanResult>
   openWorkbenchDirectory(agentId: string): Promise<void>
+  getAgentSkillAccess(agentId: string): Promise<AgentSkillAccessSnapshot>
+  previewAgentSkillAccess(
+    input: PreviewAgentAccessInput
+  ): Promise<AgentAccessPreview>
+  applyAgentSkillAccess(previewId: string): Promise<AgentSkillAccessSnapshot>
+  discardAgentSkillAccessPreview(previewId: string): Promise<void>
+  openAgentSkillAccessFolder(input: {
+    agentId: string
+    skillName: string
+    location: 'source' | 'target'
+  }): Promise<void>
 }

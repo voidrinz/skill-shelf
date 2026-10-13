@@ -124,6 +124,16 @@ const desktopApi: SkillShelfDesktopApi = {
   getWorkbench: () => ipcRenderer.invoke(desktopIpcChannels.workbenchGet),
   openWorkbenchDirectory: (agentId) =>
     ipcRenderer.invoke(desktopIpcChannels.workbenchOpenDirectory, agentId),
+  getAgentSkillAccess: (agentId) =>
+    ipcRenderer.invoke(desktopIpcChannels.agentAccessGet, agentId),
+  previewAgentSkillAccess: (input) =>
+    ipcRenderer.invoke(desktopIpcChannels.agentAccessPreview, input),
+  applyAgentSkillAccess: (previewId) =>
+    ipcRenderer.invoke(desktopIpcChannels.agentAccessApply, previewId),
+  discardAgentSkillAccessPreview: (previewId) =>
+    ipcRenderer.invoke(desktopIpcChannels.agentAccessDiscard, previewId),
+  openAgentSkillAccessFolder: (input) =>
+    ipcRenderer.invoke(desktopIpcChannels.agentAccessOpenFolder, input),
   getSkillFiles: (skillId) =>
     ipcRenderer.invoke(desktopIpcChannels.skillFilesGet, skillId),
   searchMarketplace: (query) =>

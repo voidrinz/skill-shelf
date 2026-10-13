@@ -89,6 +89,8 @@ import { SkillsCliService } from './services/skills-cli-service'
 import { SkillAiService } from './services/skill-ai-service'
 import { TerminalService } from './services/terminal-service'
 import { WorkbenchService } from './services/workbench-service'
+import { AgentAccessService } from './services/agent-access-service'
+import { registerAgentAccessIpc } from './agent-access-ipc'
 import { TrayController } from './tray-controller'
 import { createSyncIpcHandler } from './sync-ipc-handler'
 import { AppUpdateService } from './services/app-update-service'
@@ -236,8 +238,21 @@ function registerIpc(
   store: ShelfStore,
   shelfFilePath: string,
   terminalService: TerminalService,
-  workbench: WorkbenchService
+  workbench: WorkbenchService,
+  agentAccess: AgentAccessService
 ) {
+  registerAgentAccessIpc({
+    ipc: ipcMain,
+    service: agentAccess,
+    getMainWindow: () => mainWindow,
+    openPath: (path) => shell.openPath(path),
+    onChanged: async () => {
+      const result = await workbench.getSnapshot()
+      trayController?.updateWorkbench(result)
+      if (mainWindow && !mainWindow.isDestroyed())
+        mainWindow.webContents.send(desktopIpcChannels.workbenchChanged, result)
+    },
+  })
   const projectInstructions = new ProjectInstructionsService(
     async () => (await store.getState()).projects,
     join(dirname(shelfFilePath), 'project-instruction-backups')
@@ -1790,6 +1805,9 @@ if (instanceLock)
     )
     await managedSkills.initialize()
     const workbench = new WorkbenchService(catalog)
+    const agentAccess = new AgentAccessService(
+      join(app.getPath('userData'), 'agent-skill-access.json')
+    )
     const macBundle = getMacApplicationBundle(process.execPath)
     const macKeyPath = join(
       process.resourcesPath,
@@ -1874,7 +1892,8 @@ if (instanceLock)
       store,
       shelfFilePath,
       terminal,
-      workbench
+      workbench,
+      agentAccess
     )
     trayController = new TrayController({
       appName: identity.appName,
