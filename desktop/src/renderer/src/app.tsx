@@ -13,6 +13,7 @@ import {
 import { SearchField, preserveSearchOnEscape } from './search-field'
 import { AboutAppCard } from './about-app-card'
 import { AgentCoverageCard } from './agent-coverage-card'
+import { AgentAccessWorkspace } from './agent-access-workspace'
 import { WorkbenchOverview, WorkbenchFileChecks } from './workbench-overview'
 import {
   DiscoverySkeleton,
@@ -4193,6 +4194,8 @@ export function WorkbenchWorkspace({
   const [error, setError] = useState<string | null>(null)
   const [untrackedOpen, setUntrackedOpen] = useState(false)
   const [untrackedBusy, setUntrackedBusy] = useState<string | null>(null)
+  const [accessAgentId, setAccessAgentId] = useState<string | null>(null)
+  const accessOriginRef = useRef<HTMLElement | null>(null)
   const initialScanStartedRef = useRef(false)
 
   const loadWorkbench = useCallback(async () => {
@@ -4247,109 +4250,134 @@ export function WorkbenchWorkspace({
   }
 
   return (
-    <section className="workbench-workspace">
-      <PageHeader
-        actions={
-          <Button
-            disabled={loading}
-            onClick={() => void loadWorkbench()}
-            size="sm"
-            variant="outline"
-          >
-            <RefreshCw className={cn(loading && 'animate-spin')} />
-            {loading
-              ? t('desktop.workbench.scanning')
-              : t('desktop.workbench.refresh')}
-          </Button>
-        }
-        className="workbench-page-header"
-        description={t('desktop.workbench.description')}
-        eyebrow={t('desktop.workbench.eyebrow')}
-        title={t('desktop.workbench.title')}
+    <section
+      className={cn('workbench-workspace', accessAgentId && 'is-access-mode')}
+    >
+      {snapshot && accessAgentId ? (
+        <AgentAccessWorkspace
+          focusedAgents={focusedAgents}
+          initialAgentId={accessAgentId}
+          onBack={() => {
+            setAccessAgentId(null)
+            requestAnimationFrame(() => accessOriginRef.current?.focus())
+          }}
+          onChanged={loadWorkbench}
+          onOpenDirectory={openDirectory}
+          snapshot={snapshot}
+        />
+      ) : null}
+      <div
+        className="workbench-overview-surface"
+        hidden={Boolean(snapshot && accessAgentId)}
       >
-        {snapshot ? (
-          <div className="workbench-scan-meta">
-            <span className="status-dot" />
-            {t('desktop.workbench.lastScanned', {
-              time: date(snapshot.scannedAt, {
-                hour: '2-digit',
-                minute: '2-digit',
-                second: '2-digit',
-              }),
-            })}
-            <i />
-            {t('desktop.workbench.localScan')}
-          </div>
-        ) : loading ? (
-          <div
-            aria-hidden="true"
-            className="workbench-scan-meta skeleton-scan-meta"
-          >
-            <span className="skeleton-block" />
+        <PageHeader
+          actions={
+            <Button
+              disabled={loading}
+              onClick={() => void loadWorkbench()}
+              size="sm"
+              variant="outline"
+            >
+              <RefreshCw className={cn(loading && 'animate-spin')} />
+              {loading
+                ? t('desktop.workbench.scanning')
+                : t('desktop.workbench.refresh')}
+            </Button>
+          }
+          className="workbench-page-header"
+          description={t('desktop.workbench.description')}
+          eyebrow={t('desktop.workbench.eyebrow')}
+          title={t('desktop.workbench.title')}
+        >
+          {snapshot ? (
+            <div className="workbench-scan-meta">
+              <span className="status-dot" />
+              {t('desktop.workbench.lastScanned', {
+                time: date(snapshot.scannedAt, {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                  second: '2-digit',
+                }),
+              })}
+              <i />
+              {t('desktop.workbench.localScan')}
+            </div>
+          ) : loading ? (
+            <div
+              aria-hidden="true"
+              className="workbench-scan-meta skeleton-scan-meta"
+            >
+              <span className="skeleton-block" />
+            </div>
+          ) : null}
+        </PageHeader>
+
+        {loading && !snapshot ? <WorkbenchSkeleton /> : null}
+        {error && !snapshot ? (
+          <div className="workbench-error">
+            <CircleAlert />
+            <strong>{t('desktop.workbench.errorTitle')}</strong>
+            <p>{error}</p>
+            <Button onClick={() => void loadWorkbench()} size="sm">
+              {t('common.tryAgain')}
+            </Button>
           </div>
         ) : null}
-      </PageHeader>
-
-      {loading && !snapshot ? <WorkbenchSkeleton /> : null}
-      {error && !snapshot ? (
-        <div className="workbench-error">
-          <CircleAlert />
-          <strong>{t('desktop.workbench.errorTitle')}</strong>
-          <p>{error}</p>
-          <Button onClick={() => void loadWorkbench()} size="sm">
-            {t('common.tryAgain')}
-          </Button>
-        </div>
-      ) : null}
-      {snapshot ? (
-        <div className={cn('workbench-board', loading && 'is-refreshing')}>
-          {snapshot.untrackedSkills.length > 0 ? (
-            <section className="workbench-untracked-notice">
-              <span>
-                <HardDrive />
-              </span>
-              <div>
-                <strong>
-                  {t('desktop.workbench.untracked.title', {
-                    count: number(snapshot.untrackedSkills.length),
-                  })}
-                </strong>
-                <small>{t('desktop.workbench.untracked.description')}</small>
-              </div>
-              <Button
-                disabled={loading}
-                onClick={() => setUntrackedOpen(true)}
-                size="sm"
-                variant="outline"
-              >
-                <PackagePlus />
-                {t('desktop.workbench.untracked.action')}
-              </Button>
-            </section>
-          ) : null}
-          <WorkbenchOverview
-            snapshot={snapshot}
-            onOpenDirectory={openDirectory}
-          />
-          <AgentCoverageCard
-            focusedAgents={focusedAgents}
-            onManageAgents={onManageAgents}
-            onOpenDirectory={openDirectory}
-            snapshot={snapshot}
-          />
-          <WorkbenchFileChecks
-            snapshot={snapshot}
-            onOpenDirectory={openDirectory}
-          />
-        </div>
-      ) : null}
-      <UntrackedSkillsDialog
-        busy={untrackedBusy ?? (loading ? 'scan' : null)}
-        onOpenChange={setUntrackedOpen}
-        onTrack={(skillIds) => void trackUntrackedSkills(skillIds)}
-        open={untrackedOpen}
-        skills={snapshot?.untrackedSkills ?? []}
-      />
+        {snapshot ? (
+          <div className={cn('workbench-board', loading && 'is-refreshing')}>
+            {snapshot.untrackedSkills.length > 0 ? (
+              <section className="workbench-untracked-notice">
+                <span>
+                  <HardDrive />
+                </span>
+                <div>
+                  <strong>
+                    {t('desktop.workbench.untracked.title', {
+                      count: number(snapshot.untrackedSkills.length),
+                    })}
+                  </strong>
+                  <small>{t('desktop.workbench.untracked.description')}</small>
+                </div>
+                <Button
+                  disabled={loading}
+                  onClick={() => setUntrackedOpen(true)}
+                  size="sm"
+                  variant="outline"
+                >
+                  <PackagePlus />
+                  {t('desktop.workbench.untracked.action')}
+                </Button>
+              </section>
+            ) : null}
+            <WorkbenchOverview
+              snapshot={snapshot}
+              onOpenDirectory={openDirectory}
+            />
+            <AgentCoverageCard
+              focusedAgents={focusedAgents}
+              onManageAgents={onManageAgents}
+              onOpenAccess={(id) => {
+                accessOriginRef.current =
+                  document.activeElement as HTMLElement | null
+                setUntrackedOpen(false)
+                setAccessAgentId(id)
+              }}
+              snapshot={snapshot}
+            />
+            <WorkbenchFileChecks
+              snapshot={snapshot}
+              onOpenDirectory={openDirectory}
+            />
+          </div>
+        ) : null}
+        <UntrackedSkillsDialog
+          busy={untrackedBusy ?? (loading ? 'scan' : null)}
+          onOpenChange={setUntrackedOpen}
+          onTrack={(skillIds) => void trackUntrackedSkills(skillIds)}
+          open={untrackedOpen}
+          skills={snapshot?.untrackedSkills ?? []}
+        />
+      </div>
     </section>
   )
 }

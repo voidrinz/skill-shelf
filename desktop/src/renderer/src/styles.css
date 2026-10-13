@@ -7462,7 +7462,7 @@ html[data-density='compact'] .finder-list-view[data-view='columns'] {
   width: 100%;
   grid-template-columns:
     minmax(145px, 1.3fr) minmax(130px, 1fr) minmax(145px, 1fr)
-    80px 18px;
+    100px;
   align-items: center;
   gap: 14px;
   padding: 10px 16px;
@@ -7484,8 +7484,7 @@ html[data-density='compact'] .finder-list-view[data-view='columns'] {
 .workbench-agent + .workbench-agent {
   border-top: 1px solid var(--border);
 }
-.workbench-agent-row:hover,
-.workbench-agent.is-expanded > .workbench-agent-row {
+.workbench-agent-row:hover {
   background: color-mix(in srgb, var(--secondary) 55%, var(--card));
 }
 .workbench-agent-row > svg {
@@ -7521,8 +7520,7 @@ html[data-density='compact'] .finder-list-view[data-view='columns'] {
   color: var(--muted-foreground);
   font-size: 0.66rem;
 }
-.workbench-agent-coverage strong,
-.workbench-agent-exclusive {
+.workbench-agent-coverage strong {
   font-family: var(--ss-font-mono);
   font-size: 0.8rem;
   font-weight: 530;
@@ -7764,28 +7762,17 @@ html[data-density='compact'] .finder-list-view[data-view='columns'] {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) 18px;
     gap: 12px;
   }
-  .workbench-agent-row > svg {
+  .workbench-agent-row > .workbench-agent-manage {
     grid-column: 3;
     grid-row: 1 / 3;
   }
-  .workbench-agent-row > :nth-child(3) {
-    grid-row: 2;
+  .workbench-agent-manage {
+    font-size: 0;
+    gap: 0;
   }
-  .workbench-agent-row > :nth-child(4) {
-    grid-column: 2;
+  .workbench-agent-row > .workbench-agent-coverage {
+    grid-column: 1 / 3;
     grid-row: 2;
-  }
-  .workbench-agent-exclusive > .sr-only {
-    position: static;
-    width: auto;
-    height: auto;
-    margin-right: 8px;
-    overflow: visible;
-    clip: auto;
-    color: var(--muted-foreground);
-    font-family: inherit;
-    font-size: 0.66rem;
-    white-space: normal;
   }
   .workbench-agent-search {
     width: 100%;
@@ -10623,6 +10610,795 @@ html[data-density='compact']
   gap: 10px;
   border-top: 1px solid var(--settings-border);
   padding-top: 14px;
+}
+/* Agent management is a workbench surface, not an expanded dashboard card. */
+.workbench-overview-surface[hidden] {
+  display: none;
+}
+.workbench-workspace.is-access-mode {
+  overflow: hidden;
+  padding: 0;
+}
+.workbench-agent-manage {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 5px;
+  color: var(--ss-link);
+  font-size: 0.68rem;
+  white-space: nowrap;
+}
+.workbench-agent-manage svg {
+  width: 14px;
+  height: 14px;
+}
+.agent-access-workspace {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  min-height: 0;
+  flex-direction: column;
+  background: var(--card);
+}
+.agent-access-workspace-header {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: center;
+  gap: 20px;
+  border-bottom: 1px solid var(--border);
+  padding: 16px;
+}
+.agent-access-workspace-header h2,
+.agent-access-main-header h3 {
+  margin: 0;
+  color: var(--ss-ink-strong);
+  font-size: 1rem;
+  font-weight: 650;
+}
+.agent-access-workspace-header h2 {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.agent-access-workspace-header h2 svg {
+  width: 16px;
+  height: 16px;
+  color: var(--muted-foreground);
+}
+.agent-access-workspace-header p {
+  margin: 3px 0 0;
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+}
+.agent-access-workspace-layout {
+  display: grid;
+  min-height: 0;
+  min-width: 0;
+  flex: 1;
+  grid-template-columns: 184px minmax(0, 1fr);
+}
+.agent-access-sidebar {
+  overflow-y: auto;
+  border-right: 1px solid var(--border);
+  background: color-mix(in srgb, var(--muted) 50%, var(--card));
+  padding: 12px 8px;
+  scrollbar-gutter: stable;
+}
+.agent-access-sidebar > .search-field {
+  margin: 0 4px 12px;
+}
+.agent-access-sidebar input {
+  height: 30px;
+  font-size: 0.68rem;
+}
+.agent-access-agent-list {
+  display: grid;
+  gap: 3px;
+}
+.agent-access-agent-button {
+  display: grid;
+  width: 100%;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 5px 6px;
+  border: 1px solid transparent;
+  border-radius: var(--ss-radius-control);
+  background: transparent;
+  padding: 10px;
+  text-align: left;
+  cursor: pointer;
+}
+.agent-access-agent-button:hover {
+  background: var(--accent);
+}
+.agent-access-agent-button.is-selected {
+  border-color: var(--border);
+  background: var(--card);
+  box-shadow: 0 1px 2px color-mix(in srgb, var(--foreground) 4%, transparent);
+}
+.agent-access-agent-button strong {
+  display: flex;
+  min-width: 0;
+  grid-column: 1 / -1;
+  align-items: center;
+  gap: 5px;
+  color: var(--ss-ink-strong);
+  font-size: 0.74rem;
+  font-weight: 620;
+  overflow-wrap: anywhere;
+}
+.agent-access-agent-button strong svg {
+  width: 12px;
+  height: 12px;
+  color: var(--muted-foreground);
+}
+.agent-access-agent-button small {
+  align-self: center;
+  color: var(--ss-ink-faint);
+  font-family: var(--ss-font-mono);
+  font-size: 0.62rem;
+}
+.agent-access-agent-button .workbench-program-status {
+  font-size: 0.6rem;
+}
+.agent-access-agent-button:disabled {
+  cursor: wait;
+  opacity: 0.6;
+}
+.agent-access-agent-button:focus-visible,
+.agent-access-workspace-views button:focus-visible,
+.agent-access-name-button:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: -2px;
+}
+.agent-access-main {
+  min-width: 0;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  container-type: inline-size;
+  container-name: access;
+}
+.agent-access-main-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px;
+}
+.agent-access-main-header > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px 12px;
+}
+.agent-access-main-header p {
+  width: 100%;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.67rem;
+}
+.agent-access-workspace-views {
+  display: flex;
+  gap: 18px;
+  border-bottom: 1px solid var(--border);
+  padding: 0 16px;
+}
+.agent-access-workspace-views button {
+  border: 0;
+  border-bottom: 2px solid transparent;
+  background: transparent;
+  padding: 8px 0 10px;
+  color: var(--muted-foreground);
+  font-size: 0.74rem;
+  cursor: pointer;
+}
+.agent-access-workspace-views button[aria-pressed='true'] {
+  border-bottom-color: var(--primary);
+  color: var(--ss-ink-strong);
+  font-weight: 620;
+}
+.agent-access-workspace-views button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+.agent-access-workspace-content {
+  min-width: 0;
+  padding: 16px;
+}
+.agent-access-workspace-pending {
+  margin: 0;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, var(--primary) 7%, var(--card));
+  padding: 8px 16px;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+}
+.agent-access-empty {
+  padding: 16px 8px;
+  color: var(--muted-foreground);
+  font-size: 0.72rem;
+  line-height: 1.6;
+}
+.agent-access-panel {
+  min-width: 0;
+  margin: 0;
+  font-size: 0.72rem;
+  line-height: 1.6;
+}
+.agent-access-panel p {
+  margin: 8px 0;
+}
+.agent-access-heading,
+.agent-access-entry-heading,
+.agent-access-toolbar,
+.agent-access-connect {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  min-width: 0;
+}
+.agent-access-heading > svg {
+  width: 15px;
+  height: 15px;
+  color: var(--muted-foreground);
+}
+.agent-access-heading h3 {
+  margin: 0;
+  color: var(--ss-ink-strong);
+  font-size: 0.78rem;
+  font-weight: 650;
+}
+.agent-access-heading > button {
+  margin-left: auto;
+}
+.agent-access-panel p[role='status'] {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.agent-access-panel p[role='status'] > svg {
+  width: 13px;
+  height: 13px;
+}
+.agent-access-directories {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 12px 0;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 12px;
+}
+.agent-access-directories > div {
+  min-width: 0;
+}
+.agent-access-directories dt {
+  margin-bottom: 3px;
+  color: var(--muted-foreground);
+  font-size: 0.63rem;
+}
+.agent-access-directories dd,
+.agent-access-entry-paths dd {
+  min-width: 0;
+  margin: 0;
+}
+.agent-access-directories code,
+.agent-access-entry-paths code {
+  font-family: var(--ss-font-mono);
+  font-size: 0.65rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.agent-access-connect {
+  margin-bottom: 12px;
+  border: 1px solid var(--border);
+  border-radius: var(--ss-radius-control);
+  background: color-mix(in srgb, var(--muted) 35%, var(--card));
+  padding: 8px 10px;
+}
+.agent-access-connect [role='radiogroup'] {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-left: auto;
+}
+.agent-access-connect label {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  white-space: nowrap;
+}
+.agent-access-panel input[type='radio'],
+.agent-access-panel input[type='checkbox'] {
+  width: 14px;
+  height: 14px;
+  accent-color: var(--primary);
+}
+.agent-access-connect > span {
+  color: var(--muted-foreground);
+  font-size: 0.65rem;
+}
+.agent-access-connect .agent-access-mode-hint {
+  width: 100%;
+  margin: 0;
+  color: var(--muted-foreground);
+  font-size: 0.64rem;
+}
+.agent-access-toolbar {
+  margin: 12px 0;
+}
+.agent-access-search {
+  flex: 1;
+  min-width: 130px;
+}
+.agent-access-search input {
+  height: 30px;
+  font-size: 0.7rem;
+}
+.agent-access-filter {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--muted-foreground);
+  font-size: 0.65rem;
+}
+.agent-access-filter select {
+  height: 30px;
+  border: 1px solid var(--input);
+  border-radius: var(--ss-radius-control);
+  color: var(--foreground);
+  background: var(--card);
+  padding: 0 6px;
+  font-size: 0.7rem;
+}
+.agent-access-filter select:focus-visible,
+.agent-access-panel input:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 2px;
+}
+.agent-access-browser {
+  display: grid;
+  min-width: 0;
+  grid-template-columns: minmax(0, 1fr) 252px;
+  border: 1px solid var(--border);
+  border-radius: var(--ss-radius-panel);
+  overflow: hidden;
+}
+.agent-access-list-pane {
+  min-width: 0;
+}
+.agent-access-table-scroll {
+  max-height: clamp(240px, calc(100dvh - 445px), 480px);
+  overflow: auto;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
+}
+.agent-access-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.67rem;
+}
+.agent-access-table th,
+.agent-access-table td {
+  border-bottom: 1px solid var(--border);
+  padding: 9px 8px;
+  text-align: left;
+}
+.agent-access-table th {
+  position: sticky;
+  z-index: 1;
+  top: 0;
+  background: var(--card);
+  color: var(--muted-foreground);
+  font-size: 0.62rem;
+  font-weight: 500;
+  white-space: nowrap;
+}
+.agent-access-table tr:last-child td {
+  border-bottom: 0;
+}
+.agent-access-table tr:hover td,
+.agent-access-table tr.is-inspected td {
+  background: color-mix(in srgb, var(--primary) 5%, var(--card));
+}
+.agent-access-table .agent-access-select-column {
+  width: 30px;
+  padding-right: 0;
+  text-align: center;
+}
+.agent-access-name-button {
+  max-width: 100%;
+  border: 0;
+  background: transparent;
+  padding: 2px;
+  color: var(--ss-ink-strong);
+  font-size: 0.72rem;
+  font-weight: 570;
+  text-align: left;
+  overflow-wrap: anywhere;
+  cursor: pointer;
+}
+.agent-access-name-button.is-active {
+  color: var(--ss-link);
+}
+.agent-access-status {
+  display: inline-block;
+  border-radius: 4px;
+  background: var(--muted);
+  color: var(--muted-foreground);
+  padding: 2px 5px;
+  font-size: 0.62rem;
+  line-height: 1.5;
+}
+.agent-access-status.is-linked,
+.agent-access-status.is-copy-current,
+.agent-access-status.is-shared {
+  background: var(--ss-success-soft);
+  color: var(--ss-success);
+}
+.agent-access-status.is-copy-outdated,
+.agent-access-status.is-copy-modified,
+.agent-access-status.is-conflict,
+.agent-access-status.is-broken,
+.agent-access-status.is-source-missing,
+.agent-access-status.is-unreadable {
+  background: color-mix(in srgb, var(--ss-amber) 9%, var(--card));
+  color: var(--ss-amber);
+}
+.agent-access-ownership {
+  color: var(--ss-ink-faint);
+  font-size: 0.62rem;
+}
+.agent-access-ownership.is-managed {
+  color: var(--foreground);
+}
+.agent-access-inspector {
+  min-width: 0;
+  border-left: 1px solid var(--border);
+  background: color-mix(in srgb, var(--muted) 24%, var(--card));
+  padding: 14px;
+}
+.agent-access-inspector-heading h4 {
+  margin: 0 0 8px;
+  color: var(--muted-foreground);
+  font-size: 0.65rem;
+  font-weight: 500;
+}
+.agent-access-inspector-heading strong {
+  color: var(--ss-ink-strong);
+  font-size: 0.8rem;
+  font-weight: 620;
+  overflow-wrap: anywhere;
+}
+.agent-access-inspector-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 8px 0 14px;
+  color: var(--muted-foreground);
+  font-size: 0.63rem;
+}
+.agent-access-inspector-empty {
+  max-width: 220px;
+  color: var(--ss-ink-faint);
+  font-size: 0.7rem;
+  line-height: 1.7;
+}
+.agent-access-entry-paths {
+  display: grid;
+  gap: 10px;
+  margin: 8px 0 0;
+}
+.agent-access-entry-paths > div {
+  min-width: 0;
+}
+.agent-access-entry-paths dt {
+  margin-bottom: 3px;
+  color: var(--muted-foreground);
+  font-size: 0.63rem;
+}
+.agent-access-entry-paths dd {
+  display: flex;
+  align-items: flex-start;
+  gap: 6px;
+}
+.agent-access-entry-paths code {
+  min-width: 0;
+  flex: 1;
+}
+.agent-access-entry-paths button {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.agent-access-entry-paths button svg {
+  width: 13px;
+  height: 13px;
+}
+.agent-access-entry-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 14px;
+}
+.agent-access-panel .agent-access-limit {
+  margin: 12px 0 0;
+  color: var(--ss-ink-faint);
+  font-size: 0.63rem;
+}
+.agent-access-alert {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.agent-access-recovery {
+  display: grid;
+  gap: 6px;
+  border: 1px solid color-mix(in srgb, var(--ss-amber) 30%, var(--border));
+  border-radius: var(--ss-radius-control);
+  background: color-mix(in srgb, var(--ss-amber) 6%, var(--card));
+  margin: 8px 0;
+  padding: 10px;
+}
+.agent-access-recovery code {
+  font-family: var(--ss-font-mono);
+  font-size: 0.68rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.agent-access-alert p,
+.agent-access-panel .agent-access-warning {
+  color: var(--ss-amber);
+}
+.agent-access-panel .agent-access-success {
+  color: var(--ss-success);
+}
+.agent-access-preview-page {
+  display: grid;
+  gap: 12px;
+  min-width: 0;
+}
+.agent-access-preview-heading h3 {
+  margin: 8px 0;
+  color: var(--ss-ink-strong);
+  font-size: 0.95rem;
+  font-weight: 650;
+}
+.agent-access-preview-page p {
+  margin: 0;
+}
+.agent-access-expiry {
+  color: var(--muted-foreground);
+  font-size: 0.65rem;
+}
+.agent-access-preview-entries {
+  margin: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--ss-radius-panel);
+  padding: 0;
+  list-style: none;
+}
+.agent-access-preview-entries li {
+  padding: 14px;
+}
+.agent-access-preview-entries li + li {
+  border-top: 1px solid var(--border);
+}
+.agent-access-preview-entries .agent-access-entry-heading {
+  justify-content: space-between;
+}
+.agent-access-preview-entries .agent-access-entry-heading strong {
+  font-weight: 620;
+  overflow-wrap: anywhere;
+}
+.agent-access-preview-entries .agent-access-entry-heading > span {
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+}
+.agent-access-preview-entries .agent-access-entry-paths {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.agent-access-preview-entries li.is-blocked {
+  background: color-mix(in srgb, var(--ss-amber) 6%, var(--card));
+}
+.agent-access-preview-entries li.is-blocked .agent-access-entry-heading > span {
+  color: var(--ss-amber);
+}
+.agent-access-preview-entries li p {
+  margin-top: 8px;
+}
+.agent-access-preview-footer {
+  display: flex;
+  position: sticky;
+  z-index: 2;
+  bottom: -16px;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+  border-top: 1px solid var(--border);
+  background: var(--card);
+  padding: 12px 0;
+}
+.agent-access-readonly-list {
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
+}
+.agent-access-readonly-list li {
+  border-bottom: 1px solid var(--border);
+  padding: 12px 0;
+}
+.agent-access-readonly-list li > div {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.agent-access-readonly-list strong {
+  font-size: 0.76rem;
+  font-weight: 620;
+}
+.agent-access-readonly-list span,
+.agent-access-exclusive-note {
+  color: var(--muted-foreground);
+  font-size: 0.67rem;
+}
+.agent-access-readonly-list code,
+.agent-access-info code {
+  display: block;
+  margin-top: 5px;
+  font-family: var(--ss-font-mono);
+  font-size: 0.68rem;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+.agent-access-readonly-list .agent-access-exclusive-marker {
+  border-radius: 4px;
+  background: var(--secondary);
+  padding: 2px 5px;
+  color: var(--foreground);
+  font-size: 0.62rem;
+}
+.agent-access-info {
+  display: grid;
+  gap: 20px;
+  max-width: 900px;
+}
+.agent-access-info h4 {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0 0 10px;
+  font-size: 0.78rem;
+  font-weight: 620;
+}
+.agent-access-info h4 svg {
+  width: 15px;
+  height: 15px;
+  color: var(--muted-foreground);
+}
+.agent-access-info p,
+.agent-access-info dt {
+  color: var(--muted-foreground);
+  font-size: 0.7rem;
+  line-height: 1.7;
+}
+.agent-access-info dd {
+  margin: 0 0 10px;
+}
+@container access (max-width: 760px) {
+  .agent-access-browser {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .agent-access-inspector {
+    border-top: 1px solid var(--border);
+    border-left: 0;
+  }
+  .agent-access-inspector .agent-access-entry-paths {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .agent-access-inspector-empty {
+    max-width: none;
+    margin: 0;
+  }
+}
+@container workspace (max-width: 580px) {
+  .agent-access-workspace-header {
+    align-items: flex-start;
+    gap: 8px;
+    padding: 12px;
+  }
+  .agent-access-workspace-header h2 {
+    font-size: 0.85rem;
+  }
+  .agent-access-workspace-header p {
+    display: none;
+  }
+  .agent-access-workspace-layout {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto minmax(0, 1fr);
+  }
+  .agent-access-sidebar {
+    border-right: 0;
+    border-bottom: 1px solid var(--border);
+    padding: 8px;
+    overflow: hidden;
+  }
+  .agent-access-sidebar > .search-field {
+    margin: 0 0 6px;
+  }
+  .agent-access-agent-list {
+    display: flex;
+    overflow-x: auto;
+    scrollbar-gutter: auto;
+  }
+  .agent-access-agent-button {
+    width: 154px;
+    flex: 0 0 154px;
+    padding: 8px;
+  }
+  .agent-access-main-header,
+  .agent-access-workspace-content {
+    padding: 12px;
+  }
+  .agent-access-workspace-views {
+    padding: 0 12px;
+  }
+}
+@container access (max-width: 480px) {
+  .agent-access-directories,
+  .agent-access-preview-entries .agent-access-entry-paths,
+  .agent-access-inspector .agent-access-entry-paths {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .agent-access-connect [role='radiogroup'] {
+    margin-left: 0;
+  }
+  .agent-access-connect > button:last-of-type {
+    margin-left: auto;
+  }
+  .agent-access-table thead {
+    display: none;
+  }
+  .agent-access-table tr {
+    display: grid;
+    grid-template-columns: 24px minmax(0, 1fr);
+    border-bottom: 1px solid var(--border);
+    padding: 8px;
+  }
+  .agent-access-table td,
+  .agent-access-table .agent-access-select-column {
+    width: auto;
+    border: 0;
+    padding: 3px 4px;
+  }
+  .agent-access-table td[data-label] {
+    grid-column: 2;
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+  .agent-access-table td[data-label]::before {
+    content: attr(data-label);
+    color: var(--muted-foreground);
+    font-size: 0.62rem;
+  }
+  .agent-access-table td[data-label='Skill']::before {
+    display: none;
+  }
+  .agent-access-table .agent-access-select-column {
+    grid-column: 1;
+    grid-row: 1;
+  }
+  .agent-access-table-scroll {
+    max-height: 320px;
+  }
 }
 @media (max-width: 1100px) {
   .sync-method {

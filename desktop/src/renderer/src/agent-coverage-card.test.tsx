@@ -7,12 +7,34 @@ import {
   within,
 } from '@testing-library/react'
 import { I18nProvider } from '@skill-shelf/i18n/react'
-import { afterEach, expect, it, vi } from 'vitest'
-import type { WorkbenchSnapshot } from '../../shared/desktop-contract'
+import { afterEach, beforeEach, expect, it, vi } from 'vitest'
+import type {
+  SkillShelfDesktopApi,
+  WorkbenchSnapshot,
+} from '../../shared/desktop-contract'
 import { AgentCoverageCard } from './agent-coverage-card'
 import { WorkbenchFileChecks, WorkbenchOverview } from './workbench-overview'
 
-afterEach(cleanup)
+const originalApi = window.skillShelf
+beforeEach(() => {
+  window.skillShelf = {
+    getAgentSkillAccess: vi
+      .fn()
+      .mockImplementation(async (agentId: string) => ({
+        agentId,
+        agentName: agentId,
+        sharedDirectory: '/home/demo/.agents/skills',
+        targetDirectory: `/home/demo/.${agentId}/skills`,
+        readsSharedDirectory: agentId === 'codex',
+        scannedAt: '',
+        entries: [],
+      })),
+  } as unknown as SkillShelfDesktopApi
+})
+afterEach(() => {
+  cleanup()
+  window.skillShelf = originalApi
+})
 
 function snapshot(sharedSkills = 74): WorkbenchSnapshot {
   return {
@@ -135,41 +157,77 @@ function snapshot(sharedSkills = 74): WorkbenchSnapshot {
   }
 }
 
-function renderAgents(data = snapshot(), onOpenDirectory = vi.fn()) {
+function renderAgents(
+  data = snapshot(),
+  onOpenAccess = vi.fn(),
+  locale: 'en' | 'zh-CN' = 'zh-CN'
+) {
   render(
-    <I18nProvider defaultPreference="zh-CN">
+    <I18nProvider defaultPreference={locale}>
       <AgentCoverageCard
         focusedAgents={['Codex']}
         onManageAgents={() => {}}
-        onOpenDirectory={onOpenDirectory}
+        onOpenAccess={onOpenAccess}
         snapshot={data}
       />
     </I18nProvider>
   )
-  return onOpenDirectory
+  return onOpenAccess
 }
 
-it('shows shared coverage and opens program evidence and exclusive Skill details', async () => {
+it('shows shared coverage and opens the management workspace without expanding a row', async () => {
   const open = renderAgents()
   const row = await screen.findByRole('button', {
     name: /Codex.*直读共享目录.*74 \/ 74/,
   })
   expect(screen.queryByText('74 / 75')).toBeNull()
+  expect(row.hasAttribute('aria-expanded')).toBe(false)
   fireEvent.click(row)
-  expect(screen.getByText('/usr/local/bin/codex')).toBeTruthy()
-  expect(screen.getByText('total-recall')).toBeTruthy()
-  fireEvent.click(screen.getByRole('button', { name: '打开目录' }))
   expect(open).toHaveBeenCalledWith('codex')
+  expect(screen.queryByText('/usr/local/bin/codex')).toBeNull()
+  expect(screen.queryByText('total-recall')).toBeNull()
+  expect(window.skillShelf.getAgentSkillAccess).not.toHaveBeenCalled()
+})
+
+it.each(['zh-CN', 'en'] as const)(
+  'shows additional local Skills only for nonzero counts without an extra column (%s)',
+  async (locale) => {
+    const data = snapshot()
+    data.agentCoverage[0]!.exclusiveSkills = 3
+    renderAgents(data, vi.fn(), locale)
+    const codex = screen.getByRole('button', { name: /Codex/ })
+    const droid = screen.getByRole('button', { name: /Droid/ })
+    const note =
+      locale === 'zh-CN' ? '另有 3 个本地 Skill' : '3 additional local Skills'
+    await screen.findByText(note)
+    expect(within(codex).getByText(note)).toBeTruthy()
+    expect(within(codex).getByText('74 / 74')).toBeTruthy()
+    expect(
+      within(droid).queryByText(/本地 Skill|additional local Skills/)
+    ).toBeNull()
+    expect(screen.queryByText(/专属 Skill|Agent-only Skills/)).toBeNull()
+    expect(
+      document.querySelector('.workbench-agent-columns')!.children
+    ).toHaveLength(4)
+    expect(document.querySelector('.workbench-agent-exclusive')).toBeNull()
+  }
+)
+
+it('omits additional-local-Skill notes when every Agent has a zero count', () => {
+  const data = snapshot()
+  data.agentCoverage[0]!.exclusiveSkills = 0
+  renderAgents(data)
+  expect(screen.queryByText(/另有.*本地 Skill/)).toBeNull()
+  expect(screen.getByText('74 / 74')).toBeTruthy()
 })
 
 it('separates possible leftover directories from unknown installation status', async () => {
-  renderAgents()
+  const open = renderAgents()
   fireEvent.click(await screen.findByRole('button', { name: /可能残留/ }))
   expect(screen.queryByRole('button', { name: /Codex/ })).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: /Droid/ }))
-  expect(screen.getByText(/可能已卸载，也可能安装在其他位置/)).toBeTruthy()
-  expect(screen.getByText('alpha')).toBeTruthy()
-  expect(screen.getByText('beta')).toBeTruthy()
+  expect(open).toHaveBeenCalledWith('droid')
+  expect(screen.queryByText('alpha')).toBeNull()
   fireEvent.click(screen.getByRole('button', { name: /未验证.*1/ }))
   expect(screen.getByRole('button', { name: /Unknown Agent/ })).toBeTruthy()
   expect(screen.queryByRole('button', { name: /Droid/ })).toBeNull()

@@ -1302,7 +1302,7 @@ export const messages = {
     'Defaults to ~/.agents/skills. Compatible Agents read it directly; others use links or copies.',
   'desktop.workbench.inventory.exclusive': 'Outside the shared directory',
   'desktop.workbench.inventory.exclusiveDescription':
-    'Skills in Agent-specific directories do not increase the shared coverage baseline. Expand an Agent to see names and locations.',
+    'Skills in Agent-specific directories do not increase the shared coverage baseline. Open Agent access to see names and locations.',
   'desktop.workbench.inventory.counting':
     'Counted by unique Skill name. Project Skills are excluded.',
   'desktop.workbench.inventory.noSharedDirectory':
@@ -1311,7 +1311,7 @@ export const messages = {
   'desktop.workbench.agents.showMore': 'Show {count} more Agents',
   'desktop.workbench.agents.title': 'Agents and Skill distribution',
   'desktop.workbench.agents.description':
-    'Check program presence and Skills on disk separately. Expand a row for details.',
+    'Check program presence and Skills on disk separately. Open an Agent to manage access.',
   'desktop.workbench.agents.filters': 'Filter Agents',
   'desktop.workbench.agents.filter.all': 'All',
   'desktop.workbench.agents.filter.found': 'Program found',
@@ -1322,18 +1322,19 @@ export const messages = {
   'desktop.workbench.agents.absent':
     'Followed, with no program or directory evidence: {names}',
   'desktop.workbench.agents.program': 'Program detection',
-  'desktop.workbench.agents.shared': 'Shared Skill coverage',
-  'desktop.workbench.agents.exclusive': 'Agent-only Skills',
+  'desktop.workbench.agents.shared': 'Shared Skill presence',
+  'desktop.workbench.agents.exclusive': 'Outside the shared directory',
+  'desktop.workbench.agents.additionalLocal': '{count} additional local Skills',
   'desktop.workbench.agents.status.found': 'Program found',
   'desktop.workbench.agents.status.not-found': 'Program not found',
   'desktop.workbench.agents.status.unverified': 'Program unverified',
   'desktop.workbench.agents.directRead': 'Reads shared directory',
   'desktop.workbench.agents.localRead': 'Local links or copies',
-  'desktop.workbench.agents.complete': 'All shared Skills covered',
+  'desktop.workbench.agents.complete': 'All shared Skill names present',
   'desktop.workbench.agents.missingCount': '{count} shared Skills missing',
   'desktop.workbench.agents.empty': 'No Agents match this filter.',
   'desktop.workbench.agents.limit':
-    'Coverage reflects files and read rules, not running sessions or successful Skill execution.',
+    'Presence is counted by Skill name and read rules, not matching contents or successful execution. Inspect links and managed copies in Agent access.',
   'desktop.workbench.agents.programEvidence': 'Program evidence',
   'desktop.workbench.agents.evidence.command': 'Command',
   'desktop.workbench.agents.evidence.application': 'Application',
@@ -1347,7 +1348,7 @@ export const messages = {
   'desktop.workbench.agents.checkedApps': 'Applications checked: {apps}',
   'desktop.workbench.agents.directory': 'Agent Skill directory',
   'desktop.workbench.agents.localKinds':
-    'Shared Skills covered locally: {linked} links, {direct} copies.',
+    'Matching shared Skill names: {linked} links, {direct} ordinary folders. An ordinary folder is not necessarily a managed or matching copy.',
   'desktop.workbench.agents.noDirectory':
     'This Skill directory does not exist yet.',
   'desktop.workbench.agents.readsShared':
@@ -1356,21 +1357,150 @@ export const messages = {
     'Configuration directory evidence: {paths}',
   'desktop.workbench.agents.skillLists': 'Skill details',
   'desktop.workbench.agents.tab.missing': 'Missing shared Skills',
-  'desktop.workbench.agents.tab.exclusive': 'Agent-only Skills',
-  'desktop.workbench.agents.tab.local': 'Local links and copies',
+  'desktop.workbench.agents.tab.exclusive': 'Outside the shared directory',
+  'desktop.workbench.agents.tab.local': 'Local links and folders',
   'desktop.workbench.agents.tabDescription.missing':
     "These Skills exist in the shared directory but are not covered by this Agent's read rules.",
   'desktop.workbench.agents.tabDescription.exclusive':
-    "These names are absent from the shared directory and do not affect other Agents' coverage.",
+    '"Outside the shared directory" marks Skill names absent from the shared directory. They are counted separately, not in shared coverage.',
   'desktop.workbench.agents.tabDescription.local':
-    "Readable Skills in this Agent's directory, including shared deployments and Agent-only Skills.",
+    "Readable Skills in this Agent's directory, including shared links or copies and Skills outside the shared directory.",
   'desktop.workbench.agents.tabEmpty.missing': 'No shared Skills are missing.',
   'desktop.workbench.agents.tabEmpty.exclusive':
     'No Skills outside the shared directory.',
   'desktop.workbench.agents.tabEmpty.local':
     'No readable Skills in this directory.',
   'desktop.workbench.agents.kind.symlink': 'Link',
-  'desktop.workbench.agents.kind.copy': 'Copy / local folder',
+  'desktop.workbench.agents.kind.copy': 'Ordinary folder (copy not verified)',
+  'desktop.agentAccess.title': 'Shared Skill access',
+  'desktop.agentAccess.workspace.title': 'Agent access',
+  'desktop.agentAccess.workspace.description':
+    'Choose an Agent, inspect its Skills, and preview changes before applying.',
+  'desktop.agentAccess.workspace.manage': 'Manage access',
+  'desktop.agentAccess.workspace.back': 'Back to overview',
+  'desktop.agentAccess.workspace.agentList': 'Choose an Agent',
+  'desktop.agentAccess.workspace.viewLabel': 'Agent view',
+  'desktop.agentAccess.workspace.shared': 'Shared access',
+  'desktop.agentAccess.workspace.local': 'Local files',
+  'desktop.agentAccess.workspace.info': 'Agent info',
+  'desktop.agentAccess.workspace.noAgents': 'No Agents are available.',
+  'desktop.agentAccess.workspace.selectAgent': 'Choose an Agent to continue.',
+  'desktop.agentAccess.workspace.applying':
+    'Applying changes. Stay in this view until the operation finishes.',
+  'desktop.agentAccess.inspectorTitle': 'Skill details',
+  'desktop.agentAccess.inspectorEmpty':
+    'Select a Skill to inspect its paths and available actions.',
+  'desktop.agentAccess.inspectSkill': 'Inspect {name}',
+  'desktop.agentAccess.statusLabel': 'Status',
+  'desktop.agentAccess.ownershipLabel': 'Management',
+  'desktop.agentAccess.ownershipShort.managed': 'Managed',
+  'desktop.agentAccess.ownershipShort.external': 'External',
+  'desktop.agentAccess.ownershipShort.shared': 'Shared',
+  'desktop.agentAccess.modeHint.symlink':
+    'Shares source files; edits affect every linked Agent.',
+  'desktop.agentAccess.modeHint.copy':
+    'Independent files; updates require a checked preview.',
+  'desktop.agentAccess.refresh': 'Recheck access',
+  'desktop.agentAccess.retry': 'Try again',
+  'desktop.agentAccess.loading': 'Checking paths and managed copies...',
+  'desktop.agentAccess.loadError':
+    'Could not check Skill access. No files were changed. Try again.',
+  'desktop.agentAccess.previewError':
+    'Could not prepare the preview. No files were changed. Recheck access and try again.',
+  'desktop.agentAccess.applyError':
+    'The operation did not finish. Files or permissions may have changed. Return to the list and recheck access before retrying; some operations may already have completed.',
+  'desktop.agentAccess.openError':
+    'Could not open this folder. It may be missing or inaccessible.',
+  'desktop.agentAccess.applied':
+    'Operation completed. The access details have been checked again.',
+  'desktop.agentAccess.directRead':
+    'This Agent reads the shared directory directly. No links or copies are needed, and there is no separate connection to manage.',
+  'desktop.agentAccess.localRead':
+    'This Agent reads its own Skill directory. Connect selected shared Skills here using links or independent copies. Each change requires a path-by-path preview.',
+  'desktop.agentAccess.sourceDirectory': 'Shared source directory',
+  'desktop.agentAccess.targetDirectory': 'Agent Skill directory',
+  'desktop.agentAccess.source': 'Source',
+  'desktop.agentAccess.target': 'Agent path',
+  'desktop.agentAccess.actualTarget': 'Link resolves to',
+  'desktop.agentAccess.resolvedSource': 'Resolved source',
+  'desktop.agentAccess.recoveryHelp':
+    'Automatic recovery could not finish. Recovery files are retained at the paths below. Do not delete them; inspect and restore them manually before further changes.',
+  'desktop.agentAccess.recoveryRetained':
+    'Retained recovery files were found at these paths. Their presence does not confirm that an operation succeeded. Keep them until you have inspected the result and completed any needed manual recovery; remove them only when no recovery is needed.',
+  'desktop.agentAccess.refreshFailed':
+    'Files changed successfully, but verification failed. The displayed status may be out of date. Recheck access before further operations.',
+  'desktop.agentAccess.modeLabel': 'Connection method',
+  'desktop.agentAccess.mode.symlink': 'Symbolic link',
+  'desktop.agentAccess.mode.copy': 'Independent copy',
+  'desktop.agentAccess.mode.shared': 'Direct read',
+  'desktop.agentAccess.linkHelp':
+    'Links use the same source files. Source changes are immediately visible to the Agent; edits through the Agent path also change the source and affect other Agents.',
+  'desktop.agentAccess.copyHelp':
+    'Copies are independent and do not sync automatically. Recheck and preview updates manually. Locally modified copies are protected from automatic overwrite.',
+  'desktop.agentAccess.ownershipHelp':
+    'Only connections created here are managed by Skill Shelf. Existing external links and folders are displayed, never adopted or overwritten.',
+  'desktop.agentAccess.modifiedHelp':
+    'This copy has local changes. Update is blocked to preserve them. Compare the source and Agent folder and resolve the changes manually.',
+  'desktop.agentAccess.externalHelp':
+    'Not managed by Skill Shelf. No automatic overwrite, removal, or takeover is available.',
+  'desktop.agentAccess.selected': '{count} selected',
+  'desktop.agentAccess.previewConnect': 'Preview connection',
+  'desktop.agentAccess.search': 'Search Skill access',
+  'desktop.agentAccess.filterLabel': 'Show',
+  'desktop.agentAccess.filter.all': 'All statuses',
+  'desktop.agentAccess.filter.missing': 'Missing',
+  'desktop.agentAccess.filter.attention': 'Needs attention',
+  'desktop.agentAccess.selectMissing': 'Select missing Skills',
+  'desktop.agentAccess.clearSelection': 'Clear selection',
+  'desktop.agentAccess.selectSkill': 'Select {name}',
+  'desktop.agentAccess.entries': 'Skill access details',
+  'desktop.agentAccess.empty': 'No Skills match this view.',
+  'desktop.agentAccess.limit':
+    'These checks inspect paths and file contents for managed copies; they do not prove that the Agent loaded or executed a Skill.',
+  'desktop.agentAccess.openSource': 'Open source folder for {name}',
+  'desktop.agentAccess.openTarget': 'Open Agent folder for {name}',
+  'desktop.agentAccess.status.shared': 'Reads shared source',
+  'desktop.agentAccess.status.missing': 'Not connected',
+  'desktop.agentAccess.status.linked': 'Link accessible',
+  'desktop.agentAccess.status.copy-current': 'Copy matches source',
+  'desktop.agentAccess.status.copy-outdated': 'Source changed',
+  'desktop.agentAccess.status.copy-modified': 'Copy modified locally',
+  'desktop.agentAccess.status.conflict': 'Path conflict',
+  'desktop.agentAccess.status.broken': 'Broken link',
+  'desktop.agentAccess.status.source-missing': 'Source missing',
+  'desktop.agentAccess.status.unreadable': 'Cannot verify safely',
+  'desktop.agentAccess.ownership.managed': 'Managed by Skill Shelf',
+  'desktop.agentAccess.ownership.external': 'Not managed',
+  'desktop.agentAccess.ownership.shared': 'Shared source',
+  'desktop.agentAccess.action.update': 'Preview copy update',
+  'desktop.agentAccess.action.repair': 'Preview link repair',
+  'desktop.agentAccess.action.disconnect': 'Preview disconnection',
+  'desktop.agentAccess.previewTitle': 'Review filesystem changes',
+  'desktop.agentAccess.previewDescription':
+    'Review every source, destination, and operation before confirming. Nothing is written until you confirm. Paths and contents are checked again when applying.',
+  'desktop.agentAccess.expires': 'This preview expires at {time}.',
+  'desktop.agentAccess.expired':
+    'This preview has expired. Return to the list and prepare a new preview.',
+  'desktop.agentAccess.disconnectHelp':
+    'Disconnecting never deletes the shared source. Only a verified, managed link or unchanged managed copy can be removed.',
+  'desktop.agentAccess.forgetHelp':
+    'Only the management record is removed. Files on disk are left untouched.',
+  'desktop.agentAccess.operation.create-link': 'Create symbolic link',
+  'desktop.agentAccess.operation.create-copy': 'Create independent copy',
+  'desktop.agentAccess.operation.update-copy':
+    'Replace unchanged copy with current source',
+  'desktop.agentAccess.operation.repair-link': 'Repair managed symbolic link',
+  'desktop.agentAccess.operation.remove-link':
+    'Remove managed link (keep source)',
+  'desktop.agentAccess.operation.remove-copy':
+    'Remove unchanged managed copy (keep source)',
+  'desktop.agentAccess.operation.forget': 'Forget management record only',
+  'desktop.agentAccess.operation.blocked': 'Blocked - no write permitted',
+  'desktop.agentAccess.blockedEntry':
+    'This path could not be safely changed. Recheck access and resolve the conflict manually.',
+  'desktop.agentAccess.blocked':
+    'Some selected paths are blocked. This entire preview cannot be applied. Return to the list, resolve the issue or change the selection, then preview again.',
+  'desktop.agentAccess.confirm': 'Confirm and apply',
   'desktop.workbench.files.title': 'File and link checks',
   'desktop.workbench.files.clear': 'No file access issues found',
   'desktop.workbench.files.issueCount': '{count} file access issues found',
@@ -1399,9 +1529,8 @@ export const messages = {
   'desktop.workbench.coverage.available':
     '{available} / {total} shared available',
   'desktop.workbench.coverage.description':
-    'Coverage is based on ~/.agents/skills. Agent-only Skills are counted separately.',
-  'desktop.workbench.coverage.exclusive':
-    '{count} additional Agent-only Skills',
+    'Coverage is based on ~/.agents/skills. Skills outside the shared directory are counted separately.',
+  'desktop.workbench.coverage.exclusive': '{count} additional local Skills',
   'desktop.workbench.coverage.sharedReads': 'Reads shared directory',
   'desktop.workbench.coverage.noSharedSkills': 'No shared Skills',
   'desktop.workbench.coverage.noSharedAria': '{name}: no shared Skills',
@@ -1418,7 +1547,7 @@ export const messages = {
   'desktop.workbench.coverage.showLess': 'Show fewer directories',
   'desktop.workbench.coverage.title': 'Agent availability',
   'desktop.workbench.description':
-    'Review shared and Agent-only Skill locations, program presence, and local directories.',
+    'Review shared Skill and Agent-local file locations, program presence, and local directories.',
   'desktop.workbench.errorTitle': 'Could not scan the local workspace',
   'desktop.workbench.eyebrow': 'Workbench / local environment',
   'desktop.workbench.health.aria':
