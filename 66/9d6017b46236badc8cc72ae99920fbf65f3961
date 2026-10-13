@@ -1,0 +1,25 @@
+docs/development.md
+  s_cde75939230731::t_7fb4407f4b83ce 26-28
+docs/agent-skill-access.md
+  s_cde75939230731::t_7fb4407f4b83ce 1-2,28-76,82,88-93,95
+  s_cde75939230731::t_02fd01a0dae982 77-81,96-99
+  s_cde75939230731::t_11e1b7ab9c599e 16-21,94
+  s_cde75939230731::t_96cc8852bb292d 83-87
+  s_cde75939230731::t_c4fc1c1c85596f 3-15,22-27
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "669d6017b46236badc8cc72ae99920fbf65f3961",
+  "prompts": {},
+  "sessions": {
+    "s_cde75939230731": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a13326-e8e1-79f3-86b0-41b1de7ff3ea",
+        "model": "merlin/gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
