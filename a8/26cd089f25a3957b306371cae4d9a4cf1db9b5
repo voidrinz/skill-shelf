@@ -1,0 +1,21 @@
+desktop/package.json
+  s_d156a057076bd4::t_3a1dee12f6a526 3
+docs/release-notes/0.1.14.md
+  s_d156a057076bd4::t_3a1dee12f6a526 1-31
+---
+{
+  "schema_version": "authorship/3.0.0",
+  "git_ai_version": "1.7.5",
+  "base_commit_sha": "a826cd089f25a3957b306371cae4d9a4cf1db9b5",
+  "prompts": {},
+  "sessions": {
+    "s_d156a057076bd4": {
+      "agent_id": {
+        "tool": "codex",
+        "id": "01a11f65-e785-7730-8ba3-2f272150ac9e",
+        "model": "merlin/gpt-6.1-sol"
+      },
+      "human_author": "Rin <voidrinfx@gmail.com>"
+    }
+  }
+}
